@@ -76,12 +76,14 @@ each one encodes a real bug or a product decision. Do not break them.
 
 ## Aesthetics
 
-Site: monochrome — light paper #f4f4f5, ink #18181b, greys for lines and
-muted text, neutral-grey viewport #262626; system-sans UI with mono only for
-the wordmark and technical readouts; near-black as the single primary-action
-accent, zero marketing gradient. The viewer is a centered ~1000×1000 card
-(fullscreen on demand), controls beneath it. Artifact: dark background
-#211a14, amber caption #c9a978. Two registers, one restrained palette.
+Site: monochrome dark — page #161618, light-grey text #d6d6da, dark-grey
+buttons #2c2c31 (one shade for every button, export included), neutral-grey
+viewport #262626; system-sans UI with mono only for the wordmark and
+technical readouts; zero marketing gradient. The viewer is a centered
+~800×800 card (fullscreen on demand); camera/material/light live in three
+icon menus at the bottom of the view, export + progress beneath the card.
+Artifact: dark background #211a14, amber caption #c9a978. Two registers,
+one restrained palette.
 
 ## Known pitfalls
 

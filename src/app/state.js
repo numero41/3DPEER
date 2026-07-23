@@ -29,8 +29,9 @@ export const state = {
   /** Whether the additive wireframe overlay is on (a UI preference that
    *  persists across model loads, so it is NOT cleared by resetState). */
   wireframe: false,
-  /** Active lighting-preset name (UI preference, persists across loads). */
-  light: 'studio',
+  /** Lighting rig values driven by the light-menu sliders (UI preference,
+   *  persists across loads). See lighting.js for the meaning of each field. */
+  lighting: { ambient: 0.6, count: 1, intensity: 1.2, orientation: 35 },
 
   /** THREE.AnimationMixer for the loaded clips, or null. */
   mixer: null,

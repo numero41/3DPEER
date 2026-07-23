@@ -11,17 +11,18 @@
    ============================================================================= */
 
 :root {
-  /* ---- palette (monochrome) ---- */
+  /* ---- palette (monochrome, dark) ---- */
   --white: #ffffff;
   --black: #000000;
-  --bg: #f4f4f5;
-  --surface: #ffffff;
-  --ink: #18181b;
-  --muted: #71717a;
-  --faint: #a1a1aa;
-  --line: #e4e4e7;
-  --line-strong: #d4d4d8;
+  --bg: #161618;
+  --surface: #202024;
+  --ink: #d6d6da;
+  --muted: #9a9aa1;
+  --faint: #6e6e76;
+  --line: #26262b;
+  --line-strong: #35353b;
   --stage-bg: #262626;
+  --btn-dark: #2c2c31;
 
   /* ---- overlays drawn over the dark viewport ---- */
   --overlay: rgba(24, 24, 27, 0.82);
@@ -34,8 +35,9 @@
   --soft-ink: rgba(244, 244, 245, 0.08);
 
   /* ---- semantic roles ---- */
-  --accent: var(--ink);
-  --on-accent: var(--white);
+  --accent: var(--btn-dark);
+  --on-accent: var(--ink);
+  --check: var(--btn-dark);
 
   /* ---- hover contrast formula ---- */
   --hover-amount: 12%;
@@ -78,7 +80,7 @@
   --hairline: 1px;
   --dash: 1.5px;
   --ctrl: 34px;
-  --icon: 17px;
+  --icon: 18px;
   --icon-stroke: 2;
   --cube-w: 96px;
   --menu-w: 190px;
@@ -107,6 +109,7 @@ body {
   color: var(--ink);
   font: var(--fs-base)/1.55 var(--sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ============================================================= hover formula */
@@ -284,11 +287,15 @@ body.loaded .viewport-toolbar {
 }
 
 /* ============================================ bottom toolbar + popover menus */
+/* Centred with auto margins (not a -50% transform): transform centring lands
+   on half-pixels when the content width is odd, which blurs icons and text. */
 .viewport-toolbar {
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: var(--sp-5);
-  transform: translateX(-50%);
+  margin-inline: auto;
+  width: fit-content;
   gap: var(--sp-3);
   z-index: var(--z-panel-content);
 }
@@ -299,17 +306,19 @@ body.loaded .viewport-toolbar {
 
 .menu-group.open .icon-btn {
   background: var(--overlay-ink);
-  color: var(--ink);
+  color: var(--bg);
 }
 
+/* Fixed width + integer negative margin instead of a -50% transform, so the
+   popover sits on whole pixels (avoids blurry text over the canvas). */
 .menu-pop {
   position: absolute;
   bottom: calc(100% + var(--sp-2));
   left: 50%;
   display: none;
-  min-width: var(--menu-w);
+  width: var(--menu-w);
+  margin-left: calc(var(--menu-w) / -2);
   padding: var(--sp-3);
-  transform: translateX(-50%);
   border: var(--hairline) solid var(--overlay-line);
   border-radius: var(--r-md);
   background: var(--panel-bg);
@@ -336,7 +345,7 @@ body.loaded .viewport-toolbar {
 }
 
 .menu-item input {
-  accent-color: var(--overlay-ink);
+  accent-color: var(--check);
 }
 
 .menu-item span {
@@ -344,14 +353,14 @@ body.loaded .viewport-toolbar {
 }
 
 .menu-toggle {
-  --btn-bg: var(--soft-ink);
+  --btn-bg: var(--btn-dark);
   --btn-fg: var(--overlay-ink);
   width: 100%;
   margin-top: var(--sp-2);
   padding: var(--sp-3);
   border: var(--hairline) solid var(--overlay-line);
   border-radius: var(--r-sm);
-  background: var(--soft-ink);
+  background: var(--btn-dark);
   color: var(--overlay-ink);
   font-size: var(--fs-sm);
   cursor: pointer;
@@ -359,9 +368,9 @@ body.loaded .viewport-toolbar {
 
 .menu-toggle[aria-pressed="true"] {
   --btn-bg: var(--overlay-ink);
-  --btn-fg: var(--ink);
+  --btn-fg: var(--bg);
   background: var(--overlay-ink);
-  color: var(--ink);
+  color: var(--bg);
 }
 
 .menu-row {
@@ -371,12 +380,34 @@ body.loaded .viewport-toolbar {
 }
 
 .menu-row button {
-  --btn-bg: var(--soft-ink);
+  --btn-bg: var(--btn-dark);
   --btn-fg: var(--overlay-ink);
   flex: 1;
   border-color: var(--overlay-line);
-  background: var(--soft-ink);
+  background: var(--btn-dark);
   color: var(--overlay-ink);
+}
+
+/* ---- light-menu sliders ---- */
+.menu-slider {
+  display: block;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--overlay-ink);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.menu-slider span {
+  display: block;
+  margin-bottom: var(--sp-1);
+  color: var(--faint);
+  letter-spacing: var(--track-tight);
+}
+
+.menu-slider input {
+  width: 100%;
+  accent-color: var(--overlay-ink);
 }
 
 /* ---- camera cube (inside the camera popover) ---- */
@@ -408,7 +439,7 @@ body.loaded .viewport-toolbar {
 }
 
 .cube-face:hover text {
-  fill: var(--ink);
+  fill: var(--bg);
 }
 
 /* ======================================================== right-side panel */
@@ -557,13 +588,13 @@ progress#export-progress::-webkit-progress-bar {
 
 progress#export-progress::-webkit-progress-value {
   border-radius: var(--r-pill);
-  background: var(--accent);
+  background: var(--ink);
   transition: width var(--dur);
 }
 
 progress#export-progress::-moz-progress-bar {
   border-radius: var(--r-pill);
-  background: var(--accent);
+  background: var(--ink);
 }
 
 .progress-eta {
@@ -576,12 +607,12 @@ progress#export-progress::-moz-progress-bar {
 /* ========================================================= shared controls */
 button,
 .btn {
-  --btn-bg: var(--surface);
+  --btn-bg: var(--btn-dark);
   --btn-fg: var(--ink);
   padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--btn-dark);
   color: var(--ink);
   font: 500 var(--fs-sm)/1 var(--sans);
   letter-spacing: var(--track-tight);
@@ -600,10 +631,10 @@ button,
 }
 
 .side button {
-  --btn-bg: var(--soft-ink);
+  --btn-bg: var(--btn-dark);
   --btn-fg: var(--overlay-ink);
   border-color: var(--overlay-line);
-  background: var(--soft-ink);
+  background: var(--btn-dark);
   color: var(--overlay-ink);
 }
 
@@ -621,8 +652,9 @@ input[type="range"] {
   accent-color: var(--overlay-ink);
 }
 
+/* Dark fill inside the box when checked (the tick renders light on top). */
 .side input[type="checkbox"] {
-  accent-color: var(--overlay-ink);
+  accent-color: var(--check);
 }
 
 .scroll {

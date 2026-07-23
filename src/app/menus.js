@@ -2,19 +2,20 @@
 // menus.js
 //
 // The viewport toolbar: three icon buttons (camera / material / light), each
-// opening a popover that lists its options. Only one popover is open at a time;
-// a click outside or the Escape key closes it. The popover contents (camera
-// cube, material radios, light radios) are wired by their own modules — this
-// file only manages open/close state.
+// opening a popover that lists its options. Only one popover is open at a time.
+//
+// All open/close logic runs on pointerdown (not click) so a press anywhere
+// outside — e.g. grabbing the viewport to orbit — dismisses the menu the moment
+// the mouse goes down, without waiting for release. The popover contents are
+// wired by their own modules; this file only manages open/close state.
 // =============================================================================
 
 import { $ } from './dom.js';
 
-// Each toolbar button carries data-menu="<id>", matching a popover #menu-<id>.
 const OPEN_CLASS = 'open';
 
 /**
- * Close every popover and clear the pressed state on its button.
+ * Close every popover and clear the expanded state on its button.
  */
 function closeAll() {
   document.querySelectorAll('.menu-group').forEach((group) => {
@@ -38,20 +39,23 @@ function toggleGroup(group) {
 }
 
 /**
- * Wire the toolbar buttons and the global close handlers (outside-click, Esc).
+ * Wire the toolbar buttons and the global dismiss handlers (outside press, Esc).
  */
 export function initMenus() {
+  // Toolbar buttons toggle their popover on press.
   document.querySelectorAll('[data-menu]').forEach((button) => {
-    button.addEventListener('click', (event) => {
+    button.addEventListener('pointerdown', (event) => {
       event.stopPropagation();
       toggleGroup(button.closest('.menu-group'));
     });
   });
 
-  // Clicks inside an open popover must not close it; clicks anywhere else do.
+  // Presses inside an open popover must not dismiss it.
   document.querySelectorAll('.menu-pop').forEach((pop) =>
-    pop.addEventListener('click', (event) => event.stopPropagation()));
-  document.addEventListener('click', closeAll);
+    pop.addEventListener('pointerdown', (event) => event.stopPropagation()));
+
+  // A press anywhere else dismisses immediately; so does Escape.
+  document.addEventListener('pointerdown', closeAll);
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeAll();
   });

@@ -1,73 +1,107 @@
 // =============================================================================
 // lighting.js
 //
-// The light menu. Every model is lit by a constant image-based environment
-// (the studio PMREM set up in stage.js); the presets here shape the look on top
-// of it by varying tone-mapping exposure, a directional key light, a hemisphere
-// fill, and the background tone. Switching presets never touches the geometry
-// or materials.
+// The light menu. The scene is always lit by the studio environment map set up
+// in stage.js (image-based light arriving from everywhere). The menu sliders
+// shape the rest of the rig on top of it:
+//
+//   ambient      hemisphere fill intensity — extra light from all directions
+//   lights       number of directional lights (0–4), spaced evenly in azimuth
+//   intensity    shared strength of the directional lights
+//   orientation  azimuth rotation of the whole rig, in degrees
+//
+// Slider values persist in state.lighting across model loads. Changing them
+// never touches geometry or materials.
 // =============================================================================
 
 import * as THREE from 'three';
 import { state } from './state.js';
+import { $ } from './dom.js';
+
+// -----------------------------------------------------------------------------
+// Rig
+// -----------------------------------------------------------------------------
+
+/** Hard cap on directional lights (also the slider maximum). */
+const MAX_LIGHTS = 4;
+
+/** Fixed elevation of every directional light above the horizon (radians). */
+const ELEVATION = Math.PI / 4;
+
+/** Distance of the directional lights from the origin (arbitrary; direction is
+ *  what matters for a DirectionalLight). */
+const RIG_RADIUS = 5;
+
+let hemiLight = null;
+/** @type {THREE.DirectionalLight[]} pre-created pool; presets toggle visibility */
+let dirLights = [];
 
 /**
- * Preset definitions.
- * @typedef {Object} LightPreset
- * @property {number} exposure  renderer tone-mapping exposure (overall brightness)
- * @property {number} key       directional key-light intensity (0 = off)
- * @property {number} fill      hemisphere fill-light intensity (0 = off)
- * @property {number} bg        background colour (hex)
- * @property {[number, number, number]} keyDir  key-light direction (unit-ish)
+ * Push the current state.lighting values into the light rig.
+ * Lights beyond the configured count are hidden, not destroyed.
  */
+export function applyLighting() {
+  const cfg = state.lighting;
 
-/** @type {Record<string, LightPreset>} */
-const PRESETS = {
-  studio: { exposure: 1.0, key: 0.0, fill: 0.0, bg: 0x262626, keyDir: [1, 1, 1] },
-  soft: { exposure: 0.9, key: 0.0, fill: 0.45, bg: 0x2e2e2e, keyDir: [1, 1, 1] },
-  dramatic: { exposure: 0.85, key: 2.6, fill: 0.0, bg: 0x171717, keyDir: [-1, 1.2, 0.6] },
-  bright: { exposure: 1.35, key: 0.8, fill: 0.3, bg: 0x3a3a3a, keyDir: [0.6, 1, 0.8] },
-};
+  hemiLight.intensity = cfg.ambient;
 
-// Lights are created once and shared; presets only adjust their intensity.
-let keyLight = null;
-let fillLight = null;
-let renderer = null;
-let scene = null;
+  dirLights.forEach((light, index) => {
+    const active = index < cfg.count;
+    light.visible = active;
+    if (!active) return;
 
-/**
- * Apply a lighting preset.
- * @param {'studio'|'soft'|'dramatic'|'bright'} name preset key
- */
-export function applyLight(name) {
-  const preset = PRESETS[name] || PRESETS.studio;
-  state.light = name;
+    light.intensity = cfg.intensity;
 
-  renderer.toneMappingExposure = preset.exposure;
-  scene.background = new THREE.Color(preset.bg);
-
-  keyLight.intensity = preset.key;
-  keyLight.position.set(...preset.keyDir).normalize().multiplyScalar(5);
-  fillLight.intensity = preset.fill;
+    // Spread the active lights evenly around the azimuth, starting at the
+    // orientation angle, all at the same elevation.
+    const azimuth = THREE.MathUtils.degToRad(cfg.orientation)
+      + (index * Math.PI * 2) / Math.max(cfg.count, 1);
+    light.position.set(
+      Math.cos(azimuth) * Math.cos(ELEVATION),
+      Math.sin(ELEVATION),
+      Math.sin(azimuth) * Math.cos(ELEVATION),
+    ).multiplyScalar(RIG_RADIUS);
+  });
 }
 
-/** @returns {string} the checked lighting-preset value. */
-export const currentLight = () => document.querySelector('input[name="light"]:checked').value;
+// -----------------------------------------------------------------------------
+// Setup + UI wiring
+// -----------------------------------------------------------------------------
 
 /**
- * Create the shared lights and wire the lighting radios.
+ * Create the shared lights, bind the four sliders to state.lighting, and apply
+ * the initial values.
  * @param {ReturnType<import('./stage.js').createStage>} stage the render stage
  */
 export function initLighting(stage) {
-  renderer = stage.renderer;
-  scene = stage.scene;
+  hemiLight = new THREE.HemisphereLight(0xffffff, 0x404040, 0);
+  stage.scene.add(hemiLight);
 
-  keyLight = new THREE.DirectionalLight(0xffffff, 0);
-  fillLight = new THREE.HemisphereLight(0xffffff, 0x404040, 0);
-  scene.add(keyLight, fillLight);
+  for (let i = 0; i < MAX_LIGHTS; i++) {
+    const light = new THREE.DirectionalLight(0xffffff, 0);
+    light.visible = false;
+    stage.scene.add(light);
+    dirLights.push(light);
+  }
 
-  document.querySelectorAll('input[name="light"]').forEach((radio) =>
-    radio.addEventListener('change', () => applyLight(radio.value)));
+  /**
+   * Bind one range input to a state.lighting key.
+   * @param {string} id    input element id
+   * @param {string} key   state.lighting property to drive
+   */
+  const bind = (id, key) => {
+    const input = $(id);
+    input.value = String(state.lighting[key]);
+    input.addEventListener('input', () => {
+      state.lighting[key] = parseFloat(input.value);
+      applyLighting();
+    });
+  };
 
-  applyLight(currentLight());
+  bind('light-ambient', 'ambient');
+  bind('light-count', 'count');
+  bind('light-intensity', 'intensity');
+  bind('light-orientation', 'orientation');
+
+  applyLighting();
 }

@@ -94,7 +94,11 @@ export function initExport() {
       URL.revokeObjectURL(a.href);
 
       progress.set(1);
-      setStatus(`exported: ${state.name}.3dpeer.html — ${(blob.size / 1e6).toFixed(2)} MB`);
+      // Report the size change: original -> artifact, with the ratio.
+      const inMB = (state.glbBytes.length / 1e6).toFixed(2);
+      const outMB = (blob.size / 1e6).toFixed(2);
+      const ratio = (state.glbBytes.length / blob.size).toFixed(2);
+      setStatus(`exported: ${state.name}.3dpeer.html — ${inMB} MB → ${outMB} MB (÷${ratio})`);
       setTimeout(() => progress.hide(), 1500);
     } catch (e) {
       setStatus('export failed: ' + (e.message || e));

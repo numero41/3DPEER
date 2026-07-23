@@ -24,6 +24,7 @@
 
     <!-- top-right utilities -->
     <div class="stage-tools">
+      <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
       <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
       <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
     </div>
@@ -43,7 +44,6 @@
           </svg>
           <div class="menu-row">
             <button data-view="persp" title="Reset to perspective view">perspective</button>
-            <button id="fit" title="Fit model to view">fit</button>
           </div>
         </div>
       </div>
@@ -63,10 +63,10 @@
       <div class="menu-group">
         <button class="icon-btn" data-menu="light" aria-haspopup="true" aria-expanded="false" title="Lighting"><svg class="ico" viewBox="0 0 24 24"><use href="#i-light"></use></svg></button>
         <div class="menu-pop" id="menu-light" role="menu">
-          <label class="menu-item" title="Neutral studio environment"><input type="radio" name="light" value="studio" checked><span>Studio</span></label>
-          <label class="menu-item" title="Gentle, low-contrast fill"><input type="radio" name="light" value="soft"><span>Soft</span></label>
-          <label class="menu-item" title="Single strong key light"><input type="radio" name="light" value="dramatic"><span>Dramatic</span></label>
-          <label class="menu-item" title="Bright, high-key"><input type="radio" name="light" value="bright"><span>Bright</span></label>
+          <label class="menu-slider" title="Global fill arriving from every direction"><span>ambient</span><input id="light-ambient" type="range" min="0" max="2" step="0.05"></label>
+          <label class="menu-slider" title="Number of directional lights around the model"><span>lights</span><input id="light-count" type="range" min="0" max="4" step="1"></label>
+          <label class="menu-slider" title="Strength of the directional lights"><span>intensity</span><input id="light-intensity" type="range" min="0" max="3" step="0.05"></label>
+          <label class="menu-slider" title="Rotate the light rig around the model (degrees)"><span>orientation</span><input id="light-orientation" type="range" min="0" max="360" step="1"></label>
         </div>
       </div>
     </div>
