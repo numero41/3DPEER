@@ -22,11 +22,33 @@
       <input id="file-input" type="file" accept=".glb,.gltf">
     </div>
 
+    <!-- top-right tools -->
     <div class="stage-tools">
-      <button id="snapshot" class="icon-btn" title="save a snapshot" aria-label="snapshot">◐</button>
-      <button id="fullscreen" class="icon-btn" title="fullscreen" aria-label="fullscreen">⛶</button>
+      <button id="fit" class="icon-btn" title="fit to view" aria-label="fit to view">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4"/></svg>
+      </button>
+      <button id="snapshot" class="icon-btn" title="save a snapshot" aria-label="snapshot">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>
+      </button>
+      <button id="fullscreen" class="icon-btn" title="fullscreen" aria-label="fullscreen">
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4"/></svg>
+      </button>
     </div>
 
+    <!-- bottom-left: unfolded-cube camera views -->
+    <div class="camcube" aria-label="camera views">
+      <svg viewBox="0 0 107 80" class="cube-net">
+        <g class="cube-face" data-view="top"    title="top"><rect x="27" y="0"  width="26" height="26" rx="2"/><text x="40" y="16">T</text></g>
+        <g class="cube-face" data-view="left"   title="left"><rect x="0"  y="27" width="26" height="26" rx="2"/><text x="13" y="43">L</text></g>
+        <g class="cube-face" data-view="front"  title="front"><rect x="27" y="27" width="26" height="26" rx="2"/><text x="40" y="43">F</text></g>
+        <g class="cube-face" data-view="right"  title="right"><rect x="54" y="27" width="26" height="26" rx="2"/><text x="67" y="43">R</text></g>
+        <g class="cube-face" data-view="back"   title="back"><rect x="81" y="27" width="26" height="26" rx="2"/><text x="94" y="43">K</text></g>
+        <g class="cube-face" data-view="bottom" title="bottom"><rect x="27" y="54" width="26" height="26" rx="2"/><text x="40" y="70">D</text></g>
+      </svg>
+      <button class="cube-persp" data-view="persp" title="perspective">persp</button>
+    </div>
+
+    <!-- bottom-center: display modes -->
     <div class="stage-bar">
       <div class="seg" role="radiogroup" aria-label="display mode">
         <label><input type="radio" name="dmode" value="shaded" checked><span>shaded</span></label>
@@ -37,45 +59,42 @@
       </div>
     </div>
 
-    <p id="status" class="status">no file loaded</p>
+    <!-- right edge: panel toggle + docked panel -->
+    <button id="panel-toggle" class="panel-toggle hidden" title="panels" aria-label="toggle panels">
+      <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+    </button>
+    <aside id="side" class="side">
+      <section class="side-sec hidden" id="panel-anims">
+        <h2>animations</h2>
+        <select id="anim-select"></select>
+        <div class="row">
+          <button id="anim-toggle">play</button>
+          <input id="anim-scrub" type="range" min="0" max="1" step="0.001" value="0">
+        </div>
+      </section>
+
+      <section class="side-sec hidden" id="panel-morphs">
+        <h2>morphs <span id="morph-count"></span></h2>
+        <button id="morph-reset">reset</button>
+        <div id="morph-list" class="scroll"></div>
+      </section>
+
+      <section class="side-sec hidden" id="panel-parts">
+        <h2>parts</h2>
+        <div id="part-list" class="scroll"></div>
+      </section>
+    </aside>
   </section>
 
-  <div class="toolbar">
-    <div class="views" id="panel-views" aria-label="camera views">
-      <button data-view="front">front</button>
-      <button data-view="back">back</button>
-      <button data-view="left">left</button>
-      <button data-view="right">right</button>
-      <button data-view="top">top</button>
-      <button data-view="bottom">bottom</button>
-      <button data-view="persp">persp</button>
+  <!-- below the viewer: status, export, progress -->
+  <div class="under">
+    <p id="status" class="under-status">no file loaded</p>
+    <button id="export" class="btn-primary btn-block">export .html</button>
+    <div class="progress-wrap" id="export-progress-wrap" hidden>
+      <progress id="export-progress" max="1" value="0"></progress>
+      <p class="progress-eta"><span id="export-pct">0%</span> · <span id="export-eta">estimating…</span></p>
     </div>
-    <div class="export-group">
-      <span class="export-note" title="v0: the glb is embedded as-is — adjustable compression comes next">v0 · uncompressed</span>
-      <button id="export" class="btn-primary">export .html</button>
-    </div>
-  </div>
-
-  <div class="panels">
-    <section class="panel hidden" id="panel-anims">
-      <h2>animations</h2>
-      <select id="anim-select"></select>
-      <div class="row">
-        <button id="anim-toggle">play</button>
-        <input id="anim-scrub" type="range" min="0" max="1" step="0.001" value="0">
-      </div>
-    </section>
-
-    <section class="panel hidden" id="panel-morphs">
-      <h2>morphs <span id="morph-count"></span></h2>
-      <button id="morph-reset">reset</button>
-      <div id="morph-list" class="scroll"></div>
-    </section>
-
-    <section class="panel hidden" id="panel-parts">
-      <h2>parts</h2>
-      <div id="part-list" class="scroll"></div>
-    </section>
+    <p class="under-note">v0: the glb is embedded as-is — adjustable compression comes next</p>
   </div>
 </main>
 

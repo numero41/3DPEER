@@ -7,7 +7,8 @@ export function collectMorphs(rootObject) {
     const names = {};
     if (dict) for (const [k, v] of Object.entries(dict)) names[v] = k;
     for (let i = 0; i < o.morphTargetInfluences.length; i++) {
-      const name = names[i] !== undefined ? names[i] : (o.name || 'mesh') + '·' + i;
+      // fall back on a synthesized label for unnamed morphs (undefined OR '')
+      const name = names[i] ? names[i] : (o.name || 'mesh') + '·' + i;
       if (!morphs.has(name)) morphs.set(name, []);
       morphs.get(name).push({ mesh: o, index: i });
     }

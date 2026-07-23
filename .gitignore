@@ -3,3 +3,7 @@ node_modules/
 *.log
 
 .claude/settings.local.json
+
+# generated site bundle (build with: npm run build:site)
+site/app.js
+site/assets/
