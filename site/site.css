@@ -95,6 +95,7 @@
   --stage-max: 800px;
   --panel-w: 300px;
   --progress-h: 10px;
+  --note-badge: 20px;
 
   /* ---- effect ---- */
   --dur: 0.15s;
@@ -575,6 +576,76 @@ body.loaded .viewport-toolbar {
   font-weight: 600;
   letter-spacing: var(--track-mid);
   text-transform: uppercase;
+}
+
+/* ================================================================ annotations */
+#stage.noting #viewport {
+  cursor: crosshair;
+}
+
+.icon-btn[aria-pressed="true"] {
+  --btn-bg: var(--overlay-ink);
+  --btn-fg: var(--bg);
+  background: var(--overlay-ink);
+  color: var(--bg);
+}
+
+.note-hint {
+  margin: 0 0 var(--sp-3);
+  color: var(--faint);
+  font-size: var(--fs-xs);
+}
+
+.note-hint.hidden {
+  display: none;
+}
+
+.note-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  margin: var(--sp-3) 0;
+}
+
+.note-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--note-badge);
+  height: var(--note-badge);
+  border-radius: var(--r-pill);
+  background: var(--overlay-ink);
+  color: var(--bg);
+  font-size: var(--fs-2xs);
+  font-weight: 600;
+}
+
+.note-row textarea {
+  flex: 1;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-sm);
+  background: var(--field-bg);
+  color: var(--overlay-ink);
+  font: var(--fs-sm)/1.4 var(--sans);
+  resize: none;
+}
+
+.note-del {
+  --btn-bg: transparent;
+  --btn-fg: var(--overlay-ink);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--note-badge);
+  height: var(--note-badge);
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
 }
 
 /* ======================================================= below-viewer block */

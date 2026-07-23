@@ -1,12 +1,74 @@
-/* Artifact stylesheet. Dark background, amber accents — the artifact register.
-   Inlined into the exported HTML; keep it lean. */
+/* =============================================================================
+   Artifact stylesheet. Dark background, amber accents — the artifact register.
+   Inlined into the exported HTML; keep it lean.
+
+   Every colour, size, radius, opacity and duration is a token in :root —
+   no literal values below the token block. One declaration per line.
+   ============================================================================= */
+
+:root {
+  /* ---- palette (amber on dark) ---- */
+  --bg: #211a14;
+  --ink: #c9a978;
+  --accent: #d98b52;
+  --line: #4a3a2c;
+  --bar-bg: rgba(33, 26, 20, 0.92);
+  --panel-bg: rgba(26, 20, 15, 0.94);
+  --field-bg: rgba(0, 0, 0, 0.25);
+  --hover-bg: rgba(201, 169, 120, 0.18);
+
+  /* ---- type ---- */
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --lh-tight: 1;
+  --lh-hint: 1.4;
+  --lh-label: 1.5;
+  --track: 0.08em;
+  --track-tight: 0.06em;
+
+  /* ---- spacing ---- */
+  --sp-1: 4px;
+  --sp-2: 6px;
+  --sp-3: 8px;
+  --sp-4: 10px;
+  --sp-5: 12px;
+  --sp-6: 14px;
+  --sp-7: 16px;
+  --sp-8: 18px;
+  --pad-ctrl-y: 7px;
+  --pad-ctrl-x: 9px;
+  --pad-btn-y: 8px;
+  --pad-btn-x: 10px;
+  --bar-offset: 44px;
+
+  /* ---- sizes ---- */
+  --hairline: 1px;
+  --panel-w: min(78vw, 300px);
+  --range-w: 90px;
+  --badge: 18px;
+
+  /* ---- radii ---- */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-pill: 999px;
+
+  /* ---- effects ---- */
+  --op-hint: 0.85;
+  --op-soft: 0.8;
+  --dur-hint: 1.2s;
+  --z-panel: 2;
+  --z-bar: 3;
+  --z-notes: 4;
+}
 
 html,
 body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #211a14;
+  background: var(--bg);
 }
 
 #c {
@@ -25,7 +87,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: #211a14;
+  background: var(--bg);
   pointer-events: none;
 }
 
@@ -33,18 +95,23 @@ body {
   cursor: grabbing;
 }
 
+/* Annotation add-mode: crosshair instead of the orbit hand. */
+body.noting #c {
+  cursor: crosshair;
+}
+
 #hint {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 18px;
-  padding: 0 16px;
+  bottom: var(--sp-8);
+  padding: 0 var(--sp-7);
   text-align: center;
-  font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
-  color: #c9a978;
-  letter-spacing: .08em;
-  opacity: .85;
-  transition: opacity 1.2s;
+  font: var(--fs-sm)/var(--lh-hint) var(--mono);
+  color: var(--ink);
+  letter-spacing: var(--track);
+  opacity: var(--op-hint);
+  transition: opacity var(--dur-hint);
   pointer-events: none;
 }
 
@@ -57,58 +124,58 @@ body {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 44px;
+  bottom: var(--bar-offset);
   margin: 0 auto;
   width: fit-content;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
-  background: rgba(33, 26, 20, .92);
-  border: 1px solid #4a3a2c;
-  border-radius: 8px;
-  z-index: 3;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--bar-bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-md);
+  z-index: var(--z-bar);
 }
 
 #vbar button,
 #vbar select {
-  font: 11px/1 ui-monospace, Menlo, Consolas, monospace;
-  color: #c9a978;
-  background: rgba(0, 0, 0, .25);
-  border: 1px solid #4a3a2c;
-  border-radius: 6px;
-  padding: 7px 9px;
-  letter-spacing: .06em;
+  font: var(--fs-xs)/var(--lh-tight) var(--mono);
+  color: var(--ink);
+  background: var(--field-bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--pad-ctrl-y) var(--pad-ctrl-x);
+  letter-spacing: var(--track-tight);
   cursor: pointer;
 }
 
 #vbar button:hover {
-  background: rgba(201, 169, 120, .18);
+  background: var(--hover-bg);
 }
 
 #vbar input[type="range"] {
-  width: 90px;
-  accent-color: #c9a978;
+  width: var(--range-w);
+  accent-color: var(--ink);
 }
 
 /* ---- morph panel ---- */
 #mbtn,
 #mreset {
-  font: 11px/1 ui-monospace, Menlo, Consolas, monospace;
-  color: #c9a978;
-  background: rgba(33, 26, 20, .92);
-  border: 1px solid #4a3a2c;
-  border-radius: 6px;
-  padding: 8px 10px;
-  letter-spacing: .06em;
+  font: var(--fs-xs)/var(--lh-tight) var(--mono);
+  color: var(--ink);
+  background: var(--bar-bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--pad-btn-y) var(--pad-btn-x);
+  letter-spacing: var(--track-tight);
   cursor: pointer;
 }
 
 #mbtn {
   position: fixed;
-  left: 14px;
-  bottom: 14px;
-  z-index: 3;
+  left: var(--sp-6);
+  bottom: var(--sp-6);
+  z-index: var(--z-bar);
 }
 
 #mpanel {
@@ -116,13 +183,13 @@ body {
   right: 0;
   top: 0;
   bottom: 0;
-  width: min(78vw, 300px);
-  z-index: 2;
-  background: rgba(26, 20, 15, .94);
-  padding: 12px;
+  width: var(--panel-w);
+  z-index: var(--z-panel);
+  background: var(--panel-bg);
+  padding: var(--sp-5);
   overflow-y: auto;
   display: none;
-  border-left: 1px solid #4a3a2c;
+  border-left: var(--hairline) solid var(--line);
 }
 
 #mpanel.open {
@@ -131,9 +198,9 @@ body {
 
 #mpanel label {
   display: block;
-  margin: 10px 0;
-  font: 10px/1.5 ui-monospace, monospace;
-  color: #c9a978;
+  margin: var(--sp-4) 0;
+  font: var(--fs-2xs)/var(--lh-label) var(--mono);
+  color: var(--ink);
 }
 
 #mpanel span {
@@ -145,11 +212,126 @@ body {
 
 #mpanel input[type="range"] {
   width: 100%;
-  accent-color: #d98b52;
+  accent-color: var(--accent);
 }
 
 #mreset {
   display: block;
   width: 100%;
-  margin-bottom: 4px;
+  margin-bottom: var(--sp-1);
+}
+
+/* ---- annotation notes (always shipped) ---- */
+#abtn {
+  position: fixed;
+  right: var(--sp-6);
+  bottom: var(--sp-6);
+  z-index: var(--z-bar);
+  font: var(--fs-xs)/var(--lh-tight) var(--mono);
+  color: var(--ink);
+  background: var(--bar-bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--pad-btn-y) var(--pad-btn-x);
+  letter-spacing: var(--track-tight);
+  cursor: pointer;
+}
+
+#abtn:hover {
+  background: var(--hover-bg);
+}
+
+#apanel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--panel-w);
+  z-index: var(--z-notes);
+  background: var(--panel-bg);
+  padding: var(--sp-5);
+  overflow-y: auto;
+  display: none;
+  border-left: var(--hairline) solid var(--line);
+}
+
+#apanel.open {
+  display: block;
+}
+
+.abtn {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--sp-2);
+  font: var(--fs-xs)/var(--lh-tight) var(--mono);
+  color: var(--ink);
+  background: var(--field-bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--pad-btn-y) var(--pad-btn-x);
+  letter-spacing: var(--track-tight);
+  cursor: pointer;
+}
+
+.abtn:hover {
+  background: var(--hover-bg);
+}
+
+.abtn[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.arow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: var(--sp-4) 0;
+}
+
+.arow span {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--badge);
+  height: var(--badge);
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font: var(--fs-2xs)/var(--lh-tight) var(--mono);
+}
+
+.arow textarea {
+  flex: 1;
+  min-width: 0;
+  font: var(--fs-xs)/var(--lh-hint) var(--mono);
+  color: var(--ink);
+  background: var(--field-bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2);
+  resize: none;
+}
+
+.arow button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--badge);
+  height: var(--badge);
+  margin: 0;
+  padding: 0;
+  font: var(--fs-xs)/var(--lh-tight) var(--mono);
+  color: var(--ink);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+#astat {
+  margin: var(--sp-4) 0 0;
+  font: var(--fs-2xs)/var(--lh-hint) var(--mono);
+  color: var(--ink);
+  opacity: var(--op-soft);
+  letter-spacing: var(--track-tight);
 }

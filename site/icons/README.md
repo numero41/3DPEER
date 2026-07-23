@@ -17,6 +17,7 @@ via `currentColor`, so leave no hard-coded colours in the files.
 
 | filename            | Lucide name          | used for                         |
 |---------------------|----------------------|----------------------------------|
+| `pin.svg`           | `map-pin`            | annotation mode toggle           |
 | `fit.svg`           | `scan`               | fit / recenter the camera        |
 | `snapshot.svg`      | `camera`             | save a PNG snapshot              |
 | `fullscreen.svg`    | `maximize`           | enter fullscreen                 |

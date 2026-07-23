@@ -34,6 +34,7 @@
 
     <!-- top-right utilities -->
     <div class="stage-tools">
+      <button id="note-mode" class="icon-btn" title="Annotation mode — click the model to pin a note" aria-label="Annotation mode" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-pin"></use></svg></button>
       <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
       <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
       <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
@@ -84,6 +85,12 @@
     <!-- right edge: panel toggle + docked panel -->
     <button id="panel-toggle" class="panel-toggle hidden" title="Show / hide panels" aria-label="Toggle panels"><svg class="ico" viewBox="0 0 24 24"><use href="#i-panel-open"></use></svg></button>
     <aside id="side" class="side">
+      <section class="side-sec hidden" id="panel-notes">
+        <h2>annotations <span id="note-count"></span></h2>
+        <p id="note-hint" class="note-hint">enable the pin tool (top right), then click the model to add a note — pins ship inside the exported file</p>
+        <div id="note-list" class="scroll"></div>
+      </section>
+
       <section class="side-sec hidden" id="panel-anims">
         <h2>animations</h2>
         <select id="anim-select" title="Choose an animation clip"></select>

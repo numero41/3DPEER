@@ -27,29 +27,19 @@ and working conventions are in CLAUDE.md — read them before any change.
 - **Site** — monochrome dark, tokenized CSS, icon sprite (no runtime fetch,
   works over file://), guide + contact nav, collapsible export settings,
   colour-coded status (info/ok/warn), Web Share button with build cache.
-
-## M1 — Annotations (next)
-
-Goal: pins + text on the model, authored by David AND by the recipient
-(the client) inside the artifact itself.
-
-Agreed design:
-- A pin = { position on mesh (raycast hit, stored in model space), text,
-  optional face normal for the arrow }. Rendered as a dot + leader line +
-  label; a list panel allows edit/delete.
-- Site: annotation mode toggle → click mesh to add, stored in state,
-  baked into the export via the existing __CFG channel (annotations: [...]).
-- Artifact: renders shipped annotations; when the recipient adds/edits pins,
-  the artifact REBUILDS ITSELF — take document.documentElement.outerHTML,
-  inject the new annotations JSON into a marked slot (split/join, never
-  String.replace — invariant #4), download as <name>.annotated.3dpeer.html.
-  The file travels back by mail; no server, no persistence problem.
-  localStorage as a crash net for unsaved notes.
-- Self-test: assert the annotation slot survives a rebuild round-trip.
-
-Done when: a pin authored on the site displays in the artifact; a pin added
-in the artifact survives the self-re-export and reopens correctly; the
-annotated copy still passes the payload self-test.
+- **M1 — Annotations** — pins + text authored on the site AND by the
+  recipient inside the artifact. Slot codec in src/codec/annotations.js
+  (marker-delimited JSON on the window.__ANN line; markers contain '<' so
+  neither the base85 payload nor the escaped JSON can ever collide; markers
+  assembled via Array.join so esbuild cannot fold them into the bundle).
+  Shared WebGL pin layer (src/annotations/pins.js): numbered dot + leader
+  line + label as sprites — no DOM positioned from JS. Site: pin-mode
+  toggle, click-to-pin (raycast, model space), editable side-panel list,
+  slot injected at export. Artifact: notes panel, recipient add/edit/delete,
+  self-re-export from a pristine outerHTML capture (split/join), downloads
+  <name>.annotated.3dpeer.html, localStorage crash net. Self-tests: CLI +
+  site exports run a hostile rebuild probe (payload must stay byte-identical);
+  the artifact re-checks before every save. page.css migrated to :root tokens.
 
 ## M2 — Turntable video (the email-body answer)
 

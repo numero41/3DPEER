@@ -23,6 +23,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { b85encode, b85decode } from '../codec/base85.js';
+import { wrapAnnotations, extractAnnotations, injectAnnotations } from '../codec/annotations.js';
 import { compressGLB, AUTO_LADDER } from './compress.js';
 import { readSettings, writeSettings } from './comp-settings.js';
 import { state } from './state.js';
@@ -173,7 +174,8 @@ async function optimizedGLB(settings, onProgress, fallbackToRaw = true) {
 async function buildArtifact() {
   const ui = $('opt-ui').checked;
   const settings = readSettings();
-  const key = glbKey(settings) + ':ui=' + ui;
+  const annotations = state.annotations;
+  const key = glbKey(settings) + ':ui=' + ui + ':ann=' + JSON.stringify(annotations);
   if (cache.blob && cache.key === key) {
     progress.set(0.95, 'cached');
     return cache.blob;
@@ -202,12 +204,15 @@ async function buildArtifact() {
   // Viewer feature flags: the "ship viewer controls" checkbox decides whether
   // the artifact carries camera/material/light controls.
   html = put(html, 'CONFIG', JSON.stringify({ ui }));
+  // Annotation slot: pins authored on the site ship inside the file, and the
+  // markers let the artifact rebuild itself when the recipient adds theirs.
+  html = put(html, 'ANNOTATIONS', wrapAnnotations(annotations));
   html = put(html, 'POSTER', capturePoster());
   html = put(html, 'PAYLOAD', payload);
   html = put(html, 'BUNDLE', viewer);
 
   progress.set(0.94, 'self-test');
-  await selfTestArtifact(html, framed, glb);
+  await selfTestArtifact(html, framed, glb, annotations);
 
   const blob = new Blob([html], { type: 'text/html' });
   cache.key = key;
@@ -219,20 +224,19 @@ async function buildArtifact() {
  * Self-test on the PRODUCED HTML (invariant #3): re-extract the payload from
  * the final string, decode it back, byte-compare against what was embedded,
  * and fully parse the optimized GLB with the same three r160 loader family the
- * artifact ships. Throws on any mismatch — a failing export must never leave
- * the machine.
+ * artifact ships. The annotation slot must read back exactly and must survive
+ * the same rebuild the artifact performs when the recipient saves an annotated
+ * copy. Throws on any mismatch — a failing export must never leave the machine.
  * @param {string} html the assembled artifact
  * @param {Uint8Array} framed the length-framed gzip payload that was encoded
  * @param {Uint8Array} glb the optimized GLB embedded in the payload
+ * @param {Array<{p: number[], n: number[], text: string}>} annotations the
+ *   pins that were baked into the slot
  */
-async function selfTestArtifact(html, framed, glb) {
+async function selfTestArtifact(html, framed, glb, annotations) {
   // 1. Payload round-trip: find the exact literal the template wraps.
-  const marker = 'window.__P=\n"';
-  const start = html.indexOf(marker);
-  if (start < 0) throw new Error('self-test: payload marker not found');
-  const from = start + marker.length;
-  const to = html.indexOf('"', from);
-  const back = b85decode(html.slice(from, to));
+  const payloadRange = locatePayload(html);
+  const back = b85decode(html.slice(payloadRange.from, payloadRange.to));
   if (back.length !== framed.length) throw new Error('self-test: payload length mismatch');
   for (let i = 0; i < back.length; i++) {
     if (back[i] !== framed[i]) throw new Error('self-test: payload corrupted at byte ' + i);
@@ -243,6 +247,31 @@ async function selfTestArtifact(html, framed, glb) {
   loader.setMeshoptDecoder(MeshoptDecoder);
   await new Promise((ok, ko) =>
     loader.parse(glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength), '', ok, ko));
+
+  // 3. Annotation slot: reads back exactly, and a hostile rebuild (the
+  //    artifact's own save path) leaves the payload byte-identical.
+  if (JSON.stringify(extractAnnotations(html)) !== JSON.stringify(annotations))
+    throw new Error('self-test: annotations not shipped exactly');
+  const probe = [...annotations, { p: [0, 0, 0], n: [0, 1, 0], text: '<probe> </script> $&' }];
+  const rebuilt = injectAnnotations(html, probe);
+  const rebuiltRange = locatePayload(rebuilt);
+  if (rebuilt.slice(rebuiltRange.from, rebuiltRange.to) !== html.slice(payloadRange.from, payloadRange.to))
+    throw new Error('self-test: payload changed across an annotation rebuild');
+  if (JSON.stringify(extractAnnotations(rebuilt)) !== JSON.stringify(probe))
+    throw new Error('self-test: annotations corrupted across a rebuild');
+}
+
+/**
+ * Locate the base85 payload literal inside an artifact HTML string.
+ * @param {string} html the artifact
+ * @returns {{from: number, to: number}} slice bounds of the payload characters
+ */
+function locatePayload(html) {
+  const marker = 'window.__P=\n"';
+  const start = html.indexOf(marker);
+  if (start < 0) throw new Error('self-test: payload marker not found');
+  const from = start + marker.length;
+  return { from, to: html.indexOf('"', from) };
 }
 
 /**

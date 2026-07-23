@@ -33,6 +33,10 @@ export const state = {
    *  persists across loads). See lighting.js for the meaning of each field. */
   lighting: { ambient: 0.6, count: 1, intensity: 1.2, orientation: 35 },
 
+  /** Annotation pins on the loaded model (model-space position + normal +
+   *  text). Baked into the export via the annotation slot; cleared on load. */
+  annotations: [],
+
   /** THREE.AnimationMixer for the loaded clips, or null. */
   mixer: null,
   /** @type {ClipAction[]} All clip/action pairs on the model. */
@@ -52,6 +56,7 @@ export function resetState() {
   state.glbBytes = null;
   state.originals.clear();
   state.wireOverlays = [];
+  state.annotations = [];
   state.mixer = null;
   state.actions = [];
   state.activeAction = null;

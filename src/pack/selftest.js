@@ -5,6 +5,7 @@ import fs from 'fs';
 import { MeshoptDecoder as RefDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { unenvelope, extractPayload } from './envelope.js';
 import { parseHeader, HEADER_SIZE } from '../codec/container.js';
+import { extractAnnotations, injectAnnotations } from '../codec/annotations.js';
 
 /**
  * Shared HTML-level checks: the viewer config must be injected (no leftover
@@ -15,6 +16,24 @@ function checkConfig(html) {
   if (!html.includes('window.__CFG={')) throw new Error('self-test: viewer config missing');
   if (html.includes('{{CONFIG}}')) throw new Error('self-test: CONFIG placeholder not substituted');
   if (html.includes('{{POSTER}}')) throw new Error('self-test: POSTER placeholder not substituted');
+  checkAnnotationSlot(html);
+}
+
+/**
+ * The annotation slot must parse, and must survive the same rebuild the
+ * artifact performs when the recipient saves an annotated copy: inject a
+ * hostile pin list (script-closing text), then verify the payload is
+ * byte-identical and the pins read back exactly.
+ * @param {string} html the produced artifact HTML
+ */
+function checkAnnotationSlot(html) {
+  if (!Array.isArray(extractAnnotations(html))) throw new Error('self-test: annotation slot unreadable');
+  const probe = [{ p: [0, 0.5, 1], n: [0, 1, 0], text: 'probe </script> <' + '/*danger*/' }];
+  const rebuilt = injectAnnotations(html, probe);
+  if (extractPayload(rebuilt) !== extractPayload(html))
+    throw new Error('self-test: payload changed across an annotation rebuild');
+  if (JSON.stringify(extractAnnotations(rebuilt)) !== JSON.stringify(probe))
+    throw new Error('self-test: annotations corrupted across a rebuild');
 }
 
 export async function selfTestGeo(output, ref) {

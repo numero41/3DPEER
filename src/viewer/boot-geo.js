@@ -5,8 +5,12 @@ import { unenvelope } from './decode.js';
 import { parseHeader, HEADER_SIZE } from '../codec/container.js';
 import { createStage, showError } from './scene.js';
 import { initViewerControls } from './controls.js';
+import { capturePristine, initAnnotations } from './annotate.js';
 
 async function boot() {
+  // Pristine self-copy for the annotation save path — captured before any
+  // DOM mutation (the very next line already edits the hint).
+  const pristine = capturePristine();
   // Scripts are running: replace the static "your app blocks scripts" fallback.
   document.getElementById('hint').textContent = 'loading…';
 
@@ -45,6 +49,7 @@ async function boot() {
   stage.scene.add(mesh);
   stage.frameObject(mesh);
   if (window.__CFG && window.__CFG.ui) initViewerControls(stage, mesh);
+  initAnnotations(stage, mesh, pristine);
   stage.run();
 }
 boot().catch(showError);

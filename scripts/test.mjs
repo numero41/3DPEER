@@ -65,4 +65,32 @@ const meshCount = reread.getRoot().listMeshes().length;
 if (!meshCount) throw new Error('compression pipeline: output has no meshes');
 console.log(`compression pipeline: OK — ${srcBytes.length} -> ${outBytes.length} bytes, meshes:${meshCount}`);
 
+// --- annotation slot codec (hostile round-trip) ------------------------------
+// The per-artifact slot checks run inside pack()'s self-test above; this block
+// unit-tests the codec against worst-case text: script-closing sequences, the
+// markers themselves, replace()-special patterns, quotes and backslashes.
+console.log('--- annotation slot codec');
+const { wrapAnnotations, injectAnnotations, extractAnnotations, ANN_START, ANN_END } =
+  await import('../src/codec/annotations.js');
+const nasty = [{
+  p: [1, 2, 3], n: [0, 1, 0],
+  text: '</script> ' + ANN_START + ' ' + ANN_END + ' $& $$ "quotes" \\backslash é <!--',
+}];
+const doc0 = 'before ' + wrapAnnotations([]) + ' after';
+const doc1 = injectAnnotations(doc0, nasty);
+if (JSON.stringify(extractAnnotations(doc1)) !== JSON.stringify(nasty))
+  throw new Error('annotation codec: hostile round-trip failed');
+if (doc1.split(ANN_START).length !== 2 || doc1.split(ANN_END).length !== 2)
+  throw new Error('annotation codec: marker leaked out of the slot');
+if (doc1.includes('</script>') || doc1.includes('<!--'))
+  throw new Error('annotation codec: script-unsafe sequence in the slot');
+// The slot must also be a valid JS expression — the artifact executes it.
+const evaluated = new Function('return ' + wrapAnnotations(nasty) + ';')();
+if (JSON.stringify(evaluated) !== JSON.stringify(nasty))
+  throw new Error('annotation codec: slot does not evaluate back to the pins');
+const doc2 = injectAnnotations(doc1, []); // an annotated copy re-annotated
+if (extractAnnotations(doc2).length !== 0)
+  throw new Error('annotation codec: second rebuild failed');
+console.log('annotation slot codec: OK');
+
 console.log('=== synthetic regression OK ===');

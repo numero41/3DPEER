@@ -15,6 +15,7 @@ import { initLighting } from './lighting.js';
 import { initMenus } from './menus.js';
 import { initSidePanel } from './panels.js';
 import { initViews } from './views.js';
+import { initAnnotations } from './annotate.js';
 import { initExport } from './exporter.js';
 import { initCompressionSettings } from './comp-settings.js';
 import { SPRITE } from './sprite.js';
@@ -32,6 +33,7 @@ initLighting(stage);
 initMenus();
 initSidePanel();
 initViews(stage);
+initAnnotations(stage);
 initExport(stage);
 initCompressionSettings();
 

@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { collectMorphs } from '../viewer/morphs.js';
+import { refreshAnnotations } from './annotate.js';
 import { state } from './state.js';
 import { $, clearChildren, el } from './dom.js';
 
@@ -21,7 +22,7 @@ export function playClip(i) {
 
 /** Show the side panel + edge toggle iff at least one section is visible. */
 function refreshSideVisibility() {
-  const anyVisible = ['panel-anims', 'panel-morphs', 'panel-parts']
+  const anyVisible = ['panel-notes', 'panel-anims', 'panel-morphs', 'panel-parts']
     .some((id) => !$(id).classList.contains('hidden'));
   $('side').classList.toggle('has-content', anyVisible);
   $('panel-toggle').classList.toggle('hidden', !anyVisible);
@@ -101,10 +102,11 @@ function buildAnimations() {
 }
 
 /**
- * Rebuild all three sections for a freshly loaded model.
+ * Rebuild every section for a freshly loaded model.
  * @param {{scene: THREE.Object3D}} gltf
  */
 export function buildPanels(gltf) {
+  refreshAnnotations();
   buildMorphs(gltf.scene);
   buildParts(gltf.scene);
   buildAnimations();

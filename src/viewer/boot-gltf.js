@@ -6,8 +6,12 @@ import { unenvelope } from './decode.js';
 import { createStage, showError } from './scene.js';
 import { collectMorphs, buildMorphPanel } from './morphs.js';
 import { initViewerControls } from './controls.js';
+import { capturePristine, initAnnotations } from './annotate.js';
 
 async function boot() {
+  // Pristine self-copy for the annotation save path — captured before any
+  // DOM mutation (the very next line already edits the hint).
+  const pristine = capturePristine();
   // Scripts are running: replace the static "your app blocks scripts" fallback.
   document.getElementById('hint').textContent = 'loading…';
 
@@ -28,6 +32,7 @@ async function boot() {
   }
   buildMorphPanel(collectMorphs(gltf.scene));
   if (window.__CFG && window.__CFG.ui) initViewerControls(stage, gltf.scene);
+  initAnnotations(stage, gltf.scene, pristine);
 
   const clock = new THREE.Clock();
   stage.run(() => { if (mixer) mixer.update(clock.getDelta()); });
