@@ -1,4 +1,4 @@
-// Mode geo : conteneur 3DPEER -> buffers GPU quantisés tels quels.
+// Geo mode: 3DPEER container -> quantized GPU buffers as-is.
 import * as THREE from 'three';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { unenvelope } from './decode.js';

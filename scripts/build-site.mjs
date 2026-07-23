@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Construit le site : bundle du workbench + assets d'export
-// (template + viewers pré-bundlés que l'app va chercher au moment d'exporter).
+// Builds the site: workbench bundle + export assets
+// (template + pre-bundled viewers that the app fetches at export time).
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -25,6 +25,6 @@ for (const entry of ['boot-geo.js', 'boot-gltf.js']) {
 for (const f of ['page.html', 'page.css'])
   fs.copyFileSync(R('src', 'template', f), R('site', 'assets', f));
 
-console.log('site construit dans site/ :',
+console.log('site built in site/ :',
   fs.readdirSync(R('site')).join(', '), '| assets :',
   fs.readdirSync(R('site', 'assets')).join(', '));

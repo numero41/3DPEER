@@ -1,5 +1,5 @@
-// Mode geo : extraction de la primitive, quantisation, reorder, meshopt v0,
-// conteneur 3DPEER. Retourne le conteneur + les flux quantisés (pour l'auto-test).
+// Geo mode: primitive extraction, quantization, reorder, meshopt v0,
+// 3DPEER container. Returns the container + the quantized streams (for the self-test).
 import { prune, join as joinFn, weld } from '@gltf-transform/functions';
 import { MeshoptEncoder } from 'meshoptimizer';
 import { computeBbox, buildQuantizedStreams } from '../codec/quantize.js';
@@ -10,15 +10,15 @@ export async function packGeo(doc, { bits }) {
 
   const meshes = doc.getRoot().listMeshes();
   const nPrims = meshes.reduce((s, m) => s + m.listPrimitives().length, 0);
-  if (nPrims > 1) console.warn(`note : ${nPrims} primitives, seule la première est packée (mode geo)`);
+  if (nPrims > 1) console.warn(`note: ${nPrims} primitives, only the first is packed (geo mode)`);
   const prim = meshes[0].listPrimitives()[0];
 
   const posA = prim.getAttribute('POSITION');
   const nrmA = prim.getAttribute('NORMAL');
   const colA = prim.getAttribute('COLOR_0');
   const idxA = prim.getIndices();
-  if (!posA || !idxA) throw new Error('POSITION et indices requis');
-  if (!nrmA) throw new Error('mode geo : normales requises');
+  if (!posA || !idxA) throw new Error('POSITION and indices required');
+  if (!nrmA) throw new Error('geo mode: normals required');
 
   const pos = posA.getArray();
   const nrm = nrmA.getArray();

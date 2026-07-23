@@ -1,101 +1,101 @@
 # 3dpeer — ROADMAP
 
-Document de travail pour l'atelier (Claude Code). Chaque phase a un objectif,
-des tâches et un critère « fait quand ». Ne pas ouvrir une phase avant que la
-précédente passe son critère. Les invariants du projet sont dans CLAUDE.md —
-les lire avant toute modification.
+Working document for the workshop (Claude Code). Each phase has an objective,
+tasks and a "done when" criterion. Do not open a phase before the
+previous one passes its criterion. The project invariants are in CLAUDE.md —
+read them before any modification.
 
-## Phase 0 — fondations (FAIT)
+## Phase 0 — foundations (DONE)
 
-Deux modes de packing (geo : flux 3DPEER custom, buffers GPU quantisés ;
-gltf : GLB optimisé, GLTFLoader appairé, sliders de morphs), enveloppe
-gzip + base85, auto-test sur le HTML produit, site workbench v0 (drag-drop,
-modes d'affichage, vues, snapshot, panneaux auto morphs/parts/anims, export
-réel non optimisé). Références mesurées : cube 62,05 → 4,20 Mo (÷14,8),
-avatar 6,52 → 1,10 Mo avec 212 morphs.
+Two packing modes (geo: custom 3DPEER streams, quantized GPU buffers;
+gltf: optimized GLB, paired GLTFLoader, morph sliders), gzip + base85
+envelope, self-test on the produced HTML, workbench site v0 (drag-drop,
+display modes, views, snapshot, auto morphs/parts/anims panels, real
+non-optimized export). Measured references: cube 62.05 → 4.20 MB (÷14.8),
+avatar 6.52 → 1.10 MB with 212 morphs.
 
-## Phase 1 — compression in-browser (le cœur du produit)
+## Phase 1 — in-browser compression (the heart of the product)
 
-Objectif : l'export du site produit la même qualité que le CLI, sans que le
-fichier quitte le navigateur.
+Objective: the site's export produces the same quality as the CLI, without the
+file leaving the browser.
 
-- Porter le pipeline d'optimisation côté navigateur : prune/weld/resample/
-  quantize via @gltf-transform (core + functions tournent en browser),
-  encodeur meshopt 0.20 en WASM, simplify() via le simplifier meshopt.
-- Supprimer l'execSync CLI du mode gltf : un seul chemin de code programmatique
-  partagé Node/navigateur (src/pack devient isomorphe là où c'est possible).
-- Textures côté navigateur : decode image → canvas → toBlob('image/webp', q)
-  avec plafond de taille (sharp reste réservé au CLI).
-- Câbler les curseurs : bits positions, bits normales, taille + qualité
-  textures, tolérance de resample anim, ratio/erreur de décimation.
-- UX : wipe avant/après en direct, poids estimé affiché en continu, champ
-  « poids cible » (solveur simple qui descend les curseurs jusqu'au budget).
+- Port the optimization pipeline to the browser side: prune/weld/resample/
+  quantize via @gltf-transform (core + functions run in the browser),
+  meshopt 0.20 encoder in WASM, simplify() via the meshopt simplifier.
+- Remove the CLI execSync from gltf mode: a single programmatic code path
+  shared between Node/browser (src/pack becomes isomorphic where possible).
+- Textures on the browser side: decode image → canvas → toBlob('image/webp', q)
+  with a size cap (sharp stays reserved for the CLI).
+- Wire up the sliders: position bits, normal bits, texture size + quality,
+  anim resample tolerance, decimation ratio/error.
+- UX: live before/after wipe, estimated weight displayed continuously, a
+  "target weight" field (simple solver that lowers the sliders down to budget).
 
-Fait quand : depuis le site, le cube 62 Mo sort à ≤ 5 Mo et l'avatar à
-≤ 1,3 Mo, ouverture mobile < 3 s, auto-test viewer OK, aucun octet envoyé
-sur le réseau (vérifiable dans l'onglet Network).
+Done when: from the site, the 62 MB cube comes out at ≤ 5 MB and the avatar at
+≤ 1.3 MB, mobile opening < 3 s, viewer self-test OK, zero bytes sent
+over the network (verifiable in the Network tab).
 
 ## Phase 2 — imports
 
-Objectif : accepter ce que l'audience a réellement sur son disque.
+Objective: accept what the audience actually has on its disk.
 
-- obj, stl, ply : loaders three → GLTFExporter → pipeline existant.
-  (stl = impression 3D ; ply à couleurs de sommets = scans → mode geo.)
-- fbx : FBXLoader (web, matériaux approximatifs assumés) ; FBX2glTF binaire
-  côté CLI pour la fidélité.
-- Shelf Maya « Send to 3DPEER » : script Python qui exporte la sélection en
-  GLB et ouvre le site. C'est un canal d'acquisition, pas une feature.
-- usdz en IMPORT : P2, ne pas ouvrir avant la phase 4 (TinyUSDZ/WASM, gros).
+- obj, stl, ply: three loaders → GLTFExporter → existing pipeline.
+  (stl = 3D printing; ply with vertex colors = scans → geo mode.)
+- fbx: FBXLoader (web, approximate materials assumed); FBX2glTF binary
+  on the CLI side for fidelity.
+- Maya "Send to 3DPEER" shelf: Python script that exports the selection to
+  GLB and opens the site. It's an acquisition channel, not a feature.
+- usdz on IMPORT: P2, do not open before phase 4 (TinyUSDZ/WASM, big).
 
-Fait quand : un stl et un ply de test passent drag-drop → export → mobile ;
-un fbx simple (mesh + anim) passe avec un rendu défendable.
+Done when: a test stl and ply pass drag-drop → export → mobile;
+a simple fbx (mesh + anim) passes with a defensible render.
 
-## Phase 3 — l'artefact enrichi + « ce qui ship »
+## Phase 3 — the enriched artifact + "what ships"
 
-Objectif : le dialogue d'export devient une checklist de capacités.
+Objective: the export dialog becomes a capability checklist.
 
-- Modules viewer optionnels dans l'artefact : contrôles d'animation, vues,
-  snapshot, parts show/hide, modes wireframe/clay.
-- Checklist d'export : chaque case = contrôle éditorial (ne pas exposer la
-  topologie au client) et octets. v1 pragmatique : un bundle complet par mode
-  + config JSON injectée qui active/désactive ; le tree-shaking par variante
-  de bundle (économie réelle d'octets) attend un build côté serveur ou
-  esbuild-wasm — P2, documenter le surcoût accepté en attendant.
-- Presets « portfolio » / « revue client ».
-- Footer discret « made with 3dpeer » dans l'artefact + flag interne pour le
-  retirer (prépare le gating de la phase 4). Le footer est la boucle de
-  distribution : chaque fichier livré est une démo.
+- Optional viewer modules in the artifact: animation controls, views,
+  snapshot, parts show/hide, wireframe/clay modes.
+- Export checklist: each box = editorial control (do not expose the
+  topology to the client) and bytes. Pragmatic v1: one complete bundle per mode
+  + injected JSON config that enables/disables; tree-shaking per bundle
+  variant (real byte savings) awaits a server-side build or
+  esbuild-wasm — P2, document the accepted overhead in the meantime.
+- "portfolio" / "client review" presets.
+- Discreet "made with 3dpeer" footer in the artifact + internal flag to
+  remove it (prepares the phase 4 gating). The footer is the distribution
+  loop: every delivered file is a demo.
 
-Fait quand : deux exports du même modèle avec deux presets donnent deux
-artefacts aux capacités différentes, vérifiées à l'ouverture.
+Done when: two exports of the same model with two presets give two
+artifacts with different capabilities, verified on opening.
 
-## Phase 4 — exports multiples + tier NDA
+## Phase 4 — multiple exports + NDA tier
 
-- Export triple en un clic : .html (interaction), .usdz (USDZExporter de
-  three, écosystème Apple), turntable vidéo (rendu offscreen N frames →
-  MediaRecorder webm ; mp4 si muxeur léger).
-- Watermark forensique : seed par destinataire dans les bits de poids faible
-  de la quantisation + petit outil de lecture (identifier une fuite).
-- Date d'expiration (dissuasion, documentée comme telle).
-- Licence Lemon Squeezy : clé vérifiée en local (signature, zéro serveur),
-  retrait du footer, déblocage watermark/expiration.
+- One-click triple export: .html (interaction), .usdz (three's USDZExporter,
+  Apple ecosystem), turntable video (offscreen render of N frames →
+  MediaRecorder webm; mp4 if a lightweight muxer is available).
+- Forensic watermark: per-recipient seed in the low-order bits of
+  the quantization + a small reader tool (identify a leak).
+- Expiration date (deterrence, documented as such).
+- Lemon Squeezy licensing: key verified locally (signature, zero server),
+  footer removal, watermark/expiration unlock.
 
-Fait quand : un achat test Lemon Squeezy délivre une clé qui déverrouille,
-et un fichier marqué est identifiable par l'outil de lecture.
+Done when: a Lemon Squeezy test purchase delivers a key that unlocks,
+and a marked file is identifiable by the reader tool.
 
-## Phase 5 — site public
+## Phase 5 — public site
 
-- Pages : l'app EST la landing ; exemples embarqués (artefacts en iframe) ;
-  pricing ; docs courtes ; mentions légales Number41.
-- Déploiement Cloudflare Pages, domaine 3dpeer.com, aucun cookie tiers.
+- Pages: the app IS the landing; embedded examples (artifacts in iframes);
+  pricing; short docs; Number41 legal notices.
+- Cloudflare Pages deployment, 3dpeer.com domain, no third-party cookies.
 
-Fait quand : une personne extérieure passe de l'URL au fichier exporté sans
-aide, et l'envoie par WhatsApp avec succès.
+Done when: an outside person goes from the URL to the exported file without
+help, and sends it over WhatsApp successfully.
 
-## Transverse (à maintenir à chaque phase)
+## Cross-cutting (to maintain at every phase)
 
-- test.mjs enrichi à chaque feature (fixtures procédurales : anim, textures,
-  multi-prims) — jamais de binaires en repo.
-- Matrice d'appareils avant toute release : iOS Safari (pièce jointe Mail +
-  Fichiers), Android Chrome, desktop file://.
-- Budget : ouverture artefact < 3 s sur mobile moyen, viewer ≤ 650 Ko/mode.
+- test.mjs enriched at each feature (procedural fixtures: anim, textures,
+  multi-prims) — never binaries in the repo.
+- Device matrix before any release: iOS Safari (Mail + Files
+  attachment), Android Chrome, desktop file://.
+- Budget: artifact opening < 3 s on an average mobile, viewer ≤ 650 KB/mode.

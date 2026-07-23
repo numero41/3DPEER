@@ -1,5 +1,5 @@
-// base85, alphabet sûr pour un littéral JS "..." : ni ", ni \, ni <
-// (la séquence </script est impossible par construction)
+// base85, safe alphabet for a JS "..." literal: no ", no \, no <
+// (the </script sequence is impossible by construction)
 export const A85 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&;|()[]{}@%$#';
 
 export function b85encode(u8) {

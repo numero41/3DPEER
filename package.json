@@ -2,7 +2,7 @@
   "name": "3dpeer",
   "version": "0.3.0",
   "type": "module",
-  "description": "3DPEER — modèle 3D vers fichier HTML autonome (conteneur 3DPEER, meshopt v0, gzip natif, base85)",
+  "description": "3DPEER — 3D model to self-contained HTML file (3DPEER container, meshopt v0, native gzip, base85)",
   "scripts": {
     "pack": "node scripts/pack.mjs",
     "test": "node scripts/test.mjs",

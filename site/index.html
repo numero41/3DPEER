@@ -1,54 +1,62 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>3dpeer — un modèle 3D, un fichier</title>
+<title>3DPEER — one 3D model, one file</title>
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<header>
-  <h1>3dpeer</h1>
-  <p class="tagline">un modèle 3D → un fichier .html — double-clic, pièce jointe, offline. rien ne quitte ce navigateur.</p>
+<header class="topbar">
+  <span class="mark">3DPEER</span>
+  <p class="tagline">one 3D model → one .html file. double-click, attach, offline. nothing leaves this browser.</p>
 </header>
 
-<main>
-  <section id="stage">
+<main class="workbench">
+  <section id="stage" class="stage">
     <canvas id="viewport"></canvas>
-    <div id="dropzone">
-      <p>glisse un .glb ici</p>
-      <label class="btn" for="file-input">ou choisis un fichier</label>
+
+    <div id="dropzone" class="dropzone">
+      <p class="drop-title">drop a .glb here</p>
+      <label class="btn" for="file-input">or choose a file</label>
       <input id="file-input" type="file" accept=".glb,.gltf">
     </div>
-    <p id="status">aucun fichier chargé</p>
-  </section>
 
-  <aside id="panels">
-    <section class="panel" id="panel-display">
-      <h2>affichage</h2>
-      <div class="seg" role="radiogroup">
+    <div class="stage-tools">
+      <button id="snapshot" class="icon-btn" title="save a snapshot" aria-label="snapshot">◐</button>
+      <button id="fullscreen" class="icon-btn" title="fullscreen" aria-label="fullscreen">⛶</button>
+    </div>
+
+    <div class="stage-bar">
+      <div class="seg" role="radiogroup" aria-label="display mode">
         <label><input type="radio" name="dmode" value="shaded" checked><span>shaded</span></label>
         <label><input type="radio" name="dmode" value="clay"><span>clay</span></label>
         <label><input type="radio" name="dmode" value="matcap"><span>matcap</span></label>
         <label><input type="radio" name="dmode" value="wire"><span>wire</span></label>
         <label><input type="radio" name="dmode" value="wireshaded"><span>wire+shaded</span></label>
       </div>
-    </section>
+    </div>
 
-    <section class="panel" id="panel-views">
-      <h2>vues</h2>
-      <div class="btn-grid">
-        <button data-view="front">face</button>
-        <button data-view="back">dos</button>
-        <button data-view="left">gauche</button>
-        <button data-view="right">droite</button>
-        <button data-view="top">dessus</button>
-        <button data-view="bottom">dessous</button>
-        <button data-view="persp">persp</button>
-        <button id="snapshot">snapshot</button>
-      </div>
-    </section>
+    <p id="status" class="status">no file loaded</p>
+  </section>
 
+  <div class="toolbar">
+    <div class="views" id="panel-views" aria-label="camera views">
+      <button data-view="front">front</button>
+      <button data-view="back">back</button>
+      <button data-view="left">left</button>
+      <button data-view="right">right</button>
+      <button data-view="top">top</button>
+      <button data-view="bottom">bottom</button>
+      <button data-view="persp">persp</button>
+    </div>
+    <div class="export-group">
+      <span class="export-note" title="v0: the glb is embedded as-is — adjustable compression comes next">v0 · uncompressed</span>
+      <button id="export" class="btn-primary">export .html</button>
+    </div>
+  </div>
+
+  <div class="panels">
     <section class="panel hidden" id="panel-anims">
       <h2>animations</h2>
       <select id="anim-select"></select>
@@ -68,17 +76,11 @@
       <h2>parts</h2>
       <div id="part-list" class="scroll"></div>
     </section>
-
-    <section class="panel" id="panel-export">
-      <h2>export</h2>
-      <button id="export" class="accent">exporter le .html</button>
-      <p class="note">v0 : le glb est embarqué tel quel — compression réglable à l'étape suivante</p>
-    </section>
-  </aside>
+  </div>
 </main>
 
 <footer>
-  <p>3dpeer · les fichiers ne quittent jamais ce navigateur · <span class="mono">Number41</span></p>
+  <p>3DPEER · files never leave this browser · <span class="mark-sm">Number41</span></p>
 </footer>
 
 <script src="app.js"></script>

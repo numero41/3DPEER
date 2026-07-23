@@ -1,6 +1,6 @@
-// Détection des morph targets + panneau de sliders (styles dans page.css).
+// Morph target detection + slider panel (styles in page.css).
 export function collectMorphs(rootObject) {
-  const morphs = new Map(); // nom -> [{mesh, index}]
+  const morphs = new Map(); // name -> [{mesh, index}]
   rootObject.traverse((o) => {
     if (!o.isMesh || !o.morphTargetInfluences || !o.morphTargetInfluences.length) return;
     const dict = o.morphTargetDictionary;

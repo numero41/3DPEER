@@ -1,10 +1,10 @@
-// Conteneur 3DPEER v1 — source unique de vérité du layout.
+// 3DPEER container v1 — single source of truth for the layout.
 // [0]  u32 BE magic  [4] u32 vertexCount  [8] u32 indexCount
 // [12] f32×3 bboxMin [24] f32×3 bboxSize
 // [36] f32×4 baseColor [52] f32 metallic [56] f32 roughness
-// [60] u32 bits de quantisation
-// [64] u32×4 longueurs des flux pos, nrm, col, idx
-// [80] flux meshopt concaténés
+// [60] u32 quantization bits
+// [64] u32×4 stream lengths pos, nrm, col, idx
+// [80] concatenated meshopt streams
 export const MAGIC = 0x33445001;
 export const HEADER_SIZE = 80;
 
@@ -27,7 +27,7 @@ export function buildContainer({ unique, indexCount, mn, sz, baseColor, metal, r
 
 export function parseHeader(u8) {
   const v = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-  if (v.getUint32(0, false) !== MAGIC) throw new Error('conteneur 3dpeer invalide');
+  if (v.getUint32(0, false) !== MAGIC) throw new Error('invalid 3dpeer container');
   return {
     unique: v.getUint32(4, true),
     indexCount: v.getUint32(8, true),

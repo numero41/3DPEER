@@ -1,34 +1,34 @@
 # 3DPEER
 
-Modele 3D -> un seul fichier .html : double-clic, piece jointe, offline,
-rotation tactile. Le modele, son decompresseur et son viewer voyagent ensemble.
+3D model -> a single .html file: double-click, email attachment, offline,
+touch rotation. The model, its decompressor and its viewer travel together.
 
-## Commandes
+## Commands
 
     npm install
-    npm run pack -- modele.glb sortie.html --bits 12 --title "Mon modele"
+    npm run pack -- model.glb output.html --bits 12 --title "My model"
     npm test
 
-## Arborescence
+## Directory tree
 
-    src/codec/     base85, conteneur 3DPEER, quantisation — ISOMORPHE (Node + navigateur).
-                   Ces modules sont partages par le packer ET le viewer : une seule
-                   source de verite pour le format. Le futur site drag-drop les
-                   reutilisera tels quels cote client.
-    src/pack/      cote Node : enveloppe gzip, modes geo/gltf, assemblage, auto-tests
-    src/viewer/    cote navigateur : decode, scene commune, morphs, boots geo/gltf
-    src/template/  page.html + page.css de l'artefact (placeholders {{...}},
-                   substitution par split/join — jamais String.replace, le payload
-                   contient des $)
-    scripts/       CLI pack.mjs, regression test.mjs (fixtures procedurales, zero binaire)
-    docs/          descriptif technique
+    src/codec/     base85, 3DPEER container, quantization — ISOMORPHIC (Node + browser).
+                   These modules are shared by BOTH the packer AND the viewer: a single
+                   source of truth for the format. The future drag-drop site will
+                   reuse them as-is on the client side.
+    src/pack/      Node side: gzip envelope, geo/gltf modes, assembly, self-tests
+    src/viewer/    browser side: decode, shared scene, morphs, geo/gltf boots
+    src/template/  page.html + page.css for the artifact (placeholders {{...}},
+                   substitution via split/join — never String.replace, the payload
+                   contains $)
+    scripts/       pack.mjs CLI, test.mjs regression (procedural fixtures, zero binaries)
+    docs/          technical description
 
 ## Modes
 
-geo  — geometrie statique : flux 3DPEER custom, buffers GPU quantises tels quels
-gltf — skins / morphs / animations / textures : GLB optimise (gltf-transform CLI)
-       dans la meme enveloppe, GLTFLoader appaire three r160, sliders de morphs
+geo  — static geometry: custom 3DPEER streams, quantized GPU buffers as-is
+gltf — skins / morphs / animations / textures: optimized GLB (gltf-transform CLI)
+       in the same envelope, GLTFLoader paired with three r160, morph sliders
 
-Versions epinglees : meshoptimizer 0.20 (codec vertex v0) + three 0.160 —
-paire encodeur/decodeur testee sur tout le parc navigateur depuis 2023.
-Chaque HTML produit est auto-teste (re-extraction + decodage complet).
+Pinned versions: meshoptimizer 0.20 (vertex codec v0) + three 0.160 —
+encoder/decoder pair tested across the whole browser fleet since 2023.
+Every HTML produced is self-tested (re-extraction + full decoding).

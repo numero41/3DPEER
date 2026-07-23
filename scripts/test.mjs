@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Régression sans fixtures binaires : génère un petit GLB procédural
-// (cube 24 sommets, couleurs) et le packe en mode geo ; puis lui ajoute
-// un morph target pour déclencher le mode gltf.
+// Regression without binary fixtures: generates a small procedural GLB
+// (24-vertex cube, colors) and packs it in geo mode; then adds a
+// morph target to it to trigger gltf mode.
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -44,7 +44,7 @@ const io = new NodeIO();
 for (const withMorph of [false, true]) {
   const glb = path.join(tmp, withMorph ? 'm.glb' : 'g.glb');
   await io.write(glb, makeCubeDoc(withMorph));
-  console.log('---', withMorph ? 'fixture morph (mode gltf attendu)' : 'fixture geo');
+  console.log('---', withMorph ? 'morph fixture (gltf mode expected)' : 'geo fixture');
   await pack(glb, glb.replace('.glb', '.html'), { title: 'test' });
 }
-console.log('=== régression synthétique OK ===');
+console.log('=== synthetic regression OK ===');

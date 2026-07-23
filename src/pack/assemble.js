@@ -6,8 +6,8 @@ import * as esbuild from 'esbuild';
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const TPL = path.join(__dir, '..', 'template');
 
-// Substitution par split/join : le payload base85 contient $ et autres
-// caractères spéciaux de String.replace — ne JAMAIS utiliser .replace ici.
+// Substitution via split/join: the base85 payload contains $ and other
+// characters special to String.replace — NEVER use .replace here.
 function put(s, key, val) { return s.split('{{' + key + '}}').join(val); }
 
 export function assemble({ output, title, caption, payload, viewerEntry }) {

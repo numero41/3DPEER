@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Serveur statique minimal pour site/ (l'export utilise fetch -> pas de file://)
+// Minimal static server for site/ (export uses fetch -> no file://)
 import http from 'http';
 import fs from 'fs';
 import path from 'path';

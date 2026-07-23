@@ -1,4 +1,4 @@
-// Scène commune aux deux modes : renderer, éclairage studio, contrôles, cadrage.
+// Scene shared by both modes: renderer, studio lighting, controls, framing.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -56,5 +56,5 @@ export function createStage() {
 
 export function showError(e) {
   const hint = document.getElementById('hint');
-  hint.textContent = 'erreur : ' + (e && e.message ? e.message : e);
+  hint.textContent = 'error: ' + (e && e.message ? e.message : e);
 }

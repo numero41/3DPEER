@@ -1,5 +1,5 @@
-// Mode gltf : GLB optimisé par gltf-transform (CLI, chaîne éprouvée)
-// puis glissé tel quel dans l'enveloppe.
+// Gltf mode: GLB optimized by gltf-transform (CLI, proven toolchain)
+// then dropped as-is into the envelope.
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';

@@ -1,77 +1,77 @@
-# 3dpeer — descriptif technique
-### Modèle 3D → fichier HTML autonome. v0.1, juillet 2026.
+# 3dpeer — technical description
+### 3D model → self-contained HTML file. v0.1, July 2026.
 
-## Objet
+## Purpose
 
-Un packer en ligne de commande : un GLB entre, un fichier `.html` unique sort. Ce fichier s'ouvre par double-clic, en pièce jointe mail ou WhatsApp, hors ligne, sur mobile comme sur desktop. Rotation au doigt, pincer pour zoomer, auto-rotation au repos. Aucun serveur, aucun compte, aucune requête réseau : le modèle, son décompresseur et son viewer voyagent ensemble dans le fichier. Le destinataire n'installe rien — le seul runtime requis est le navigateur, déjà présent partout.
+A command-line packer: a GLB goes in, a single `.html` file comes out. That file opens by double-click, as an email or WhatsApp attachment, offline, on mobile as well as desktop. Finger rotation, pinch to zoom, auto-rotation at rest. No server, no account, no network request: the model, its decompressor and its viewer travel together inside the file. The recipient installs nothing — the only runtime required is the browser, already present everywhere.
 
-C'est le principe du zip auto-extractible appliqué à la 3D : l'archive contient son propre décompresseur, la présentation contient son propre moteur de rendu.
+It's the principle of the self-extracting zip applied to 3D: the archive contains its own decompressor, the presentation contains its own rendering engine.
 
-## Anatomie du fichier livré
+## Anatomy of the delivered file
 
-Le HTML produit contient trois choses. Un squelette minimal (canvas plein écran, une légende qui s'estompe, fond `#211a14`). Un premier `<script>` portant le payload : le modèle compressé, encodé en base85 dans un littéral JS, précédé d'une légende. Un second `<script>` portant le viewer bundlé et minifié (~610 Ko) : three.js core, OrbitControls, RoomEnvironment et le décodeur meshopt 0.20 avec son WASM inliné.
+The produced HTML contains three things. A minimal skeleton (full-screen canvas, a caption that fades out, `#211a14` background). A first `<script>` carrying the payload: the compressed model, encoded in base85 in a JS literal, preceded by a caption. A second `<script>` carrying the bundled and minified viewer (~610 KB): three.js core, OrbitControls, RoomEnvironment and the meshopt 0.20 decoder with its WASM inlined.
 
-## Pipeline de compression
+## Compression pipeline
 
-Sept étages, avec les chiffres mesurés sur le fichier de référence (976 k sommets, 1,9 M de triangles, couleurs par sommet, sans texture) :
+Seven stages, with the figures measured on the reference file (976 k vertices, 1.9 M triangles, per-vertex colors, no texture):
 
-1. **Prune** (`keepAttributes:false`) — suppression des attributs orphelins. Sur le fichier de référence, 15 Mo de tangentes et 8 Mo d'UV qu'aucune texture ne référençait.
-2. **Join + weld** — fusion des primitives compatibles, soudure des sommets équivalents.
-3. **Quantisation maison** — positions sur 12 bits (paramétrable `--bits`) stockées en uint16 avec stride 8, normales en int8 stride 4, couleurs en uint8 RGBA stride 4. Erreur géométrique maximale mesurée : 0,007 % de la diagonale de la boîte englobante — invisible. La déquantisation ne coûte rien au chargement : elle est portée par la matrice de l'objet (voir plus bas).
-4. **Réordonnancement** (`reorderMesh`) — réorganisation des sommets pour le cache GPU. Sert deux fois : meilleure compression des flux ET meilleur débit de rendu.
-5. **Encodage meshopt, codec vertex v0** — `encodeVertexBuffer` / `encodeIndexBuffer`. Le choix de la v0 est délibéré : c'est celle que tous les décodeurs navigateur digèrent depuis 2023 (voir « leçons »).
-6. **gzip -9** — les flux meshopt sont conçus pour être repassés dans un codeur d'entropie. Le décodage côté client est natif (`DecompressionStream`), donc gratuit : zéro octet de décompresseur à embarquer pour cet étage. Sur la référence : 8,3 Mo → 2,95 Mo.
-7. **Base85 à alphabet propriétaire** — 85 symboles choisis pour être sûrs dans un littéral JS entre guillemets doubles : ni `"`, ni `\`, ni `<`, donc la séquence `</script` est impossible par construction. Surcoût +25 % contre +33 % pour le base64. Cadre `[longueur u32][gzip][padding %4]`.
+1. **Prune** (`keepAttributes:false`) — removal of orphan attributes. On the reference file, 15 MB of tangents and 8 MB of UVs that no texture referenced.
+2. **Join + weld** — merging of compatible primitives, welding of equivalent vertices.
+3. **In-house quantization** — positions on 12 bits (configurable via `--bits`) stored as uint16 with stride 8, normals as int8 stride 4, colors as uint8 RGBA stride 4. Maximum measured geometric error: 0.007 % of the bounding box diagonal — invisible. Dequantization costs nothing at load time: it is carried by the object's matrix (see below).
+4. **Reordering** (`reorderMesh`) — reorganization of vertices for the GPU cache. Serves twice: better stream compression AND better rendering throughput.
+5. **Meshopt encoding, vertex codec v0** — `encodeVertexBuffer` / `encodeIndexBuffer`. The choice of v0 is deliberate: it's the one every browser decoder has digested since 2023 (see "lessons").
+6. **gzip -9** — the meshopt streams are designed to be run back through an entropy coder. Client-side decoding is native (`DecompressionStream`), so it's free: zero bytes of decompressor to embed for this stage. On the reference: 8.3 MB → 2.95 MB.
+7. **Base85 with a proprietary alphabet** — 85 symbols chosen to be safe in a double-quoted JS literal: no `"`, no `\`, no `<`, so the `</script` sequence is impossible by construction. +25 % overhead versus +33 % for base64. Frame `[u32 length][gzip][%4 padding]`.
 
-Bilan sur la référence : **62,05 Mo → 4,24 Mo** (÷14,6), fichier complet viewer compris, en ~10 s de packing.
+Bottom line on the reference: **62.05 MB → 4.24 MB** (÷14.6), complete file viewer included, in ~10 s of packing.
 
-## Format conteneur 3DPEER, version 1
+## 3DPEER container format, version 1
 
-| Offset | Type | Contenu |
+| Offset | Type | Content |
 |---|---|---|
-| 0 | u32 BE | magic `0x4E343101` (« 3DPEER » + version) |
-| 4 | u32 LE | nombre de sommets |
-| 8 | u32 LE | nombre d'indices |
+| 0 | u32 BE | magic `0x4E343101` ("3DPEER" + version) |
+| 4 | u32 LE | vertex count |
+| 8 | u32 LE | index count |
 | 12 | f32 ×3 | bbox min |
-| 24 | f32 ×3 | bbox taille |
+| 24 | f32 ×3 | bbox size |
 | 36 | f32 ×4 | baseColorFactor |
 | 52 | f32 | metallic |
 | 56 | f32 | roughness |
-| 60 | u32 | bits de quantisation |
-| 64 | u32 ×4 | longueurs des 4 flux : pos, nrm, col, idx |
-| 80 | — | flux meshopt concaténés |
+| 60 | u32 | quantization bits |
+| 64 | u32 ×4 | lengths of the 4 streams: pos, nrm, col, idx |
+| 80 | — | concatenated meshopt streams |
 
-Il n'y a plus de GLB dans le fichier livré : rien de standard à extraire. Un conteneur binaire privé, dans un alphabet inconnu, derrière un gzip. C'est de la dissuasion graduée, pas du DRM — un attaquant déterminé instrumente WebGL — mais l'extraction triviale (« ouvrir les devtools, sauver le .glb ») n'existe plus.
+There is no longer any GLB in the delivered file: nothing standard to extract. A private binary container, in an unknown alphabet, behind a gzip. This is graduated deterrence, not DRM — a determined attacker instruments WebGL — but trivial extraction ("open the devtools, save the .glb") no longer exists.
 
-## Hydratation GPU
+## GPU hydration
 
-Les flux décodés montent en l'état, sans conversion en float : positions `Uint16Array` via `InterleavedBuffer` (stride 4 éléments, non normalisé), normales `Int8Array` (normalisé), couleurs `Uint8Array` RGBA (normalisé), indices `Uint32Array`. La déquantisation des positions est faite par le vertex shader via la matrice de l'objet : `mesh.scale = taille_bbox / (2^bits − 1)` par axe, `mesh.position = bbox_min`. La normalMatrix de three (inverse-transposée) absorbe correctement l'échelle non uniforme pour l'éclairage. La bounding sphere est calculée en espace quantisé puis transformée par la matrice monde pour le culling. Résultat : environ moitié moins de VRAM qu'en float32, et un coût CPU de chargement quasi nul.
+The decoded streams are uploaded as-is, without conversion to float: positions `Uint16Array` via `InterleavedBuffer` (stride 4 elements, not normalized), normals `Int8Array` (normalized), colors `Uint8Array` RGBA (normalized), indices `Uint32Array`. Position dequantization is done by the vertex shader via the object's matrix: `mesh.scale = bbox_size / (2^bits − 1)` per axis, `mesh.position = bbox_min`. Three's normalMatrix (inverse-transpose) correctly absorbs the non-uniform scale for lighting. The bounding sphere is computed in quantized space then transformed by the world matrix for culling. Result: roughly half the VRAM compared to float32, and near-zero CPU load cost.
 
-## Rendu
+## Rendering
 
-`MeshStandardMaterial` avec `vertexColors` multipliées par le `baseColorFactor` (sémantique glTF), metallic/roughness du matériau source. Éclairage image : PMREM généré à partir de `RoomEnvironment` — un studio procédural, donc zéro asset HDRI embarqué. Tone mapping ACES, sortie sRGB, pixelRatio plafonné à 2.
+`MeshStandardMaterial` with `vertexColors` multiplied by the `baseColorFactor` (glTF semantics), metallic/roughness from the source material. Image-based lighting: PMREM generated from `RoomEnvironment` — a procedural studio, so zero embedded HDRI asset. ACES tone mapping, sRGB output, pixelRatio capped at 2.
 
-## Robustesse — leçons intégrées
+## Robustness — built-in lessons
 
-**Paires codec appairées.** Premier incident de développement : encodeur meshoptimizer 1.2.0 (2026) émettant le codec vertex v1, illisible par les décodeurs embarqués dans le parc three ≤ 2024 → « malformed buffer data » sur mobile alors que l'auto-test Node passait (même lib des deux côtés). Résolution : tout le projet est épinglé sur meshoptimizer 0.20.0, codec v0, encodeur et décodeur du même paquet.
+**Paired codecs.** First development incident: meshoptimizer 1.2.0 (2026) encoder emitting vertex codec v1, unreadable by the decoders embedded in the three ≤ 2024 fleet → "malformed buffer data" on mobile while the Node self-test passed (same lib on both sides). Resolution: the whole project is pinned to meshoptimizer 0.20.0, codec v0, encoder and decoder from the same package.
 
-**L'auto-test porte sur l'artefact, pas sur les intermédiaires.** À chaque packing, l'outil ré-extrait la chaîne `__P` du HTML final produit, la décode intégralement (base85 → gzip → meshopt) avec le décodeur de **three r160** — délibérément le plus ancien et le plus conservateur du parc — et compare bit à bit avec les flux sources. Un fichier livré est un fichier dont le chemin de décodage complet a été exécuté.
+**The self-test targets the artifact, not the intermediates.** On each packing, the tool re-extracts the `__P` string from the final produced HTML, decodes it entirely (base85 → gzip → meshopt) with the **three r160** decoder — deliberately the oldest and most conservative in the fleet — and compares bit-for-bit with the source streams. A delivered file is a file whose complete decoding path has been executed.
 
-**Compatibilité client.** `DecompressionStream` : Chrome/Edge 80+, Safari/iOS 16.4+, Firefox 113+. WebGL2 requis (three r160). En dessous, le fichier affiche une erreur propre dans la légende plutôt qu'un écran vide.
+**Client compatibility.** `DecompressionStream`: Chrome/Edge 80+, Safari/iOS 16.4+, Firefox 113+. WebGL2 required (three r160). Below that, the file shows a clean error in the caption rather than a blank screen.
 
-## Limites connues, v0
+## Known limitations, v0
 
-Une seule primitive packée (les suivantes sont ignorées avec avertissement). Pas de textures — le pipeline image (WebP/KTX2) est le prochain gros étage. Pas d'animations ni de skinning. Normales requises dans le GLB source. La « protection » est de la dissuasion, pas du chiffrement à clé.
+A single primitive packed (subsequent ones are ignored with a warning). No textures — the image pipeline (WebP/KTX2) is the next big stage. No animations or skinning. Normals required in the source GLB. The "protection" is deterrence, not key-based encryption.
 
-## Feuille de route produit
+## Product roadmap
 
-Court terme : multi-primitives et multi-matériaux ; textures (recompression WebP, plafond de taille, décodage natif navigateur) ; animations (resample + compression meshopt des courbes, le viewer sait déjà les jouer). Produit : curseur de qualité avec comparaison avant/après en direct et poids affiché ; export triple en un clic (.html interactif, .usdz pour l'écosystème Apple, .mp4 turntable 9:16 pour les feeds) ; LOD progressif monofichier (silhouette affichée en ~300 ms pendant le décodage du plein) ; watermark forensique dans les bits de poids faible de la quantisation — chaque destinataire reçoit un fichier marqué différemment, identifiable en cas de fuite ; date d'expiration ; interface drag-drop pour non-codeurs ; licence Lemon Squeezy.
+Short term: multi-primitive and multi-material; textures (WebP recompression, size cap, native browser decoding); animations (resample + meshopt compression of curves, the viewer already knows how to play them). Product: quality slider with live before/after comparison and displayed weight; one-click triple export (.html interactive, .usdz for the Apple ecosystem, .mp4 turntable 9:16 for feeds); single-file progressive LOD (silhouette shown in ~300 ms while the full model decodes); forensic watermark in the low-order bits of the quantization — each recipient gets a differently marked file, identifiable in case of a leak; expiration date; drag-drop interface for non-coders; Lemon Squeezy licensing.
 
 ## Reproduction
 
 ```
 npm install
-node pack.mjs modele.glb sortie.html --bits 12 --title "Mon modèle"
+node pack.mjs model.glb output.html --bits 12 --title "My model"
 ```
 
-Chiffres de référence (50playgrounds_cube_00) : GLB source 62,05 Mo → conteneur 3DPEER 8,34 Mo → gzip 2,95 Mo → base85 3,68 Mo → **HTML final 4,24 Mo**, auto-test three r160 : OK.
+Reference figures (50playgrounds_cube_00): source GLB 62.05 MB → 3DPEER container 8.34 MB → gzip 2.95 MB → base85 3.68 MB → **final HTML 4.24 MB**, three r160 self-test: OK.

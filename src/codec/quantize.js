@@ -5,7 +5,7 @@ export function computeBbox(pos) {
   return { mn, sz: [mx[0] - mn[0] || 1, mx[1] - mn[1] || 1, mx[2] - mn[2] || 1] };
 }
 
-// Remplit les flux quantisés en appliquant le remap de reorderMesh.
+// Fills the quantized streams by applying the reorderMesh remap.
 // pos u16 stride 8 (xyz + pad) · nrm i8 stride 4 · col u8 RGBA stride 4
 export function buildQuantizedStreams({ pos, nrm, colU8, remap, count, unique, mn, sz, bits }) {
   const Q = (1 << bits) - 1;

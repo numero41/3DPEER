@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// CLI mince : node scripts/pack.mjs entree.glb sortie.html
-//             [--bits 12] [--title "..."] [--texsize 2048]
+// Thin CLI: node scripts/pack.mjs input.glb output.html
+//           [--bits 12] [--title "..."] [--texsize 2048]
 import { pack } from '../src/pack/index.js';
 
 const args = process.argv.slice(2);
 const files = args.filter((a, i) => !a.startsWith('--') && (i === 0 || !args[i - 1].startsWith('--')));
 if (files.length < 2) {
-  console.error('usage: node scripts/pack.mjs entree.glb sortie.html [--bits 12] [--title "..."] [--texsize 2048]');
+  console.error('usage: node scripts/pack.mjs input.glb output.html [--bits 12] [--title "..."] [--texsize 2048]');
   process.exit(1);
 }
 const opt = (name) => { const i = args.indexOf('--' + name); return i >= 0 ? args[i + 1] : undefined; };

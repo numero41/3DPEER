@@ -1,4 +1,4 @@
-// Orchestrateur : lecture, détection de mode, packing, assemblage, auto-test.
+// Orchestrator: read, mode detection, packing, assembly, self-test.
 import fs from 'fs';
 import path from 'path';
 import { NodeIO } from '@gltf-transform/core';
@@ -29,22 +29,22 @@ export async function pack(input, output, opts = {}) {
     const glb = optimizeGlb({ input, hasTex, texSize, tmpDir: path.dirname(path.resolve(output)) });
     const payload = envelope(glb);
     assemble({ output, title, payload, viewerEntry: 'boot-gltf.js',
-      caption: `${title} · fichier autonome · 0 requête` });
+      caption: `${title} · self-contained file · 0 requests` });
     selfTestGltf(output);
-    report(input, output, t0, `GLB optimisé : ${(glb.length / 1e6).toFixed(2)} Mo`);
+    report(input, output, t0, `optimized GLB: ${(glb.length / 1e6).toFixed(2)} MB`);
   } else {
     const { container, ref, stats } = await packGeo(doc, { bits });
     const payload = envelope(container);
     assemble({ output, title, payload, viewerEntry: 'boot-geo.js',
-      caption: `${title} · ${(container.length / 1e6).toFixed(1)} Mo décompressé · fichier autonome · 0 requête` });
+      caption: `${title} · ${(container.length / 1e6).toFixed(1)} MB decompressed · self-contained file · 0 requests` });
     await selfTestGeo(output, ref);
     report(input, output, t0,
-      `${stats.count} sommets, ${stats.indexCount / 3} triangles | conteneur : ${(container.length / 1e6).toFixed(2)} Mo | quantisation ${bits} bits`);
+      `${stats.count} vertices, ${stats.indexCount / 3} triangles | container: ${(container.length / 1e6).toFixed(2)} MB | ${bits}-bit quantization`);
   }
 }
 
 function report(input, output, t0, extra) {
   const so = fs.statSync(input).size, sf = fs.statSync(output).size;
   console.log(extra);
-  console.log(`entrée : ${(so / 1e6).toFixed(2)} Mo | sortie : ${(sf / 1e6).toFixed(2)} Mo (÷${(so / sf).toFixed(1)}) — ${Date.now() - t0} ms`);
+  console.log(`input: ${(so / 1e6).toFixed(2)} MB | output: ${(sf / 1e6).toFixed(2)} MB (÷${(so / sf).toFixed(1)}) — ${Date.now() - t0} ms`);
 }

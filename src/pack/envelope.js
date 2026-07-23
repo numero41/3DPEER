@@ -8,7 +8,7 @@ export function envelope(bytes) {
   framed.set(gz, 4);
   const payload = b85encode(framed);
   if (payload.includes('</script') || payload.includes('"') || payload.includes('\\'))
-    throw new Error('payload non sûr pour un littéral JS');
+    throw new Error('payload not safe for a JS literal');
   return payload;
 }
 
@@ -20,6 +20,6 @@ export function unenvelope(payloadStr) {
 
 export function extractPayload(html) {
   const m = html.match(/__P=\n"([^"]+)"/);
-  if (!m) throw new Error('payload introuvable dans le HTML');
+  if (!m) throw new Error('payload not found in the HTML');
   return m[1];
 }

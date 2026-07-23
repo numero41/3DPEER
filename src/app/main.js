@@ -1,4 +1,4 @@
-// 3dpeer — workbench du site. Aucun style ici : tout est dans site.css.
+// 3dpeer — site workbench. No styles here: everything lives in site.css.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -10,7 +10,7 @@ import { b85encode } from '../codec/base85.js';
 const $ = (id) => document.getElementById(id);
 
 // ---------------------------------------------------------------------------
-// scène
+// scene
 // ---------------------------------------------------------------------------
 const canvas = $('viewport');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -18,7 +18,7 @@ renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x211a14);
+scene.background = new THREE.Color(0x262626);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
@@ -33,12 +33,12 @@ function resize() {
 addEventListener('resize', resize);
 
 // ---------------------------------------------------------------------------
-// état du modèle chargé
+// loaded-model state
 // ---------------------------------------------------------------------------
 const state = {
-  root: null, glbBytes: null, name: 'modele',
+  root: null, glbBytes: null, name: 'model',
   center: new THREE.Vector3(), dist: 4,
-  originals: new Map(),      // mesh -> matériau d'origine
+  originals: new Map(),      // mesh -> original material
   wireOverlays: [],
   mixer: null, actions: [], activeAction: null, clock: new THREE.Clock(),
 };
@@ -70,7 +70,7 @@ function frameObject(object) {
 }
 
 // ---------------------------------------------------------------------------
-// chargement
+// loading
 // ---------------------------------------------------------------------------
 async function loadFile(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -80,7 +80,7 @@ async function loadFile(file) {
   try {
     gltf = await new Promise((ok, ko) => loader.parse(bytes.buffer.slice(0), '', ok, ko));
   } catch (e) {
-    setStatus('erreur de parsing : ' + (e.message || e)); return;
+    setStatus('parse error: ' + (e.message || e)); return;
   }
   disposeCurrent();
   state.root = gltf.scene; state.glbBytes = bytes;
@@ -98,7 +98,7 @@ async function loadFile(file) {
   }
   buildPanels(gltf);
   document.body.classList.add('loaded');
-  setStatus(`${state.name} — ${(bytes.length / 1e6).toFixed(2)} Mo chargés, traité en local`);
+  setStatus(`${state.name} — ${(bytes.length / 1e6).toFixed(2)} MB loaded, processed locally`);
   applyDisplayMode(document.querySelector('input[name="dmode"]:checked').value);
 }
 
@@ -116,7 +116,7 @@ $('file-input').addEventListener('change', (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// panneaux auto : morphs, parts, animations
+// auto panels: morphs, parts, animations
 // ---------------------------------------------------------------------------
 function clearChildren(el) { while (el.firstChild) el.removeChild(el.firstChild); }
 
@@ -142,7 +142,7 @@ function buildPanels(gltf) {
     r.value = 0; r.dispatchEvent(new Event('input'));
   });
 
-  // parts (show/hide par mesh nommé)
+  // parts (show/hide per named mesh)
   const pBox = $('panel-parts'), pList = $('part-list');
   clearChildren(pList);
   const meshes = [];
@@ -196,24 +196,27 @@ function playClip(i) {
 }
 
 // ---------------------------------------------------------------------------
-// modes d'affichage
+// display modes (monochrome)
 // ---------------------------------------------------------------------------
-const clayMat = new THREE.MeshStandardMaterial({ color: 0xb8b0a4, roughness: 0.9, metalness: 0 });
+const clayMat = new THREE.MeshStandardMaterial({ color: 0xb4b4b4, roughness: 0.9, metalness: 0 });
 function makeMatcapTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 256;
   const g = c.getContext('2d');
   const grad = g.createRadialGradient(96, 96, 20, 128, 128, 150);
-  grad.addColorStop(0, '#f4ede2'); grad.addColorStop(0.55, '#a4886c');
-  grad.addColorStop(0.85, '#3d2f24'); grad.addColorStop(1, '#17110c');
+  grad.addColorStop(0, '#f5f5f5'); grad.addColorStop(0.55, '#9a9a9a');
+  grad.addColorStop(0.85, '#333333'); grad.addColorStop(1, '#101010');
   g.fillStyle = grad; g.fillRect(0, 0, 256, 256);
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 const matcapMat = new THREE.MeshMatcapMaterial({ matcap: makeMatcapTexture() });
-const wireMat = new THREE.MeshBasicMaterial({ wireframe: true, color: 0xd98b52 });
+const wireMat = new THREE.MeshBasicMaterial({ wireframe: true, color: 0xe6e6e6 });
+// wire+shaded overlay: a dark, semi-transparent wire (DCC convention). Studio
+// lighting keeps most surfaces mid-to-light, so a dark line reads where the old
+// near-opaque #17110c did not; polygon offset lifts it off the shaded surface.
 const wireOverlayMat = new THREE.MeshBasicMaterial({
-  wireframe: true, color: 0x17110c, polygonOffset: true,
-  polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+  wireframe: true, color: 0x111111, transparent: true, opacity: 0.4,
+  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
 });
 
 function clearWireOverlays() {
@@ -224,8 +227,11 @@ function clearWireOverlays() {
 function applyDisplayMode(mode) {
   if (!state.root) return;
   clearWireOverlays();
-  state.root.traverse((o) => {
-    if (!o.isMesh) return;
+  // Snapshot the real meshes first: the wireshaded branch adds child meshes,
+  // and traverse() would otherwise walk into those overlays and recurse.
+  const meshes = [];
+  state.root.traverse((o) => { if (o.isMesh) meshes.push(o); });
+  for (const o of meshes) {
     const orig = state.originals.get(o);
     const cloneFor = (m) => {
       const c = m.clone();
@@ -238,18 +244,18 @@ function applyDisplayMode(mode) {
     else if (mode === 'wire') o.material = cloneFor(wireMat);
     else if (mode === 'wireshaded') {
       o.material = orig;
-      if (!o.isSkinnedMesh) { // v0 : l'overlay ne suit pas les bones
+      if (!o.isSkinnedMesh) { // v0: the overlay does not follow bones
         const w = new THREE.Mesh(o.geometry, wireOverlayMat);
         o.add(w); state.wireOverlays.push(w);
       }
     }
-  });
+  }
 }
 document.querySelectorAll('input[name="dmode"]').forEach((r) =>
   r.addEventListener('change', () => applyDisplayMode(r.value)));
 
 // ---------------------------------------------------------------------------
-// vues + snapshot
+// views + snapshot + fullscreen
 // ---------------------------------------------------------------------------
 const VIEWS = {
   front: [0, 0, 1], back: [0, 0, -1], left: [-1, 0, 0],
@@ -274,9 +280,18 @@ $('snapshot').addEventListener('click', () => {
   });
 });
 
+const stageEl = $('stage');
+$('fullscreen').addEventListener('click', () => {
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fsEl) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
+});
+['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) =>
+  document.addEventListener(ev, () => requestAnimationFrame(resize)));
+
 // ---------------------------------------------------------------------------
-// export : enveloppe navigateur (gzip natif + base85) + template + viewer
-// v0 : le GLB source est embarqué tel quel (optimisation in-browser à venir)
+// export: browser envelope (native gzip + base85) + template + viewer
+// v0: the source GLB is embedded as-is (in-browser optimization to come)
 // ---------------------------------------------------------------------------
 async function gzipBytes(u8) {
   const resp = new Response(new Blob([u8]).stream().pipeThrough(new CompressionStream('gzip')));
@@ -286,7 +301,7 @@ function put(s, key, val) { return s.split('{{' + key + '}}').join(val); }
 
 $('export').addEventListener('click', async () => {
   if (!state.glbBytes) return;
-  setStatus('export en cours…');
+  setStatus('exporting…');
   const gz = await gzipBytes(state.glbBytes);
   const framed = new Uint8Array(4 + gz.length + (4 - (4 + gz.length) % 4) % 4);
   new DataView(framed.buffer).setUint32(0, gz.length, true);
@@ -299,7 +314,7 @@ $('export').addEventListener('click', async () => {
   ]);
   let html = put(tpl, 'CSS', css);
   html = put(html, 'TITLE', state.name);
-  html = put(html, 'CAPTION', `${state.name} · fichier autonome · 0 requête`);
+  html = put(html, 'CAPTION', `${state.name} · self-contained file · 0 requests`);
   html = put(html, 'PAYLOAD', payload);
   html = put(html, 'BUNDLE', viewer);
   const blob = new Blob([html], { type: 'text/html' });
@@ -307,11 +322,11 @@ $('export').addEventListener('click', async () => {
   a.href = URL.createObjectURL(blob);
   a.download = state.name + '.3dpeer.html';
   a.click(); URL.revokeObjectURL(a.href);
-  setStatus(`exporté : ${state.name}.3dpeer.html — ${(blob.size / 1e6).toFixed(2)} Mo`);
+  setStatus(`exported: ${state.name}.3dpeer.html — ${(blob.size / 1e6).toFixed(2)} MB`);
 });
 
 // ---------------------------------------------------------------------------
-// boucle
+// loop
 // ---------------------------------------------------------------------------
 resize();
 renderer.setAnimationLoop(() => {
