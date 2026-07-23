@@ -1,8 +1,10 @@
-// ui.js — status line + export progress bar.
+// =============================================================================
+// ui.js
 //
-// The progress bar is a native <progress> element: we set its `.value`
-// property (a DOM property, not a style) and toggle classes/attributes only,
-// per project invariant #6 (no element.style anywhere).
+// Status line + export progress bar. The progress bar is a native <progress>
+// element; its `.value` is a DOM property (not a style), and only classes and
+// attributes are toggled — per project invariant #6 (no element.style anywhere).
+// =============================================================================
 
 import { $ } from './dom.js';
 

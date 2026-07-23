@@ -1,12 +1,18 @@
-// exporter.js — turn the loaded model into one self-contained .html file.
+// =============================================================================
+// exporter.js
+//
+// Turns the loaded model into one self-contained .html file.
 //
 // Pipeline: gzip (native CompressionStream) -> length-framed buffer -> base85
 // -> substitute into the artifact template. The base85 pass is the slow part
-// for large models and runs in yielding chunks so the progress bar (with ETA)
-// stays live and the tab does not freeze.
+// for large models, so it runs in yielding chunks to keep the progress bar (with
+// ETA) live and avoid freezing the tab. The source GLB is embedded as-is; the
+// only size reduction at this stage is gzip.
 //
-// v0 embeds the source GLB as-is; the compression pipeline (Phase 1) will hook
-// in just before gzip without changing this assembly step.
+// The template, stylesheet and viewer are inlined at build time (window.__EXPORT)
+// and loaded via a <script> tag, so export performs no network request and works
+// over file://.
+// =============================================================================
 
 import { b85encode } from '../codec/base85.js';
 import { state } from './state.js';

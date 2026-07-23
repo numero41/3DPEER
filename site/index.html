@@ -22,39 +22,57 @@
       <input id="file-input" type="file" accept=".glb,.gltf">
     </div>
 
-    <!-- top-right tools -->
+    <!-- top-right utilities -->
     <div class="stage-tools">
-      <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><svg class="ico"><use href="#i-fit"></use></svg></button>
-      <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico"><use href="#i-snapshot"></use></svg></button>
-      <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico"><use href="#i-fullscreen"></use></svg></button>
+      <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
+      <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
     </div>
 
-    <!-- bottom-left: unfolded-cube camera views -->
-    <div class="camcube" aria-label="Camera views">
-      <svg viewBox="0 0 107 80" class="cube-net">
-        <g class="cube-face" data-view="top"><title>Top view</title><rect x="27" y="0"  width="26" height="26" rx="2"/><text x="40" y="16">T</text></g>
-        <g class="cube-face" data-view="left"><title>Left view</title><rect x="0"  y="27" width="26" height="26" rx="2"/><text x="13" y="43">L</text></g>
-        <g class="cube-face" data-view="front"><title>Front view</title><rect x="27" y="27" width="26" height="26" rx="2"/><text x="40" y="43">F</text></g>
-        <g class="cube-face" data-view="right"><title>Right view</title><rect x="54" y="27" width="26" height="26" rx="2"/><text x="67" y="43">R</text></g>
-        <g class="cube-face" data-view="back"><title>Back view</title><rect x="81" y="27" width="26" height="26" rx="2"/><text x="94" y="43">K</text></g>
-        <g class="cube-face" data-view="bottom"><title>Bottom view</title><rect x="27" y="54" width="26" height="26" rx="2"/><text x="40" y="70">D</text></g>
-      </svg>
-      <button class="cube-persp" data-view="persp" title="Reset to perspective view">persp</button>
-    </div>
-
-    <!-- bottom-center: shader + additive wireframe -->
-    <div class="stage-bar">
-      <div class="seg" role="radiogroup" aria-label="Shader">
-        <label title="Lit with the model's own materials"><input type="radio" name="dmode" value="shaded" checked><span>shaded</span></label>
-        <label title="Uniform matte clay"><input type="radio" name="dmode" value="clay"><span>clay</span></label>
-        <label title="Sculpt-style matcap"><input type="radio" name="dmode" value="matcap"><span>matcap</span></label>
-        <label title="Unlit wireframe only"><input type="radio" name="dmode" value="wire"><span>wire</span></label>
+    <!-- bottom-center toolbar: camera / material / light menus -->
+    <div class="viewport-toolbar">
+      <div class="menu-group">
+        <button class="icon-btn" data-menu="view" aria-haspopup="true" aria-expanded="false" title="Camera views"><svg class="ico" viewBox="0 0 24 24"><use href="#i-view"></use></svg></button>
+        <div class="menu-pop" id="menu-view" role="menu">
+          <svg viewBox="0 0 107 80" class="cube-net">
+            <g class="cube-face" data-view="top"><title>Top view</title><rect x="27" y="0"  width="26" height="26" rx="2"/><text x="40" y="16">T</text></g>
+            <g class="cube-face" data-view="left"><title>Left view</title><rect x="0"  y="27" width="26" height="26" rx="2"/><text x="13" y="43">L</text></g>
+            <g class="cube-face" data-view="front"><title>Front view</title><rect x="27" y="27" width="26" height="26" rx="2"/><text x="40" y="43">F</text></g>
+            <g class="cube-face" data-view="right"><title>Right view</title><rect x="54" y="27" width="26" height="26" rx="2"/><text x="67" y="43">R</text></g>
+            <g class="cube-face" data-view="back"><title>Back view</title><rect x="81" y="27" width="26" height="26" rx="2"/><text x="94" y="43">K</text></g>
+            <g class="cube-face" data-view="bottom"><title>Bottom view</title><rect x="27" y="54" width="26" height="26" rx="2"/><text x="40" y="70">D</text></g>
+          </svg>
+          <div class="menu-row">
+            <button data-view="persp" title="Reset to perspective view">perspective</button>
+            <button id="fit" title="Fit model to view">fit</button>
+          </div>
+        </div>
       </div>
-      <button id="wire-toggle" class="seg-toggle" aria-pressed="false" title="Overlay a wireframe on top of the current shader">wireframe</button>
+
+      <div class="menu-group">
+        <button class="icon-btn" data-menu="material" aria-haspopup="true" aria-expanded="false" title="Material"><svg class="ico" viewBox="0 0 24 24"><use href="#i-material"></use></svg></button>
+        <div class="menu-pop" id="menu-material" role="menu">
+          <label class="menu-item" title="The model's own materials"><input type="radio" name="material" value="original" checked><span>Original</span></label>
+          <label class="menu-item" title="Uniform matte grey"><input type="radio" name="material" value="clay"><span>Clay</span></label>
+          <label class="menu-item" title="Polished chrome"><input type="radio" name="material" value="metallic"><span>Metallic</span></label>
+          <label class="menu-item" title="Clear refractive glass"><input type="radio" name="material" value="glass"><span>Glass</span></label>
+          <label class="menu-item" title="Sculpt-style baked lighting"><input type="radio" name="material" value="matcap"><span>Matcap (baked light)</span></label>
+          <button id="wire-toggle" class="menu-toggle" aria-pressed="false" title="Overlay a wireframe on top of the current material">Wireframe overlay</button>
+        </div>
+      </div>
+
+      <div class="menu-group">
+        <button class="icon-btn" data-menu="light" aria-haspopup="true" aria-expanded="false" title="Lighting"><svg class="ico" viewBox="0 0 24 24"><use href="#i-light"></use></svg></button>
+        <div class="menu-pop" id="menu-light" role="menu">
+          <label class="menu-item" title="Neutral studio environment"><input type="radio" name="light" value="studio" checked><span>Studio</span></label>
+          <label class="menu-item" title="Gentle, low-contrast fill"><input type="radio" name="light" value="soft"><span>Soft</span></label>
+          <label class="menu-item" title="Single strong key light"><input type="radio" name="light" value="dramatic"><span>Dramatic</span></label>
+          <label class="menu-item" title="Bright, high-key"><input type="radio" name="light" value="bright"><span>Bright</span></label>
+        </div>
+      </div>
     </div>
 
     <!-- right edge: panel toggle + docked panel -->
-    <button id="panel-toggle" class="panel-toggle hidden" title="Show / hide panels" aria-label="Toggle panels"><svg class="ico"><use href="#i-panel-open"></use></svg></button>
+    <button id="panel-toggle" class="panel-toggle hidden" title="Show / hide panels" aria-label="Toggle panels"><svg class="ico" viewBox="0 0 24 24"><use href="#i-panel-open"></use></svg></button>
     <aside id="side" class="side">
       <section class="side-sec hidden" id="panel-anims">
         <h2>animations</h2>
@@ -67,7 +85,7 @@
 
       <section class="side-sec hidden" id="panel-morphs">
         <h2>morphs <span id="morph-count"></span></h2>
-        <button id="morph-reset" title="Reset all morph sliders to zero"><svg class="ico"><use href="#i-reset"></use></svg>reset</button>
+        <button id="morph-reset" title="Reset all morph sliders to zero"><svg class="ico" viewBox="0 0 24 24"><use href="#i-reset"></use></svg>reset</button>
         <div id="morph-list" class="scroll"></div>
       </section>
 
@@ -81,7 +99,7 @@
   <!-- below the viewer: status, export, progress -->
   <div class="under">
     <p id="status" class="under-status">no file loaded</p>
-    <button id="export" class="btn-primary btn-block" title="Pack the model into a self-contained .html file"><svg class="ico"><use href="#i-export"></use></svg>export .html</button>
+    <button id="export" class="btn-primary btn-block" title="Pack the model into a self-contained .html file"><svg class="ico" viewBox="0 0 24 24"><use href="#i-export"></use></svg>export .html</button>
     <div class="progress-wrap" id="export-progress-wrap" hidden>
       <progress id="export-progress" max="1" value="0"></progress>
       <p class="progress-eta"><span id="export-pct">0%</span> · <span id="export-eta">estimating…</span></p>

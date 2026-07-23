@@ -1,37 +1,48 @@
-// main.js — workbench entry point. Wires the modules together and runs the
-// render loop. Everything substantial lives in its own module; this file only
-// orchestrates. No styles here (invariant #6).
+// =============================================================================
+// main.js
+//
+// Workbench entry point. Injects the icon sprite, builds the render stage, wires
+// each feature module to the DOM, and runs the render loop. Everything of
+// substance lives in its own module; this file only orchestrates. No styles are
+// set here — all styling is in site/site.css.
+// =============================================================================
 
 import { state } from './state.js';
 import { createStage } from './stage.js';
 import { initLoader } from './loader.js';
-import { initDisplayControls } from './display-modes.js';
+import { initMaterialControls } from './materials.js';
+import { initLighting } from './lighting.js';
+import { initMenus } from './menus.js';
 import { initSidePanel } from './panels.js';
 import { initViews } from './views.js';
 import { initExport } from './exporter.js';
 import { SPRITE } from './sprite.js';
 import { $ } from './dom.js';
 
-// Inject the inline icon sprite so <use href="#i-..."> works with no fetch.
+// Inject the inline icon sprite so <use href="#i-..."> resolves with no fetch.
 document.body.insertAdjacentHTML('afterbegin', SPRITE);
 
 const stage = createStage();
 
+// Feature wiring.
 initLoader(stage);
-initDisplayControls();
+initMaterialControls();
+initLighting(stage);
+initMenus();
 initSidePanel();
 initViews(stage);
 initExport();
 
+// Render loop: advance any playing animation, keep the scrub bar in sync, and
+// draw. OrbitControls needs update() every frame for damping.
 stage.resize();
 stage.renderer.setAnimationLoop(() => {
-  // advance the active animation and keep the scrub bar in sync
   if (state.mixer && state.activeAction && !state.activeAction.action.paused) {
     state.mixer.update(state.clock.getDelta());
-    const a = state.activeAction;
-    $('anim-scrub').value = String((a.action.time % a.clip.duration) / a.clip.duration);
+    const active = state.activeAction;
+    $('anim-scrub').value = String((active.action.time % active.clip.duration) / active.clip.duration);
   } else {
-    state.clock.getDelta(); // keep the clock current even when paused
+    state.clock.getDelta(); // keep the clock current even while paused
   }
   stage.controls.update();
   stage.renderer.render(stage.scene, stage.camera);
