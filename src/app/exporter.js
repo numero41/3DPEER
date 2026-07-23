@@ -83,6 +83,9 @@ export function initExport() {
       let html = put(tpl, 'CSS', css);
       html = put(html, 'TITLE', state.name);
       html = put(html, 'CAPTION', `${state.name} · self-contained file · 0 requests`);
+      // Viewer feature flags: the "ship viewer controls" checkbox decides
+      // whether the artifact carries camera/material/light controls.
+      html = put(html, 'CONFIG', JSON.stringify({ ui: $('opt-ui').checked }));
       html = put(html, 'PAYLOAD', payload);
       html = put(html, 'BUNDLE', viewer);
 
@@ -94,11 +97,13 @@ export function initExport() {
       URL.revokeObjectURL(a.href);
 
       progress.set(1);
-      // Report the size change: original -> artifact, with the ratio.
+      // Report the size change: original -> artifact, with the percentage saved
+      // (or added, for tiny models where the embedded viewer dominates).
       const inMB = (state.glbBytes.length / 1e6).toFixed(2);
       const outMB = (blob.size / 1e6).toFixed(2);
-      const ratio = (state.glbBytes.length / blob.size).toFixed(2);
-      setStatus(`exported: ${state.name}.3dpeer.html — ${inMB} MB → ${outMB} MB (÷${ratio})`);
+      const pct = Math.round((1 - blob.size / state.glbBytes.length) * 100);
+      const sizeNote = pct >= 0 ? `${pct}% compression` : `${-pct}% larger`;
+      setStatus(`exported: ${state.name}.3dpeer.html — ${inMB} MB → ${outMB} MB (${sizeNote})`);
       setTimeout(() => progress.hide(), 1500);
     } catch (e) {
       setStatus('export failed: ' + (e.message || e));

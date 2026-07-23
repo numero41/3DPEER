@@ -10,9 +10,14 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hint">loading&hellip;</div>
+<!-- Static fallback: mail previews (Gmail web, iOS Mail/QuickLook) render HTML
+     with scripts blocked. The boot script replaces this text the moment it
+     runs, so if it is still visible the scripts never ran — tell the viewer
+     what to do about it. -->
+<div id="hint">interactive 3D file — if this message stays, your app blocks scripts: download the file and open it in a browser</div>
 <script>
 window.__CAPTION="{{CAPTION}}";
+window.__CFG={{CONFIG}};
 window.__P=
 "{{PAYLOAD}}";
 </script>

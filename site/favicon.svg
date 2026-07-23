@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 3DPEER mark: an unfolded cube — a 3D object flattened into a flat file.
+       Echoes the camera-cube widget in the workbench. -->
+  <rect width="64" height="64" rx="14" fill="#161618"/>
+  <g fill="#ececf0">
+    <rect x="26" y="7"  width="12" height="12" rx="2.5" opacity="0.55"/>
+    <rect x="7"  y="26" width="12" height="12" rx="2.5" opacity="0.55"/>
+    <rect x="26" y="26" width="12" height="12" rx="2.5"/>
+    <rect x="45" y="26" width="12" height="12" rx="2.5" opacity="0.55"/>
+    <rect x="26" y="45" width="12" height="12" rx="2.5" opacity="0.55"/>
+  </g>
+</svg>

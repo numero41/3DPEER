@@ -6,8 +6,20 @@ import { MeshoptDecoder as RefDecoder } from 'three/examples/jsm/libs/meshopt_de
 import { unenvelope, extractPayload } from './envelope.js';
 import { parseHeader, HEADER_SIZE } from '../codec/container.js';
 
+/**
+ * Shared HTML-level checks: the viewer config must be injected (no leftover
+ * placeholder) — the artifact boots read window.__CFG at startup.
+ * @param {string} html the produced artifact HTML
+ */
+function checkConfig(html) {
+  if (!html.includes('window.__CFG={')) throw new Error('self-test: viewer config missing');
+  if (html.includes('{{CONFIG}}')) throw new Error('self-test: CONFIG placeholder not substituted');
+}
+
 export async function selfTestGeo(output, ref) {
-  const c = unenvelope(extractPayload(fs.readFileSync(output, 'utf-8')));
+  const html = fs.readFileSync(output, 'utf-8');
+  checkConfig(html);
+  const c = unenvelope(extractPayload(html));
   const h = parseHeader(c);
   await RefDecoder.ready;
   let p = HEADER_SIZE;
@@ -26,7 +38,9 @@ export async function selfTestGeo(output, ref) {
 }
 
 export function selfTestGltf(output) {
-  const c = unenvelope(extractPayload(fs.readFileSync(output, 'utf-8')));
+  const html = fs.readFileSync(output, 'utf-8');
+  checkConfig(html);
+  const c = unenvelope(extractPayload(html));
   if (c.subarray(0, 4).toString() !== 'glTF') throw new Error('gltf self-test: bad magic');
   const jl = c.readUInt32LE(12);
   const j = JSON.parse(c.subarray(20, 20 + jl).toString());

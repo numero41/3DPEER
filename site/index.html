@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>3DPEER — one 3D model, one file</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
@@ -99,6 +100,10 @@
   <!-- below the viewer: status, export, progress -->
   <div class="under">
     <p id="status" class="under-status">no file loaded</p>
+    <label class="opt-row" title="Include camera views, material override and a light slider in the exported file">
+      <input id="opt-ui" type="checkbox" checked>
+      <span>ship viewer controls (camera · material · light)</span>
+    </label>
     <button id="export" class="btn-primary btn-block" title="Pack the model into a self-contained .html file"><svg class="ico" viewBox="0 0 24 24"><use href="#i-export"></use></svg>export .html</button>
     <div class="progress-wrap" id="export-progress-wrap" hidden>
       <progress id="export-progress" max="1" value="0"></progress>

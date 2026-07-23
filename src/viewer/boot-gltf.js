@@ -5,8 +5,12 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { unenvelope } from './decode.js';
 import { createStage, showError } from './scene.js';
 import { collectMorphs, buildMorphPanel } from './morphs.js';
+import { initViewerControls } from './controls.js';
 
 async function boot() {
+  // Scripts are running: replace the static "your app blocks scripts" fallback.
+  document.getElementById('hint').textContent = 'loading…';
+
   const u8 = await unenvelope(window.__P);
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
@@ -23,6 +27,7 @@ async function boot() {
     gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
   }
   buildMorphPanel(collectMorphs(gltf.scene));
+  if (window.__CFG && window.__CFG.ui) initViewerControls(stage, gltf.scene);
 
   const clock = new THREE.Clock();
   stage.run(() => { if (mixer) mixer.update(clock.getDelta()); });

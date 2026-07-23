@@ -4,8 +4,12 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { unenvelope } from './decode.js';
 import { parseHeader, HEADER_SIZE } from '../codec/container.js';
 import { createStage, showError } from './scene.js';
+import { initViewerControls } from './controls.js';
 
 async function boot() {
+  // Scripts are running: replace the static "your app blocks scripts" fallback.
+  document.getElementById('hint').textContent = 'loading…';
+
   const c = await unenvelope(window.__P);
   const h = parseHeader(c);
   await MeshoptDecoder.ready;
@@ -40,6 +44,7 @@ async function boot() {
   const stage = createStage();
   stage.scene.add(mesh);
   stage.frameObject(mesh);
+  if (window.__CFG && window.__CFG.ui) initViewerControls(stage, mesh);
   stage.run();
 }
 boot().catch(showError);

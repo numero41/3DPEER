@@ -16,9 +16,9 @@
   --black: #000000;
   --bg: #161618;
   --surface: #202024;
-  --ink: #d6d6da;
-  --muted: #9a9aa1;
-  --faint: #6e6e76;
+  --ink: #ececf0;
+  --muted: #aeaeb6;
+  --faint: #82828b;
   --line: #26262b;
   --line-strong: #35353b;
   --stage-bg: #262626;
@@ -26,7 +26,7 @@
 
   /* ---- overlays drawn over the dark viewport ---- */
   --overlay: rgba(24, 24, 27, 0.82);
-  --overlay-ink: #f4f4f5;
+  --overlay-ink: #fcfcfd;
   --overlay-line: rgba(244, 244, 245, 0.22);
   --panel-bg: rgba(20, 20, 22, 0.96);
   --face-fill: rgba(244, 244, 245, 0.07);
@@ -37,7 +37,15 @@
   /* ---- semantic roles ---- */
   --accent: var(--btn-dark);
   --on-accent: var(--ink);
-  --check: var(--btn-dark);
+
+  /* ---- checkboxes / radios (custom-drawn, rounded) ---- */
+  --check-size: 16px;
+  --check-bg: #3d3d45;
+  --r-check: 5px;
+  --tick-w: 9px;
+  --tick-h: 5px;
+  --tick-stroke: 2px;
+  --dot: 8px;
 
   /* ---- hover contrast formula ---- */
   --hover-amount: 12%;
@@ -344,9 +352,6 @@ body.loaded .viewport-toolbar {
   background: color-mix(in srgb, transparent, var(--overlay-ink) var(--hover-amount));
 }
 
-.menu-item input {
-  accent-color: var(--check);
-}
 
 .menu-item span {
   white-space: nowrap;
@@ -533,6 +538,16 @@ body.loaded .viewport-toolbar {
   font-size: var(--fs-xs);
 }
 
+.opt-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: fit-content;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
 .btn-block {
   width: 100%;
 }
@@ -545,7 +560,7 @@ body.loaded .viewport-toolbar {
   justify-content: center;
   gap: var(--sp-3);
   padding: var(--sp-4);
-  border: var(--hairline) solid var(--accent);
+  border: var(--hairline) solid var(--overlay-line);
   border-radius: var(--r-md);
   background: var(--accent);
   color: var(--on-accent);
@@ -652,9 +667,57 @@ input[type="range"] {
   accent-color: var(--overlay-ink);
 }
 
-/* Dark fill inside the box when checked (the tick renders light on top). */
-.side input[type="checkbox"] {
-  accent-color: var(--check);
+/* ---- custom rounded checkboxes & radios ----
+   Drawn by hand (appearance: none) so the fill stays a step lighter than the
+   panels behind it, with a light tick / dot when checked. */
+input[type="checkbox"],
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--check-size);
+  height: var(--check-size);
+  margin: 0;
+  border: var(--hairline) solid var(--overlay-line);
+  background: var(--check-bg);
+  cursor: pointer;
+}
+
+input[type="checkbox"] {
+  border-radius: var(--r-check);
+}
+
+input[type="radio"] {
+  border-radius: var(--r-pill);
+}
+
+input[type="checkbox"]::before {
+  content: "";
+  width: var(--tick-w);
+  height: var(--tick-h);
+  border-left: var(--tick-stroke) solid var(--overlay-ink);
+  border-bottom: var(--tick-stroke) solid var(--overlay-ink);
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+}
+
+input[type="checkbox"]:checked::before {
+  opacity: 1;
+}
+
+input[type="radio"]::before {
+  content: "";
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: var(--r-pill);
+  background: var(--overlay-ink);
+  opacity: 0;
+}
+
+input[type="radio"]:checked::before {
+  opacity: 1;
 }
 
 .scroll {
