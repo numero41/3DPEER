@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'site');
-const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.glb': 'model/gltf-binary' };
+const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.glb': 'model/gltf-binary', '.svg': 'image/svg+xml' };
 http.createServer((req, res) => {
   const url = req.url.split('?')[0];
   const file = path.join(root, url === '/' ? 'index.html' : url);

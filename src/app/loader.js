@@ -9,7 +9,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { state, resetState } from './state.js';
 import { buildPanels } from './panels.js';
-import { applyDisplayMode, currentMode } from './display-modes.js';
+import { reapplyDisplay } from './display-modes.js';
 import { setStatus } from './ui.js';
 
 /** Remove the current model from the scene and free its GPU resources. */
@@ -62,7 +62,7 @@ async function loadFile(stage, file) {
   buildPanels(gltf);
   document.body.classList.add('loaded');
   setStatus(`${state.name} — ${(bytes.length / 1e6).toFixed(2)} MB loaded, processed locally`);
-  applyDisplayMode(currentMode());
+  reapplyDisplay();
 }
 
 /**

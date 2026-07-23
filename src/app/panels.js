@@ -61,11 +61,12 @@ function buildParts(scene) {
   scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
   box.classList.toggle('hidden', meshes.length < 2);
   meshes.forEach((m, i) => {
-    const row = el('label', { cls: 'check-row' });
+    const label = m.name || 'mesh ' + i;
+    const row = el('label', { cls: 'check-row', attrs: { title: 'Toggle visibility of ' + label } });
     const c = el('input', { attrs: { type: 'checkbox' } });
     c.checked = true;
     c.addEventListener('change', () => { m.visible = c.checked; });
-    row.append(c, el('span', { text: m.name || 'mesh ' + i }));
+    row.append(c, el('span', { text: label }));
     list.append(row);
   });
 }

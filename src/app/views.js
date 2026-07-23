@@ -60,5 +60,9 @@ export function initViews(stage) {
     else (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
   });
   ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) =>
-    document.addEventListener(ev, () => requestAnimationFrame(resize)));
+    document.addEventListener(ev, () => {
+      const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      document.body.classList.toggle('fs', on); // swaps the fullscreen glyph
+      requestAnimationFrame(resize);
+    }));
 }

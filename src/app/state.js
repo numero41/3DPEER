@@ -24,8 +24,11 @@ export const state = {
 
   /** mesh -> its original material, so display modes can restore "shaded". */
   originals: new Map(),
-  /** Live wireframe overlay meshes added in wire+shaded mode. */
+  /** Live wireframe overlay meshes (additive wireframe toggle). */
   wireOverlays: [],
+  /** Whether the additive wireframe overlay is on (a UI preference that
+   *  persists across model loads, so it is NOT cleared by resetState). */
+  wireframe: false,
 
   /** THREE.AnimationMixer for the loaded clips, or null. */
   mixer: null,

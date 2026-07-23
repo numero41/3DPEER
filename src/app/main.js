@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { createStage } from './stage.js';
 import { initLoader } from './loader.js';
-import { initDisplayModes } from './display-modes.js';
+import { initDisplayControls } from './display-modes.js';
 import { initSidePanel } from './panels.js';
 import { initViews } from './views.js';
 import { initExport } from './exporter.js';
@@ -14,7 +14,7 @@ import { $ } from './dom.js';
 const stage = createStage();
 
 initLoader(stage);
-initDisplayModes();
+initDisplayControls();
 initSidePanel();
 initViews(stage);
 initExport();
