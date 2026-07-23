@@ -47,7 +47,18 @@
   --hairline: 1px;
   --panel-w: min(78vw, 300px);
   --range-w: 90px;
+  --range-track: 3px;
+  --range-thumb: 10px;
+  --range-h: 18px;
   --badge: 18px;
+  --swatch: 14px;
+
+  /* ---- annotation pin colour presets (mirrored in annotations/pins.js) ---- */
+  --pin-c0: #e8e6e3;
+  --pin-c1: #d98b52;
+  --pin-c2: #7fb069;
+  --pin-c3: #6f9fd8;
+  --pin-c4: #d76a6a;
 
   /* ---- radii ---- */
   --r-sm: 6px;
@@ -155,7 +166,46 @@ body.noting #c {
 
 #vbar input[type="range"] {
   width: var(--range-w);
-  accent-color: var(--ink);
+}
+
+/* ---- custom thin range sliders (hand-drawn, match the site register) ---- */
+input[type="range"] {
+  appearance: none;
+  -webkit-appearance: none;
+  height: var(--range-h);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: var(--range-track);
+  border-radius: var(--r-pill);
+  background: var(--line);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-top: calc((var(--range-track) - var(--range-thumb)) / 2);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+}
+
+input[type="range"]::-moz-range-track {
+  height: var(--range-track);
+  border-radius: var(--r-pill);
+  background: var(--line);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--ink);
 }
 
 /* ---- morph panel ---- */
@@ -212,7 +262,6 @@ body.noting #c {
 
 #mpanel input[type="range"] {
   width: 100%;
-  accent-color: var(--accent);
 }
 
 #mreset {
@@ -282,50 +331,93 @@ body.noting #c {
   color: var(--bg);
 }
 
+/* ---- pin colour presets (badge + swatches; values mirror pins.js) ---- */
+.pin-c0 { background: var(--pin-c0); }
+.pin-c1 { background: var(--pin-c1); }
+.pin-c2 { background: var(--pin-c2); }
+.pin-c3 { background: var(--pin-c3); }
+.pin-c4 { background: var(--pin-c4); }
+
+/* One row: [n]|[field] as one continuous shape, swatches on demand below. */
 .arow {
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-2);
+  flex-wrap: wrap;
+  align-items: stretch;
   margin: var(--sp-4) 0;
 }
 
-.arow span {
+.anum {
   flex: none;
   display: grid;
   place-items: center;
   width: var(--badge);
-  height: var(--badge);
-  border-radius: var(--r-pill);
-  background: var(--ink);
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
   color: var(--bg);
   font: var(--fs-2xs)/var(--lh-tight) var(--mono);
 }
 
-.arow textarea {
+.afield {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.afield textarea {
+  display: block;
+  width: 100%;
   font: var(--fs-xs)/var(--lh-hint) var(--mono);
   color: var(--ink);
   background: var(--field-bg);
   border: var(--hairline) solid var(--line);
-  border-radius: var(--r-sm);
-  padding: var(--sp-2);
+  border-left: 0;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: var(--sp-2) calc(var(--badge) + var(--sp-2)) var(--sp-2) var(--sp-2);
   resize: none;
 }
 
-.arow button {
-  flex: none;
+/* Delete lives inside the field, vertically centred. */
+.adel {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-1);
   display: grid;
   place-items: center;
   width: var(--badge);
   height: var(--badge);
-  margin: 0;
+  margin-top: calc(var(--badge) / -2);
   padding: 0;
   font: var(--fs-xs)/var(--lh-tight) var(--mono);
   color: var(--ink);
   background: none;
   border: none;
   cursor: pointer;
+}
+
+/* Swatch strip: revealed while the row is being edited or hovered. */
+.acolors {
+  display: none;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2) 0 0 var(--badge);
+}
+
+.arow:hover .acolors,
+.arow:focus-within .acolors {
+  display: flex;
+}
+
+.aswatch {
+  width: var(--swatch);
+  height: var(--swatch);
+  padding: 0;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.aswatch.active {
+  border-color: var(--ink);
+  outline: var(--hairline) solid var(--ink);
 }
 
 #astat {

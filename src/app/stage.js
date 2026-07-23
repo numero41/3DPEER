@@ -22,13 +22,15 @@ import { $ } from './dom.js';
  */
 export function createStage() {
   const canvas = $('viewport');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  // Transparent canvas: the backdrop is the CSS --stage-bg token on #viewport.
+  // A GL clear colour would pass through ACES tone mapping, which tints a
+  // neutral grey visibly greenish; the CSS backdrop stays exact.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x262626); // neutral grey studio backdrop
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 

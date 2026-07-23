@@ -7,19 +7,19 @@
 // baked into the export via the annotation slot (see codec/annotations.js).
 //
 // Rendering is delegated to the shared WebGL pin layer (annotations/pins.js):
-// no DOM element is positioned from JS, per invariant #6. The palette below
-// mirrors the site's overlay tokens — WebGL cannot read CSS custom properties,
-// same trade-off as the stage background colour in stage.js.
+// no DOM element is positioned or coloured from JS — pin colours go through
+// the .pin-c0…4 classes (invariant #6). The palette below mirrors the site's
+// overlay tokens — WebGL cannot read CSS custom properties, same trade-off as
+// the stage background colour in stage.js.
 // =============================================================================
 
-import { createPinLayer } from '../annotations/pins.js';
+import { createPinLayer, PIN_COLORS } from '../annotations/pins.js';
 import { state } from './state.js';
 import { $, clearChildren, el } from './dom.js';
 
 /** Site register for the pin layer (mirrors site.css overlay tokens). */
 const PALETTE = {
-  dot: '#fcfcfd',
-  dotText: '#161618',
+  tagText: '#161618',
   line: '#fcfcfd',
   labelBg: 'rgba(24, 24, 27, 0.82)',
   labelLine: 'rgba(244, 244, 245, 0.22)',
@@ -79,7 +79,7 @@ function handleClick(event) {
   if (!modeOn()) return;
   const hit = layer.pickSurface(event, camera, canvas);
   if (!hit) return;
-  state.annotations.push({ p: hit.p, n: hit.n, text: '' });
+  state.annotations.push({ p: hit.p, n: hit.n, m: hit.m, text: '', c: 0 });
   syncPins();
   buildRows();
   focusRow(state.annotations.length - 1);
@@ -94,34 +94,71 @@ function syncPins() {
   if (layer) layer.setPins(state.annotations);
 }
 
-/** Rebuild the side-panel rows (number, editable text, delete). */
+/**
+ * Re-sync pin visibility after a part was shown/hidden in the parts panel
+ * (pins follow the mesh they were placed on).
+ */
+export function syncAnnotationVisibility() {
+  syncPins();
+}
+
+/**
+ * Build one row: [n]|[field + delete inside]|[colour swatches strip].
+ * @param {{p: number[], n: number[], m?: number, text: string, c?: number}} pin
+ * @param {number} i pin index
+ * @returns {HTMLElement}
+ */
+function buildRow(pin, i) {
+  const row = el('div', { cls: 'note-row' });
+  row.append(el('span', {
+    cls: 'note-num pin-c' + (pin.c || 0),
+    text: String(i + 1),
+    attrs: { title: 'Annotation ' + (i + 1) },
+  }));
+
+  const field = el('div', { cls: 'note-field' });
+  const text = el('textarea', {
+    attrs: { rows: '1', placeholder: 'note…', title: 'Annotation text' },
+  });
+  text.value = pin.text;
+  text.addEventListener('input', () => {
+    pin.text = text.value;
+    syncPins();
+  });
+  const remove = el('button', { cls: 'note-del', attrs: { title: 'Delete this annotation' } });
+  remove.insertAdjacentHTML('afterbegin', '<svg class="ico" viewBox="0 0 24 24"><use href="#i-close"></use></svg>');
+  remove.addEventListener('click', () => {
+    state.annotations.splice(i, 1);
+    syncPins();
+    buildRows();
+  });
+  field.append(text, remove);
+  row.append(field);
+
+  const colors = el('div', { cls: 'note-colors' });
+  PIN_COLORS.forEach((hex, ci) => {
+    const swatch = el('button', {
+      cls: 'note-swatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : ''),
+      attrs: { title: 'Pin colour ' + (ci + 1) },
+    });
+    swatch.addEventListener('click', () => {
+      pin.c = ci;
+      syncPins();
+      buildRows();
+    });
+    colors.append(swatch);
+  });
+  row.append(colors);
+  return row;
+}
+
+/** Rebuild the side-panel rows. */
 function buildRows() {
   const list = $('note-list');
   clearChildren(list);
   $('note-count').textContent = state.annotations.length ? String(state.annotations.length) : '';
   $('note-hint').classList.toggle('hidden', state.annotations.length > 0);
-  state.annotations.forEach((pin, i) => {
-    const row = el('div', { cls: 'note-row' });
-    row.append(el('span', { cls: 'note-num', text: String(i + 1) }));
-    const text = el('textarea', {
-      attrs: { rows: '2', placeholder: 'note…', title: 'Annotation text' },
-    });
-    text.value = pin.text;
-    text.addEventListener('input', () => {
-      pin.text = text.value;
-      syncPins();
-    });
-    row.append(text);
-    const remove = el('button', { cls: 'note-del', attrs: { title: 'Delete this annotation' } });
-    remove.insertAdjacentHTML('afterbegin', '<svg class="ico" viewBox="0 0 24 24"><use href="#i-close"></use></svg>');
-    remove.addEventListener('click', () => {
-      state.annotations.splice(i, 1);
-      syncPins();
-      buildRows();
-    });
-    row.append(remove);
-    list.append(row);
-  });
+  state.annotations.forEach((pin, i) => list.append(buildRow(pin, i)));
 }
 
 /**

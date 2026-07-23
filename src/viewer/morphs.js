@@ -21,15 +21,18 @@ export function buildMorphPanel(morphs) {
   const btn = document.createElement('button');
   btn.id = 'mbtn';
   btn.textContent = morphs.size + ' morphs';
+  btn.title = 'Show / hide the morph sliders';
   document.body.appendChild(btn);
   const panel = document.createElement('div');
   panel.id = 'mpanel';
   for (const [name, list] of morphs) {
     const row = document.createElement('label');
+    row.title = 'Morph: ' + name;
     const span = document.createElement('span');
     span.textContent = name;
     const r = document.createElement('input');
     r.type = 'range'; r.min = 0; r.max = 1; r.step = 0.01; r.value = 0;
+    r.title = 'Blend ' + name;
     r.addEventListener('input', () => {
       for (const { mesh, index } of list) mesh.morphTargetInfluences[index] = parseFloat(r.value);
     });
@@ -38,6 +41,7 @@ export function buildMorphPanel(morphs) {
   }
   const reset = document.createElement('button');
   reset.id = 'mreset'; reset.textContent = 'reset';
+  reset.title = 'Reset all morph sliders to zero';
   reset.addEventListener('click', () => {
     panel.querySelectorAll('input').forEach((r) => { r.value = 0; r.dispatchEvent(new Event('input')); });
   });

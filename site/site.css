@@ -44,6 +44,19 @@
   --check-bg: #3d3d45;
   --dot: 8px;
 
+  /* ---- range sliders (custom-drawn, thin) ---- */
+  --range-h: 18px;
+  --range-track: 3px;
+  --range-thumb: 10px;
+
+  /* ---- annotation pin colour presets (mirrored in annotations/pins.js) ---- */
+  --pin-c0: #e8e6e3;
+  --pin-c1: #d98b52;
+  --pin-c2: #7fb069;
+  --pin-c3: #6f9fd8;
+  --pin-c4: #d76a6a;
+  --swatch: 14px;
+
   /* ---- brand ---- */
   --logo-size: 26px;
 
@@ -99,9 +112,7 @@
 
   /* ---- effect ---- */
   --dur: 0.15s;
-  --z-panel-content: 3;
   --z-overlay: 4;
-  --z-panel-toggle: 5;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.08);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
@@ -211,6 +222,16 @@ button:hover,
   padding: var(--sp-6) var(--sp-6) var(--sp-7);
 }
 
+/* Stage + docked side panel share one row; the panel opens to the right. */
+.stage-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--sp-4);
+  width: 100%;
+}
+
 /* ===================================================================== stage */
 .stage {
   position: relative;
@@ -232,6 +253,9 @@ button:hover,
   height: 100%;
   touch-action: none;
   cursor: grab;
+  /* The renderer clears to transparent; the backdrop comes from this token,
+     untouched by tone mapping (a flat GL clear colour drifts greenish). */
+  background: var(--stage-bg);
 }
 
 #viewport:active {
@@ -289,16 +313,11 @@ body.loaded .dropzone {
 }
 
 /* ---- viewer chrome: hidden until a model is loaded ---- */
-.stage-tools,
-.viewport-toolbar {
+.stage-tools {
   display: none;
 }
 
 body.loaded .stage-tools {
-  display: flex;
-}
-
-body.loaded .viewport-toolbar {
   display: flex;
 }
 
@@ -337,29 +356,17 @@ body.loaded .viewport-toolbar {
   cursor: pointer;
 }
 
-/* ---- top-right utilities ---- */
+/* ---- right-edge tool column (utilities + scene menus) ---- */
 .stage-tools {
   position: absolute;
   top: var(--sp-4);
   right: var(--sp-4);
+  flex-direction: column;
   gap: var(--sp-3);
   z-index: var(--z-overlay);
 }
 
-/* ============================================ bottom toolbar + popover menus */
-/* Centred with auto margins (not a -50% transform): transform centring lands
-   on half-pixels when the content width is odd, which blurs icons and text. */
-.viewport-toolbar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: var(--sp-5);
-  margin-inline: auto;
-  width: fit-content;
-  gap: var(--sp-3);
-  z-index: var(--z-panel-content);
-}
-
+/* ======================================================== popover menus */
 .menu-group {
   position: relative;
 }
@@ -369,15 +376,13 @@ body.loaded .viewport-toolbar {
   color: var(--bg);
 }
 
-/* Fixed width + integer negative margin instead of a -50% transform, so the
-   popover sits on whole pixels (avoids blurry text over the canvas). */
+/* Popovers open leftward from the tool column, top-aligned with their button. */
 .menu-pop {
   position: absolute;
-  bottom: calc(100% + var(--sp-2));
-  left: 50%;
+  top: 0;
+  right: calc(100% + var(--sp-2));
   display: none;
   width: var(--menu-w);
-  margin-left: calc(var(--menu-w) / -2);
   padding: var(--sp-3);
   border: var(--hairline) solid var(--overlay-line);
   border-radius: var(--r-md);
@@ -407,27 +412,6 @@ body.loaded .viewport-toolbar {
 
 .menu-item span {
   white-space: nowrap;
-}
-
-.menu-toggle {
-  --btn-bg: var(--btn-dark);
-  --btn-fg: var(--overlay-ink);
-  width: 100%;
-  margin-top: var(--sp-2);
-  padding: var(--sp-3);
-  border: var(--hairline) solid var(--overlay-line);
-  border-radius: var(--r-sm);
-  background: var(--btn-dark);
-  color: var(--overlay-ink);
-  font-size: var(--fs-sm);
-  cursor: pointer;
-}
-
-.menu-toggle[aria-pressed="true"] {
-  --btn-bg: var(--overlay-ink);
-  --btn-fg: var(--bg);
-  background: var(--overlay-ink);
-  color: var(--bg);
 }
 
 .menu-row {
@@ -472,7 +456,6 @@ body.loaded .viewport-toolbar {
 
 .menu-slider input {
   width: 100%;
-  accent-color: var(--overlay-ink);
 }
 
 /* ---- camera cube (inside the camera popover) ---- */
@@ -508,57 +491,29 @@ body.loaded .viewport-toolbar {
 }
 
 /* ======================================================== right-side panel */
-.panel-toggle {
-  --btn-bg: var(--overlay);
-  --btn-fg: var(--overlay-ink);
-  position: absolute;
-  top: var(--sp-4);
-  right: var(--sp-4);
-  z-index: var(--z-panel-toggle);
-  display: grid;
-  place-items: center;
-  width: var(--ctrl);
-  height: var(--ctrl);
-  padding: 0;
-  border: var(--hairline) solid var(--overlay-line);
-  border-radius: var(--r-md);
-  background: var(--overlay);
-  color: var(--overlay-ink);
-  cursor: pointer;
-}
-
 .panel-toggle.hidden {
   display: none;
 }
 
-.side.has-content ~ .stage-tools {
-  right: calc(var(--sp-4) + var(--ctrl) + var(--sp-3));
-}
-
+/* Docked next to the stage: zero width when closed, panel width when open. */
 .side {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: var(--z-overlay);
-  width: min(var(--panel-w), 84%);
-  padding: var(--sp-4);
-  overflow-y: auto;
-  border-left: var(--hairline) solid transparent;
+  align-self: stretch;
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--r-lg);
   background: transparent;
   color: var(--overlay-ink);
-  transform: translateX(100%);
-  transition: transform var(--dur) ease;
+  transition: width var(--dur) ease;
 }
 
 .side.open {
-  border-left-color: var(--overlay-line);
-  background: var(--panel-bg);
-  transform: translateX(0);
-}
-
-.side.open ~ .panel-toggle .ico {
-  transform: scaleX(-1);
+  width: min(var(--panel-w), 84vw);
+  padding: var(--sp-4);
+  overflow-y: auto;
+  border: var(--hairline) solid var(--line-strong);
+  background: var(--surface);
 }
 
 .side-sec {
@@ -600,10 +555,18 @@ body.loaded .viewport-toolbar {
   display: none;
 }
 
+/* ---- pin colour presets (badge + swatches; values mirror pins.js) ---- */
+.pin-c0 { background: var(--pin-c0); }
+.pin-c1 { background: var(--pin-c1); }
+.pin-c2 { background: var(--pin-c2); }
+.pin-c3 { background: var(--pin-c3); }
+.pin-c4 { background: var(--pin-c4); }
+
+/* One row: [n]|[field] as one continuous shape, swatches on demand below. */
 .note-row {
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-3);
+  flex-wrap: wrap;
+  align-items: stretch;
   margin: var(--sp-3) 0;
 }
 
@@ -612,40 +575,76 @@ body.loaded .viewport-toolbar {
   display: grid;
   place-items: center;
   width: var(--note-badge);
-  height: var(--note-badge);
-  border-radius: var(--r-pill);
-  background: var(--overlay-ink);
+  border-radius: var(--r-sm) 0 0 var(--r-sm);
   color: var(--bg);
   font-size: var(--fs-2xs);
   font-weight: 600;
 }
 
-.note-row textarea {
+.note-field {
+  position: relative;
   flex: 1;
   min-width: 0;
-  padding: var(--sp-2) var(--sp-3);
+}
+
+.note-field textarea {
+  display: block;
+  width: 100%;
+  padding: var(--sp-2) calc(var(--note-badge) + var(--sp-2)) var(--sp-2) var(--sp-3);
   border: var(--hairline) solid var(--overlay-line);
-  border-radius: var(--r-sm);
+  border-left: 0;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
   background: var(--field-bg);
   color: var(--overlay-ink);
   font: var(--fs-sm)/1.4 var(--sans);
   resize: none;
 }
 
+/* Delete lives inside the field, vertically centred on its single line. */
 .note-del {
   --btn-bg: transparent;
   --btn-fg: var(--overlay-ink);
-  flex: none;
+  position: absolute;
+  top: 50%;
+  right: var(--sp-1);
   display: grid;
   place-items: center;
   width: var(--note-badge);
   height: var(--note-badge);
+  margin-top: calc(var(--note-badge) / -2);
   padding: 0;
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--faint);
   cursor: pointer;
+}
+
+/* Swatch strip: revealed while the row is being edited or hovered. */
+.note-colors {
+  display: none;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2) 0 0 var(--note-badge);
+}
+
+.note-row:hover .note-colors,
+.note-row:focus-within .note-colors {
+  display: flex;
+}
+
+.note-swatch {
+  width: var(--swatch);
+  height: var(--swatch);
+  padding: 0;
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.note-swatch.active {
+  border-color: var(--overlay-ink);
+  outline: var(--hairline) solid var(--overlay-ink);
 }
 
 /* ======================================================= below-viewer block */
@@ -711,8 +710,8 @@ body.loaded .viewport-toolbar {
 
 .comp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: var(--sp-2) var(--sp-5);
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--sp-2) var(--sp-4);
   padding: var(--sp-3) var(--sp-4);
 }
 
@@ -876,8 +875,51 @@ button,
   flex: 1;
 }
 
+/* ---- custom thin range sliders ----
+   Drawn by hand (appearance: none): a hairline-thin track with a small round
+   thumb. The thumb colour follows the context via --range-thumb-color. */
 input[type="range"] {
-  accent-color: var(--overlay-ink);
+  appearance: none;
+  -webkit-appearance: none;
+  height: var(--range-h);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: var(--range-track);
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  margin-top: calc((var(--range-track) - var(--range-thumb)) / 2);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--range-thumb-color, var(--ink));
+}
+
+input[type="range"]::-moz-range-track {
+  height: var(--range-track);
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: var(--range-thumb);
+  height: var(--range-thumb);
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--range-thumb-color, var(--ink));
+}
+
+.side,
+.menu-pop {
+  --range-thumb-color: var(--overlay-ink);
 }
 
 /* ---- custom round checkboxes & radios ----
@@ -1018,7 +1060,11 @@ footer .legal-mark {
     max-width: 100%;
   }
 
-  .side {
-    width: 92%;
+  .side.open {
+    width: 100%;
+  }
+
+  .comp-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

@@ -55,10 +55,48 @@ function parseToObject(ext, buffer) {
     case 'fbx':
       return new FBXLoader().parse(buffer, '');
     case 'usdz':
-      return new USDZLoader().parse(buffer);
+      return parseUSDZ(buffer);
     default:
       throw new Error('unsupported format: .' + ext);
   }
+}
+
+/**
+ * Parse a .usdz, with a diagnosis the generic "no geometry" check cannot give:
+ * three's USDZLoader only reads ASCII .usda layers, but most DCC exports store
+ * geometry as binary .usdc crates (magic "PXR-USDC") or nest further .usdz
+ * packages — tell the user what their file is and what to export instead.
+ * @param {ArrayBuffer} buffer file contents
+ * @returns {THREE.Object3D}
+ */
+function parseUSDZ(buffer) {
+  const object = new USDZLoader().parse(buffer);
+  let meshCount = 0;
+  object.traverse((o) => { if (o.isMesh) meshCount++; });
+  if (!meshCount && hasUsdcCrate(new Uint8Array(buffer))) {
+    throw new Error('this .usdz stores its geometry as a binary usdc crate, '
+      + 'which browsers cannot read yet — export a .glb (or a .usdz with ASCII .usda layers) instead');
+  }
+  return object;
+}
+
+/**
+ * Scan a usdz (zip) for the "PXR-USDC" crate magic.
+ * @param {Uint8Array} bytes file contents
+ * @returns {boolean}
+ */
+function hasUsdcCrate(bytes) {
+  const magic = [0x50, 0x58, 0x52, 0x2d, 0x55, 0x53, 0x44, 0x43]; // PXR-USDC
+  const limit = Math.min(bytes.length, 64 * 1024 * 1024) - magic.length;
+  for (let i = 0; i <= limit; i++) {
+    if (bytes[i] !== magic[0]) continue;
+    let hit = true;
+    for (let j = 1; j < magic.length; j++) {
+      if (bytes[i + j] !== magic[j]) { hit = false; break; }
+    }
+    if (hit) return true;
+  }
+  return false;
 }
 
 /**

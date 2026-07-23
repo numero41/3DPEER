@@ -17,13 +17,12 @@
 // storage may be unavailable over file:// — every access is guarded).
 // =============================================================================
 
-import { createPinLayer } from '../annotations/pins.js';
+import { createPinLayer, PIN_COLORS } from '../annotations/pins.js';
 import { injectAnnotations, extractAnnotations } from '../codec/annotations.js';
 
 /** Artifact register palette for the pin layer (mirrors page.css tokens). */
 const PALETTE = {
-  dot: '#c9a978',
-  dotText: '#211a14',
+  tagText: '#211a14',
   line: '#c9a978',
   labelBg: 'rgba(33, 26, 20, 0.92)',
   labelLine: '#4a3a2c',
@@ -79,6 +78,7 @@ export function initAnnotations(stage, root, pristine) {
   // ---------------------------------------------------------------------------
   const button = document.createElement('button');
   button.id = 'abtn';
+  button.title = 'Notes — read, edit and add annotations';
   document.body.appendChild(button);
 
   const panel = document.createElement('div');
@@ -139,16 +139,21 @@ export function initAnnotations(stage, root, pristine) {
     button.textContent = pins.length ? 'notes (' + pins.length + ')' : 'notes';
   }
 
-  /** Rebuild the panel rows (number, editable text, delete). */
+  /** Rebuild the panel rows: [n]|[field + delete inside]|[colour swatches]. */
   function buildRows() {
     while (list.firstChild) list.removeChild(list.firstChild);
     pins.forEach((pin, i) => {
       const row = document.createElement('div');
       row.className = 'arow';
       const number = document.createElement('span');
+      number.className = 'anum pin-c' + (pin.c || 0);
       number.textContent = String(i + 1);
+      number.title = 'Annotation ' + (i + 1);
+
+      const field = document.createElement('div');
+      field.className = 'afield';
       const text = document.createElement('textarea');
-      text.rows = 2;
+      text.rows = 1;
       text.placeholder = 'note…';
       text.title = 'Annotation text';
       text.value = pin.text;
@@ -158,6 +163,7 @@ export function initAnnotations(stage, root, pristine) {
         markUnsaved();
       });
       const remove = document.createElement('button');
+      remove.className = 'adel';
       remove.textContent = '×';
       remove.title = 'Delete this annotation';
       remove.addEventListener('click', () => {
@@ -166,7 +172,24 @@ export function initAnnotations(stage, root, pristine) {
         buildRows();
         markUnsaved();
       });
-      row.append(number, text, remove);
+      field.append(text, remove);
+
+      const colors = document.createElement('div');
+      colors.className = 'acolors';
+      PIN_COLORS.forEach((hex, ci) => {
+        const swatch = document.createElement('button');
+        swatch.className = 'aswatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : '');
+        swatch.title = 'Pin colour ' + (ci + 1);
+        swatch.addEventListener('click', () => {
+          pin.c = ci;
+          syncPins();
+          buildRows();
+          markUnsaved();
+        });
+        colors.append(swatch);
+      });
+
+      row.append(number, field, colors);
       list.appendChild(row);
     });
   }
@@ -227,7 +250,7 @@ export function initAnnotations(stage, root, pristine) {
     if (document.body.classList.contains('noting')) {
       const hit = layer.pickSurface(event, camera, canvas);
       if (!hit) return;
-      pins.push({ p: hit.p, n: hit.n, text: '' });
+      pins.push({ p: hit.p, n: hit.n, m: hit.m, text: '', c: 0 });
       syncPins();
       buildRows();
       markUnsaved();

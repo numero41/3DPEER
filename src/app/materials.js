@@ -26,15 +26,17 @@ const clayMat = new THREE.MeshStandardMaterial({ color: 0xb4b4b4, roughness: 0.9
 /** Polished chrome — driven entirely by the studio environment map. */
 const metalMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d4, roughness: 0.16, metalness: 1 });
 
-/** Clear refractive glass (physical transmission). */
+/** See-through glass. Alpha-based, not physical transmission: transmission
+ *  samples a re-render of the backdrop, which reads as frosted-opaque over a
+ *  flat studio background — plain transparency is what actually looks like
+ *  glass here, and it behaves identically inside the artifact viewer. */
 const glassMat = new THREE.MeshPhysicalMaterial({
   color: 0xffffff,
   metalness: 0,
-  roughness: 0.02,
-  transmission: 1,
-  thickness: 0.6,
-  ior: 1.5,
+  roughness: 0.05,
   transparent: true,
+  opacity: 0.22,
+  depthWrite: false,
 });
 
 /**
@@ -148,15 +150,12 @@ export function reapplyMaterial() {
   setWireframe(state.wireframe);
 }
 
-/** Wire the material radios and the wireframe toggle button to their handlers. */
+/** Wire the material radios and the wireframe checkbox to their handlers. */
 export function initMaterialControls() {
   document.querySelectorAll('input[name="material"]').forEach((radio) =>
     radio.addEventListener('change', () => applyMaterial(radio.value)));
 
   const toggle = $('wire-toggle');
-  toggle.addEventListener('click', () => {
-    const on = toggle.getAttribute('aria-pressed') !== 'true';
-    toggle.setAttribute('aria-pressed', String(on));
-    setWireframe(on);
-  });
+  toggle.checked = state.wireframe;
+  toggle.addEventListener('change', () => setWireframe(toggle.checked));
 }

@@ -102,6 +102,10 @@ function capturePoster() {
   const out = document.createElement('canvas');
   out.width = out.height = CELL * 2;
   const ctx = out.getContext('2d');
+  // The workbench renderer clears to transparent (CSS backdrop); fill with
+  // the artifact's page colour so the JPEG poster blends into it.
+  ctx.fillStyle = '#211a14';
+  ctx.fillRect(0, 0, out.width, out.height);
 
   VIEWS.forEach((dir, i) => {
     camera.position.copy(target)

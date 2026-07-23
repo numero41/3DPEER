@@ -6,7 +6,7 @@
 
 import * as THREE from 'three';
 import { collectMorphs } from '../viewer/morphs.js';
-import { refreshAnnotations } from './annotate.js';
+import { refreshAnnotations, syncAnnotationVisibility } from './annotate.js';
 import { state } from './state.js';
 import { $, clearChildren, el } from './dom.js';
 
@@ -38,9 +38,9 @@ function buildMorphs(scene) {
   box.classList.toggle('hidden', morphs.size === 0);
   $('morph-count').textContent = morphs.size ? String(morphs.size) : '';
   for (const [name, targets] of morphs) {
-    const row = el('label', { cls: 'slider-row' });
+    const row = el('label', { cls: 'slider-row', attrs: { title: 'Morph: ' + name } });
     row.append(el('span', { text: name }));
-    const r = el('input', { attrs: { type: 'range', min: '0', max: '1', step: '0.01', value: '0' } });
+    const r = el('input', { attrs: { type: 'range', min: '0', max: '1', step: '0.01', value: '0', title: 'Blend ' + name } });
     r.addEventListener('input', () => {
       for (const { mesh, index } of targets) mesh.morphTargetInfluences[index] = parseFloat(r.value);
     });
@@ -64,9 +64,13 @@ function buildParts(scene) {
   meshes.forEach((m, i) => {
     const label = m.name || 'mesh ' + i;
     const row = el('label', { cls: 'check-row', attrs: { title: 'Toggle visibility of ' + label } });
-    const c = el('input', { attrs: { type: 'checkbox' } });
+    const c = el('input', { attrs: { type: 'checkbox', title: 'Show / hide ' + label } });
     c.checked = true;
-    c.addEventListener('change', () => { m.visible = c.checked; });
+    c.addEventListener('change', () => {
+      m.visible = c.checked;
+      // Pins placed on this mesh follow its visibility.
+      syncAnnotationVisibility();
+    });
     row.append(c, el('span', { text: label }));
     list.append(row);
   });
@@ -113,7 +117,11 @@ export function buildPanels(gltf) {
   refreshSideVisibility();
 }
 
-/** Wire the edge toggle that opens/closes the side panel. */
+/** Wire the toggle that opens/closes the docked side panel (icon flips). */
 export function initSidePanel() {
-  $('panel-toggle').addEventListener('click', () => $('side').classList.toggle('open'));
+  const toggle = $('panel-toggle');
+  toggle.addEventListener('click', () => {
+    const open = $('side').classList.toggle('open');
+    toggle.querySelector('use').setAttribute('href', open ? '#i-panel-close' : '#i-panel-open');
+  });
 }
