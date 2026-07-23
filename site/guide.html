@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3DPEER — guide</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="topbar">
+  <nav class="nav">
+    <a href="index.html" title="Back to the app">app</a>
+    <a href="mailto:contact@3dpeer.com" title="Write to us">contact</a>
+  </nav>
+  <div class="brand">
+    <img src="logo.svg" alt="3DPEER logo" class="logo">
+    <span class="mark">3DPEER</span>
+  </div>
+  <p class="tagline">Guide</p>
+</header>
+
+<main class="guide">
+  <section>
+    <h2>What it does</h2>
+    <p>3DPEER turns a 3D model into a single <code>.html</code> file. The model, its
+    decompressor and its viewer travel together: the file opens with a
+    double-click, works offline, and will still work years from now. Nothing is
+    ever uploaded — every step runs in your browser.</p>
+  </section>
+
+  <section>
+    <h2>Supported formats</h2>
+    <p><code>glb</code> and <code>gltf</code> are native. <code>obj</code>, <code>stl</code>,
+    <code>ply</code>, <code>fbx</code> and <code>usdz</code> are converted on the fly.
+    FBX materials are approximated on the web; USDZ coverage depends on how the
+    file was produced (Apple-generated files work best). If a file yields no
+    geometry, you will get a clear warning instead of an empty viewport.</p>
+  </section>
+
+  <section>
+    <h2>Compression</h2>
+    <p>The export pipeline compresses geometry, animations and textures locally.
+    The defaults are visually safe. In <b>export settings</b>:</p>
+    <ul>
+      <li><b>geometry precision</b> — how exactly vertex positions are stored.
+      Lower is smaller; very low values can facet large models.</li>
+      <li><b>shading precision</b> — accuracy of surface directions; affects
+      highlight smoothness.</li>
+      <li><b>texture size / quality</b> — textures are scaled down to the given
+      edge and re-encoded as WebP. Quality 100 keeps your originals.</li>
+      <li><b>decimate</b> — removes a share of triangles. Off by default:
+      your geometry is never touched unless you ask.</li>
+      <li><b>auto</b> — give a target size in MB and the best quality that fits
+      is found for you.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Sharing the file</h2>
+    <p>The exported file is self-contained — send it like any attachment
+    (mail, WhatsApp, Drive, Slack). Two mail-client behaviours to know about,
+    both by design of the mail providers:</p>
+    <ul>
+      <li><b>Gmail on desktop</b> shows HTML attachments as source text in its
+      preview. Recipients should download the file, then open it — it launches
+      in their browser.</li>
+      <li><b>iPhone Mail</b> previews attachments with scripts disabled: the
+      recipient sees the built-in snapshot views and a short notice instead of
+      the interactive model. Opening the file in a real browser restores full
+      interaction.</li>
+    </ul>
+    <p>Each export embeds a four-view snapshot grid, so even script-blocked
+    previews show your model.</p>
+  </section>
+
+  <section>
+    <h2>Viewer controls in the file</h2>
+    <p>When "ship viewer controls" is checked, the exported file carries camera
+    view presets, a material override (original, clay, metallic, glass, matcap,
+    wireframe) and lighting sliders. Uncheck it for a minimal orbit-only file.</p>
+  </section>
+
+  <section>
+    <h2>Privacy</h2>
+    <p>The site has no upload endpoint. Models never leave your device; the
+    exported file makes zero network requests, ever.</p>
+  </section>
+</main>
+
+<footer>
+  <p>© 2026 <span class="legal-mark">Number41/3DPEER</span>. All rights reserved.</p>
+</footer>
+</body>
+</html>

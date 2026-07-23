@@ -9,6 +9,10 @@
 </head>
 <body>
 <header class="topbar">
+  <nav class="nav">
+    <a href="guide.html" title="How 3DPEER works">guide</a>
+    <a href="mailto:contact@3dpeer.com" title="Write to us">contact</a>
+  </nav>
   <div class="brand">
     <img src="logo.svg" alt="3DPEER logo" class="logo">
     <span class="mark">3DPEER</span>
@@ -105,7 +109,7 @@
   <!-- below the viewer: status, export, progress -->
   <div class="under">
     <details class="comp" id="comp-panel">
-      <summary title="Tune how aggressively the model is optimized">compression settings</summary>
+      <summary title="Compression and artifact options">export settings</summary>
       <div class="comp-grid">
         <label class="slider-row" title="How precisely vertex positions are stored (bits per coordinate). 16 = exact, 12 = safe default, below 10 may show faceting on large models.">
           <span>geometry precision · <b id="v-pos">12</b></span>
@@ -134,12 +138,12 @@
         <span>MB</span>
         <button id="c-auto" title="Find the best quality that fits the target size">auto</button>
       </div>
+      <label class="opt-row comp-opt" title="Include camera views, material override and lighting sliders in the exported file">
+        <input id="opt-ui" type="checkbox" checked>
+        <span>ship viewer controls (camera · material · light)</span>
+      </label>
     </details>
 
-    <label class="opt-row" title="Include camera views, material override and lighting sliders in the exported file">
-      <input id="opt-ui" type="checkbox" checked>
-      <span>ship viewer controls (camera · material · light)</span>
-    </label>
     <p id="status" class="under-status info">no file loaded</p>
     <div class="action-row">
       <button id="export" class="btn-primary" title="Pack the model into a self-contained .html file"><svg class="ico" viewBox="0 0 24 24"><use href="#i-export"></use></svg>export .html</button>

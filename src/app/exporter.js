@@ -19,6 +19,7 @@
 // only build + prime the cache, and the second press shares instantly.
 // =============================================================================
 
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { b85encode, b85decode } from '../codec/base85.js';
@@ -82,22 +83,40 @@ async function encodeWithProgress(framed, onProgress) {
 let stageRef = null;
 
 /**
- * Capture a downscaled JPEG snapshot of the current viewport, used as the
- * artifact's static poster (visible in script-blocked previews).
- * @returns {string} a data: URI
+ * Capture the artifact's static poster (visible in script-blocked previews):
+ * a 2×2 grid of front / left / right / perspective views rendered around the
+ * current orbit target. The live camera is restored afterwards.
+ * @returns {string} a data: URI (JPEG)
  */
 function capturePoster() {
-  const { renderer, scene, camera, canvas } = stageRef;
-  renderer.render(scene, camera);
-  const MAX_EDGE = 640;
-  const scale = Math.min(1, MAX_EDGE / Math.max(canvas.width, canvas.height));
-  const w = Math.max(1, Math.round(canvas.width * scale));
-  const h = Math.max(1, Math.round(canvas.height * scale));
+  const { renderer, scene, camera, canvas, controls } = stageRef;
+  const VIEWS = [[0, 0, 1], [-1, 0, 0], [1, 0, 0], [1, 0.55, 1]]; // front left right persp
+
+  const savedPosition = camera.position.clone();
+  const savedQuaternion = camera.quaternion.clone();
+  const target = controls.target;
+  const distance = camera.position.distanceTo(target);
+
+  const CELL = 420;
   const out = document.createElement('canvas');
-  out.width = w;
-  out.height = h;
-  out.getContext('2d').drawImage(canvas, 0, 0, w, h);
-  return out.toDataURL('image/jpeg', 0.85);
+  out.width = out.height = CELL * 2;
+  const ctx = out.getContext('2d');
+
+  VIEWS.forEach((dir, i) => {
+    camera.position.copy(target)
+      .add(new THREE.Vector3(...dir).normalize().multiplyScalar(distance));
+    camera.lookAt(target);
+    renderer.render(scene, camera);
+    ctx.drawImage(canvas, (i % 2) * CELL, Math.floor(i / 2) * CELL, CELL, CELL);
+  });
+
+  // restore the interactive camera exactly as it was
+  camera.position.copy(savedPosition);
+  camera.quaternion.copy(savedQuaternion);
+  controls.update();
+  renderer.render(scene, camera);
+
+  return out.toDataURL('image/jpeg', 0.82);
 }
 
 // -----------------------------------------------------------------------------
