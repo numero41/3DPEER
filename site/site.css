@@ -41,11 +41,13 @@
   /* ---- checkboxes / radios (custom-drawn, rounded) ---- */
   --check-size: 16px;
   --check-bg: #3d3d45;
-  --r-check: 5px;
   --tick-w: 9px;
   --tick-h: 5px;
   --tick-stroke: 2px;
   --dot: 8px;
+
+  /* ---- brand ---- */
+  --logo-size: 26px;
 
   /* ---- hover contrast formula ---- */
   --hover-amount: 12%;
@@ -139,6 +141,19 @@ button:hover,
   text-align: center;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+}
+
+.logo {
+  display: block;
+  width: var(--logo-size);
+  height: var(--logo-size);
+}
+
 .mark {
   padding-left: var(--track-wide);
   font: 600 var(--fs-xl)/1 var(--mono);
@@ -155,6 +170,14 @@ button:hover,
   margin: var(--sp-4) auto 0;
   color: var(--muted);
   font-size: var(--fs-md);
+}
+
+.subline {
+  max-width: 680px;
+  margin: var(--sp-2) auto 0;
+  color: var(--faint);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
 }
 
 /* ================================================================= workbench */
@@ -552,6 +575,19 @@ body.loaded .viewport-toolbar {
   width: 100%;
 }
 
+.action-row {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+.action-row #export {
+  flex: 1;
+}
+
+.btn-share.hidden {
+  display: none;
+}
+
 .btn-primary {
   --btn-bg: var(--accent);
   --btn-fg: var(--on-accent);
@@ -667,9 +703,9 @@ input[type="range"] {
   accent-color: var(--overlay-ink);
 }
 
-/* ---- custom rounded checkboxes & radios ----
-   Drawn by hand (appearance: none) so the fill stays a step lighter than the
-   panels behind it, with a light tick / dot when checked. */
+/* ---- custom round checkboxes & radios ----
+   Drawn by hand (appearance: none): fully circular like radio buttons, fill a
+   step lighter than the panels behind, light tick / dot when checked. */
 input[type="checkbox"],
 input[type="radio"] {
   appearance: none;
@@ -681,16 +717,9 @@ input[type="radio"] {
   height: var(--check-size);
   margin: 0;
   border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-pill);
   background: var(--check-bg);
   cursor: pointer;
-}
-
-input[type="checkbox"] {
-  border-radius: var(--r-check);
-}
-
-input[type="radio"] {
-  border-radius: var(--r-pill);
 }
 
 input[type="checkbox"]::before {

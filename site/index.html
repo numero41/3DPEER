@@ -4,13 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>3DPEER — one 3D model, one file</title>
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
 <header class="topbar">
-  <span class="mark">3DPEER</span>
-  <p class="tagline">Turn any 3D model into a single self-contained <code>.html</code> file — double-click to open, view offline, forever. Nothing leaves your device.</p>
+  <div class="brand">
+    <img src="logo.svg" alt="3DPEER logo" class="logo">
+    <span class="mark">3DPEER</span>
+  </div>
+  <p class="tagline">Turn any 3D model into a single self-contained <code>.html</code> file</p>
+  <p class="subline">Double-click to open, view offline, forever.<br>Nothing leaves your device.</p>
 </header>
 
 <main class="workbench">
@@ -104,7 +108,10 @@
       <input id="opt-ui" type="checkbox" checked>
       <span>ship viewer controls (camera · material · light)</span>
     </label>
-    <button id="export" class="btn-primary btn-block" title="Pack the model into a self-contained .html file"><svg class="ico" viewBox="0 0 24 24"><use href="#i-export"></use></svg>export .html</button>
+    <div class="action-row">
+      <button id="export" class="btn-primary" title="Pack the model into a self-contained .html file"><svg class="ico" viewBox="0 0 24 24"><use href="#i-export"></use></svg>export .html</button>
+      <button id="share" class="btn-primary btn-share" title="Pack the model and share it via your system share sheet"><svg class="ico" viewBox="0 0 24 24"><use href="#i-share"></use></svg>share</button>
+    </div>
     <div class="progress-wrap" id="export-progress-wrap" hidden>
       <progress id="export-progress" max="1" value="0"></progress>
       <p class="progress-eta"><span id="export-pct">0%</span> · <span id="export-eta">estimating…</span></p>

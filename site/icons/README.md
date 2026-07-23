@@ -40,6 +40,7 @@ via `currentColor`, so leave no hard-coded colours in the files.
 | filename        | Lucide name           | used for                        |
 |-----------------|-----------------------|---------------------------------|
 | `export.svg`    | `download`            | export the .html                |
+| `share.svg`     | `share-2`             | share via the system sheet      |
 | `auto.svg`      | `wand-sparkles`       | auto (target-size) compression  |
 | `sliders.svg`   | `sliders-horizontal`  | per-parameter compression       |
 | `decimate.svg`  | `shrink`              | mesh decimation                 |
