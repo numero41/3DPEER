@@ -9,8 +9,7 @@
 <body>
 <header class="topbar">
   <span class="mark">3DPEER</span>
-  <p class="tagline">Turn any 3D model into a single self-contained <code>.html</code> file — double-click to open, view offline, forever.</p>
-  <p class="subtag">geometry meshopt-quantized · gzip + base85 inlined · three.js viewer welded in · processed entirely in your browser, nothing uploaded</p>
+  <p class="tagline">Turn any 3D model into a single self-contained <code>.html</code> file — double-click to open, view offline, forever. Nothing leaves your device.</p>
 </header>
 
 <main class="workbench">
@@ -25,9 +24,9 @@
 
     <!-- top-right tools -->
     <div class="stage-tools">
-      <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><span class="ico ico-fit"></span></button>
-      <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><span class="ico ico-snapshot"></span></button>
-      <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><span class="ico ico-fullscreen"></span></button>
+      <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><svg class="ico"><use href="#i-fit"></use></svg></button>
+      <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico"><use href="#i-snapshot"></use></svg></button>
+      <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico"><use href="#i-fullscreen"></use></svg></button>
     </div>
 
     <!-- bottom-left: unfolded-cube camera views -->
@@ -55,7 +54,7 @@
     </div>
 
     <!-- right edge: panel toggle + docked panel -->
-    <button id="panel-toggle" class="panel-toggle hidden" title="Show / hide panels" aria-label="Toggle panels"><span class="ico ico-panel"></span></button>
+    <button id="panel-toggle" class="panel-toggle hidden" title="Show / hide panels" aria-label="Toggle panels"><svg class="ico"><use href="#i-panel-open"></use></svg></button>
     <aside id="side" class="side">
       <section class="side-sec hidden" id="panel-anims">
         <h2>animations</h2>
@@ -68,7 +67,7 @@
 
       <section class="side-sec hidden" id="panel-morphs">
         <h2>morphs <span id="morph-count"></span></h2>
-        <button id="morph-reset" title="Reset all morph sliders to zero"><span class="ico ico-reset"></span>reset</button>
+        <button id="morph-reset" title="Reset all morph sliders to zero"><svg class="ico"><use href="#i-reset"></use></svg>reset</button>
         <div id="morph-list" class="scroll"></div>
       </section>
 
@@ -82,7 +81,7 @@
   <!-- below the viewer: status, export, progress -->
   <div class="under">
     <p id="status" class="under-status">no file loaded</p>
-    <button id="export" class="btn-primary btn-block" title="Pack the model into a self-contained .html file"><span class="ico ico-export"></span>export .html</button>
+    <button id="export" class="btn-primary btn-block" title="Pack the model into a self-contained .html file"><svg class="ico"><use href="#i-export"></use></svg>export .html</button>
     <div class="progress-wrap" id="export-progress-wrap" hidden>
       <progress id="export-progress" max="1" value="0"></progress>
       <p class="progress-eta"><span id="export-pct">0%</span> · <span id="export-eta">estimating…</span></p>
@@ -92,9 +91,10 @@
 </main>
 
 <footer>
-  <p>© 2026 Number41. All rights reserved. · <span class="legal-mark">3DPEER</span></p>
+  <p>© 2026 <span class="legal-mark">Number41/3DPEER</span>. All rights reserved.</p>
 </footer>
 
+<script src="export-assets.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

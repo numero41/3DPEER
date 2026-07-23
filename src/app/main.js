@@ -9,7 +9,11 @@ import { initDisplayControls } from './display-modes.js';
 import { initSidePanel } from './panels.js';
 import { initViews } from './views.js';
 import { initExport } from './exporter.js';
+import { SPRITE } from './sprite.js';
 import { $ } from './dom.js';
+
+// Inject the inline icon sprite so <use href="#i-..."> works with no fetch.
+document.body.insertAdjacentHTML('afterbegin', SPRITE);
 
 const stage = createStage();
 

@@ -71,11 +71,9 @@ export function initExport() {
       const payload = await encodeWithProgress(framed, (f) => progress.set(0.05 + f * 0.8, 'encoding'));
 
       progress.set(0.9, 'assembling');
-      const [tpl, css, viewer] = await Promise.all([
-        fetch('assets/page.html').then((r) => r.text()),
-        fetch('assets/page.css').then((r) => r.text()),
-        fetch('assets/viewer-gltf.js').then((r) => r.text()),
-      ]);
+      // Export assets are inlined at build time (window.__EXPORT) and loaded via
+      // a <script> tag, so export never fetches — it works over file:// too.
+      const { tpl, css, viewer } = window.__EXPORT;
       let html = put(tpl, 'CSS', css);
       html = put(html, 'TITLE', state.name);
       html = put(html, 'CAPTION', `${state.name} · self-contained file · 0 requests`);

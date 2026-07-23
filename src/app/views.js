@@ -59,10 +59,11 @@ export function initViews(stage) {
     if (fsEl) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     else (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
   });
+  const fsUse = $('fullscreen').querySelector('use');
   ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) =>
     document.addEventListener(ev, () => {
       const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
-      document.body.classList.toggle('fs', on); // swaps the fullscreen glyph
+      fsUse.setAttribute('href', on ? '#i-fullscreen-exit' : '#i-fullscreen');
       requestAnimationFrame(resize);
     }));
 }

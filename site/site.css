@@ -73,8 +73,9 @@
   --dash: 1.5px;
   --ctrl: 34px;            /* icon-button hit area */
   --icon: 17px;           /* glyph size */
+  --icon-stroke: 2;       /* sprite stroke width (24-viewBox units) */
   --cube-w: 96px;         /* camera-cube net width */
-  --stage-max: 1000px;
+  --stage-max: 800px;
   --panel-w: 300px;
   --progress-h: 10px;
 
@@ -163,24 +164,13 @@ body.loaded .stage-tools { display: flex; }
 body.loaded .camcube { display: flex; }
 body.loaded .stage-bar { display: flex; }
 
-/* ---- mask-icon system (site/icons/*.svg tinted with currentColor) ---- */
+/* ---- inline SVG icon sprite (bundled + injected; tinted by currentColor) ---- */
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 .ico {
   display: block; width: var(--icon); height: var(--icon);
-  background: currentColor;
-  -webkit-mask: var(--mask) center / contain no-repeat;
-  mask: var(--mask) center / contain no-repeat;
+  fill: none; stroke: currentColor; stroke-width: var(--icon-stroke);
+  stroke-linecap: round; stroke-linejoin: round;
 }
-.ico-fit { --mask: url("icons/fit.svg"); }
-.ico-snapshot { --mask: url("icons/snapshot.svg"); }
-.ico-fullscreen { --mask: url("icons/fullscreen.svg"); }
-.ico-fullscreen-exit { --mask: url("icons/fullscreen-exit.svg"); }
-.ico-panel { --mask: url("icons/panel-open.svg"); }
-.ico-export { --mask: url("icons/export.svg"); }
-.ico-reset { --mask: url("icons/reset.svg"); }
-.ico-play { --mask: url("icons/play.svg"); }
-.ico-pause { --mask: url("icons/pause.svg"); }
-/* fullscreen button swaps its glyph while active */
-body.fs .ico-fullscreen { --mask: url("icons/fullscreen-exit.svg"); }
 
 /* floating tools (top-right) */
 .stage-tools { position: absolute; top: var(--sp-4); right: var(--sp-4); gap: var(--sp-3); z-index: var(--z-overlay); }

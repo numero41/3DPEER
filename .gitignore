@@ -7,3 +7,5 @@ node_modules/
 # generated site bundle (build with: npm run build:site)
 site/app.js
 site/assets/
+src/app/sprite.js
+site/export-assets.js
