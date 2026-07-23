@@ -1,9 +1,9 @@
 # site/icons
 
-SVG icons for the workbench UI. **Source: [Lucide](https://lucide.dev)**
-(ISC license — free for commercial use, attribution not required).
-Download each as SVG from `https://lucide.dev/icons/<lucide-name>` and save it
-here under the target filename below.
+SVG icons for the workbench UI, **vendored from [Lucide](https://lucide.dev)**
+(ISC license — free for commercial use, attribution not required). The 22 files
+are already here; the table below records each one's Lucide source name so they
+can be refreshed or extended (`https://unpkg.com/lucide-static/icons/<name>.svg`).
 
 Style to keep consistent: 24×24 viewBox, `stroke="currentColor"`,
 `fill="none"`, `stroke-width` 1.5–1.75, round caps/joins. The site colours them
