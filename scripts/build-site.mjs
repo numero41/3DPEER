@@ -13,7 +13,7 @@ fs.mkdirSync(R('site', 'assets'), { recursive: true });
 
 esbuild.buildSync({
   entryPoints: [R('src', 'app', 'main.js')],
-  bundle: true, format: 'iife', outfile: R('site', 'app.js'),
+  bundle: true, minify: true, format: 'iife', outfile: R('site', 'app.js'),
 });
 for (const entry of ['boot-geo.js', 'boot-gltf.js']) {
   esbuild.buildSync({
