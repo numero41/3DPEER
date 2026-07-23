@@ -37,6 +37,7 @@
   /* ---- semantic roles ---- */
   --accent: var(--btn-dark);
   --on-accent: var(--ink);
+  --warn: #d9a76a;
 
   /* ---- checkboxes / radios (custom-drawn, rounded) ---- */
   --check-size: 16px;
@@ -409,6 +410,7 @@ body.loaded .viewport-toolbar {
 
 .menu-row {
   display: flex;
+  justify-content: center;
   gap: var(--sp-2);
   margin-top: var(--sp-3);
 }
@@ -416,10 +418,17 @@ body.loaded .viewport-toolbar {
 .menu-row button {
   --btn-bg: var(--btn-dark);
   --btn-fg: var(--overlay-ink);
-  flex: 1;
   border-color: var(--overlay-line);
   background: var(--btn-dark);
   color: var(--overlay-ink);
+}
+
+/* The perspective button matches the unfolded cube: same width as the net,
+   same height as one cube face (the net is 107 units wide, a face 26). */
+#menu-view .menu-row button {
+  width: var(--cube-w);
+  height: calc(var(--cube-w) * 26 / 107);
+  padding: 0;
 }
 
 /* ---- light-menu sliders ---- */
@@ -557,8 +566,19 @@ body.loaded .viewport-toolbar {
 
 .under-status {
   margin: 0;
-  color: var(--muted);
   font: var(--fs-sm)/1.4 var(--mono);
+}
+
+.under-status.info {
+  color: var(--muted);
+}
+
+.under-status.ok {
+  color: var(--ink);
+}
+
+.under-status.warn {
+  color: var(--warn);
 }
 
 .under-note {

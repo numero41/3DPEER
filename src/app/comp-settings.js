@@ -42,10 +42,12 @@ export function readSettings() {
 }
 
 /**
- * Push a settings object into the sliders and readouts (used by auto).
+ * Push a settings object into the sliders and readouts (used by auto), and
+ * open the panel so the chosen values are visible.
  * @param {import('./compress.js').CompressSettings} settings
  */
 export function writeSettings(settings) {
+  $('comp-panel').open = true;
   for (const [name, field] of Object.entries(FIELDS)) {
     $(field.input).value = field.toSlider(settings[name]);
     refresh(name);

@@ -38,7 +38,7 @@ async function loadFile(stage, file) {
     if (ext !== 'glb' && ext !== 'gltf') setStatus(`converting .${ext} → glb…`);
     bytes = await toGLB(file);
   } catch (e) {
-    setStatus('import failed: ' + (e.message || e));
+    setStatus('import failed: ' + (e.message || e), 'warn');
     return;
   }
 
@@ -48,7 +48,16 @@ async function loadFile(stage, file) {
   try {
     gltf = await new Promise((ok, ko) => loader.parse(bytes.buffer.slice(0), '', ok, ko));
   } catch (e) {
-    setStatus('parse error: ' + (e.message || e));
+    setStatus('parse error: ' + (e.message || e), 'warn');
+    return;
+  }
+
+  // Some importers (notably USDZ variants three cannot fully read) return an
+  // empty scene: refuse it clearly instead of showing a blank viewport.
+  let meshCount = 0;
+  gltf.scene.traverse((o) => { if (o.isMesh) meshCount++; });
+  if (!meshCount) {
+    setStatus(`no geometry found in ${file.name} — this file variant is not supported yet`, 'warn');
     return;
   }
 
@@ -73,7 +82,7 @@ async function loadFile(stage, file) {
 
   buildPanels(gltf);
   document.body.classList.add('loaded');
-  setStatus(`${state.name} — ${(bytes.length / 1e6).toFixed(2)} MB loaded, processed locally`);
+  setStatus(`${state.name} — ${(file.size / 1e6).toFixed(2)} MB loaded, processed locally`, 'ok');
   reapplyMaterial();
 }
 

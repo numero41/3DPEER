@@ -104,28 +104,26 @@
 
   <!-- below the viewer: status, export, progress -->
   <div class="under">
-    <p id="status" class="under-status">no file loaded</p>
-
     <details class="comp" id="comp-panel">
       <summary title="Tune how aggressively the model is optimized">compression settings</summary>
       <div class="comp-grid">
-        <label class="slider-row" title="Vertex position precision — lower bits, smaller file">
-          <span>positions · <b id="v-pos">12</b> bits</span>
+        <label class="slider-row" title="How precisely vertex positions are stored (bits per coordinate). 16 = exact, 12 = safe default, below 10 may show faceting on large models.">
+          <span>geometry precision · <b id="v-pos">12</b></span>
           <input id="c-pos" type="range" min="8" max="16" step="1" value="12">
         </label>
-        <label class="slider-row" title="Normal precision — lower bits, smaller file">
-          <span>normals · <b id="v-nrm">8</b> bits</span>
+        <label class="slider-row" title="How precisely surface directions are stored (bits per normal). Lower values may band the highlights.">
+          <span>shading precision · <b id="v-nrm">8</b></span>
           <input id="c-nrm" type="range" min="8" max="12" step="1" value="8">
         </label>
-        <label class="slider-row" title="Maximum texture edge in pixels">
+        <label class="slider-row" title="Textures larger than this edge (in pixels) are scaled down.">
           <span>texture size · <b id="v-tex">2048</b> px</span>
           <input id="c-tex" type="range" min="8" max="12" step="1" value="11">
         </label>
-        <label class="slider-row" title="WebP quality — 100 keeps the original textures">
+        <label class="slider-row" title="Textures are re-encoded as WebP at this quality — 100 keeps the originals untouched.">
           <span>texture quality · <b id="v-q">85</b></span>
           <input id="c-q" type="range" min="30" max="100" step="5" value="85">
         </label>
-        <label class="slider-row" title="Share of triangles removed — 0 keeps your geometry untouched">
+        <label class="slider-row" title="Share of triangles removed from the mesh. 0 keeps your geometry untouched — always the default.">
           <span>decimate · <b id="v-dec">0</b> %</span>
           <input id="c-dec" type="range" min="0" max="90" step="5" value="0">
         </label>
@@ -138,10 +136,11 @@
       </div>
     </details>
 
-    <label class="opt-row" title="Include camera views, material override and a light slider in the exported file">
+    <label class="opt-row" title="Include camera views, material override and lighting sliders in the exported file">
       <input id="opt-ui" type="checkbox" checked>
       <span>ship viewer controls (camera · material · light)</span>
     </label>
+    <p id="status" class="under-status info">no file loaded</p>
     <div class="action-row">
       <button id="export" class="btn-primary" title="Pack the model into a self-contained .html file"><svg class="ico" viewBox="0 0 24 24"><use href="#i-export"></use></svg>export .html</button>
       <button id="share" class="btn-primary btn-share" title="Pack the model and share it via your system share sheet"><svg class="ico" viewBox="0 0 24 24"><use href="#i-share"></use></svg>share</button>
@@ -150,7 +149,6 @@
       <progress id="export-progress" max="1" value="0"></progress>
       <p class="progress-eta"><span id="export-pct">0%</span> · <span id="export-eta">estimating…</span></p>
     </div>
-    <p class="under-note">optimization runs entirely in this browser — tune the sliders, or set a target size and press auto</p>
   </div>
 </main>
 

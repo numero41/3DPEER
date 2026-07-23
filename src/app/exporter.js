@@ -138,7 +138,7 @@ async function optimizedGLB(settings, onProgress, fallbackToRaw = true) {
   } catch (e) {
     if (!fallbackToRaw) throw e;
     console.warn('compression failed, exporting raw bytes:', e);
-    setStatus('compression failed (' + (e.message || e) + ') — exporting uncompressed');
+    setStatus('compression failed (' + (e.message || e) + ') — exporting uncompressed', 'warn');
     bytes = state.glbBytes;
   }
   glbCache.key = key;
@@ -259,7 +259,7 @@ async function runAction(deliver) {
     progress.set(1);
     setTimeout(() => progress.hide(), 1500);
   } catch (e) {
-    setStatus('failed: ' + (e.message || e));
+    setStatus('failed: ' + (e.message || e), 'warn');
     progress.hide();
   } finally {
     buttons.forEach((b) => { b.disabled = false; });
@@ -280,7 +280,7 @@ export function initExport(stage) {
       a.download = state.name + '.3dpeer.html';
       a.click();
       URL.revokeObjectURL(a.href);
-      setStatus(`exported: ${state.name}.3dpeer.html — ${sizeSummary(blob)}`);
+      setStatus(`exported: ${state.name}.3dpeer.html — ${sizeSummary(blob)}`, 'ok');
     }));
 
   // Hide the share button where the browser cannot share files at all.
@@ -322,13 +322,15 @@ export function initExport(stage) {
       if (!best) throw new Error('no preset could process this file');
       writeSettings(best.preset);
       const estMB = (best.estimate / 1e6).toFixed(2);
-      setStatus(best.estimate <= targetBytes
-        ? `auto: ~${estMB} MB with these settings — press export`
-        : `auto: target unreachable, best is ~${estMB} MB — press export`);
+      setStatus(
+        best.estimate <= targetBytes
+          ? `auto: ~${estMB} MB with these settings — press export`
+          : `auto: target unreachable, best is ~${estMB} MB — press export`,
+        best.estimate <= targetBytes ? 'ok' : 'warn');
       progress.set(1);
       setTimeout(() => progress.hide(), 1200);
     } catch (e) {
-      setStatus('auto failed: ' + (e.message || e));
+      setStatus('auto failed: ' + (e.message || e), 'warn');
       progress.hide();
     } finally {
       buttons.forEach((b) => { b.disabled = false; });
@@ -340,14 +342,14 @@ export function initExport(stage) {
       const file = new File([blob], state.name + '.3dpeer.html', { type: 'text/html' });
       try {
         await navigator.share({ files: [file], title: state.name });
-        setStatus(`shared: ${state.name}.3dpeer.html — ${sizeSummary(blob)}`);
+        setStatus(`shared: ${state.name}.3dpeer.html — ${sizeSummary(blob)}`, 'ok');
       } catch (e) {
         if (e.name === 'AbortError') {
           setStatus('share cancelled');
         } else if (e.name === 'NotAllowedError') {
           // The user gesture expired during a long build; the artifact is now
           // cached, so the next press shares instantly.
-          setStatus('ready to share — press share again');
+          setStatus('ready to share — press share again', 'warn');
         } else {
           throw e;
         }

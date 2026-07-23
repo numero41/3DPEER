@@ -9,11 +9,16 @@
 import { $ } from './dom.js';
 
 /**
- * Write a short message to the status line under the viewer.
+ * Write a short message to the status line above the export button.
  * @param {string} msg
+ * @param {'info'|'ok'|'warn'} [kind='info'] tone of the message — 'ok' for
+ *   successes (bright), 'warn' for problems (amber), 'info' for progress.
  */
-export function setStatus(msg) {
-  $('status').textContent = msg;
+export function setStatus(msg, kind = 'info') {
+  const status = $('status');
+  status.textContent = msg;
+  status.classList.remove('info', 'ok', 'warn');
+  status.classList.add(kind);
 }
 
 /**
