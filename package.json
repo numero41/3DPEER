@@ -12,6 +12,7 @@
   "dependencies": {
     "@gltf-transform/cli": "^4.2.1",
     "@gltf-transform/core": "^4.2.1",
+    "@gltf-transform/extensions": "^4.4.1",
     "@gltf-transform/functions": "^4.2.1",
     "esbuild": "^0.25.0",
     "meshoptimizer": "0.20.0",

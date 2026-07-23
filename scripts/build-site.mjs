@@ -56,9 +56,12 @@ fs.writeFileSync(R('site', 'export-assets.js'),
   `window.__EXPORT=${JSON.stringify(exportAssets)};`);
 
 // --- 4. build the workbench bundle (imports the generated sprite) ----------
+// node:fs / node:path stay external: @gltf-transform/core lazily imports them
+// on its NodeIO path only, which the site never constructs (it uses WebIO).
 esbuild.buildSync({
   entryPoints: [R('src', 'app', 'main.js')],
   bundle: true, minify: true, format: 'iife', outfile: R('site', 'app.js'),
+  external: ['node:fs', 'node:path'],
 });
 
 console.log('site built in site/ :',

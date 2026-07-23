@@ -19,7 +19,11 @@
 // only build + prime the cache, and the second press shares instantly.
 // =============================================================================
 
-import { b85encode } from '../codec/base85.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { b85encode, b85decode } from '../codec/base85.js';
+import { compressGLB, AUTO_LADDER } from './compress.js';
+import { readSettings, writeSettings } from './comp-settings.js';
 import { state } from './state.js';
 import { $ } from './dom.js';
 import { setStatus, progress } from './ui.js';
@@ -71,11 +75,76 @@ async function encodeWithProgress(framed, onProgress) {
 }
 
 // -----------------------------------------------------------------------------
+// Poster snapshot
+// -----------------------------------------------------------------------------
+
+/** The render stage, provided by initExport — needed to capture the poster. */
+let stageRef = null;
+
+/**
+ * Capture a downscaled JPEG snapshot of the current viewport, used as the
+ * artifact's static poster (visible in script-blocked previews).
+ * @returns {string} a data: URI
+ */
+function capturePoster() {
+  const { renderer, scene, camera, canvas } = stageRef;
+  renderer.render(scene, camera);
+  const MAX_EDGE = 640;
+  const scale = Math.min(1, MAX_EDGE / Math.max(canvas.width, canvas.height));
+  const w = Math.max(1, Math.round(canvas.width * scale));
+  const h = Math.max(1, Math.round(canvas.height * scale));
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  out.getContext('2d').drawImage(canvas, 0, 0, w, h);
+  return out.toDataURL('image/jpeg', 0.85);
+}
+
+// -----------------------------------------------------------------------------
 // Artifact build (cached)
 // -----------------------------------------------------------------------------
 
-/** Last built artifact, keyed by the exact inputs that shaped it. */
-const cache = { source: null, ui: null, blob: null };
+/** Last built artifact, keyed by the exact inputs that shaped it. The poster
+ *  is captured at first build; reusing it from cache is acceptable. */
+const cache = { key: null, blob: null };
+
+/** Last optimized GLB, so export right after auto reuses the solver's work. */
+const glbCache = { key: null, bytes: null };
+
+/**
+ * Cache key for one (model, settings) combination.
+ * @param {import('./compress.js').CompressSettings} settings
+ * @returns {string}
+ */
+function glbKey(settings) {
+  return state.name + ':' + state.glbBytes.length + ':' + JSON.stringify(settings);
+}
+
+/**
+ * Optimize the current model with the given settings, memoizing the result.
+ * @param {import('./compress.js').CompressSettings} settings
+ * @param {(f: number, label: string) => void} onProgress pipeline progress
+ * @param {boolean} [fallbackToRaw=true] on pipeline failure: true returns the
+ *   raw bytes (export must still produce a file), false rethrows (the auto
+ *   solver skips broken presets instead)
+ * @returns {Promise<Uint8Array>}
+ */
+async function optimizedGLB(settings, onProgress, fallbackToRaw = true) {
+  const key = glbKey(settings);
+  if (glbCache.bytes && glbCache.key === key) return glbCache.bytes;
+  let bytes;
+  try {
+    bytes = await compressGLB(state.glbBytes, settings, onProgress);
+  } catch (e) {
+    if (!fallbackToRaw) throw e;
+    console.warn('compression failed, exporting raw bytes:', e);
+    setStatus('compression failed (' + (e.message || e) + ') — exporting uncompressed');
+    bytes = state.glbBytes;
+  }
+  glbCache.key = key;
+  glbCache.bytes = bytes;
+  return bytes;
+}
 
 /**
  * Build the artifact HTML for the current model + options, driving the
@@ -84,13 +153,18 @@ const cache = { source: null, ui: null, blob: null };
  */
 async function buildArtifact() {
   const ui = $('opt-ui').checked;
-  if (cache.blob && cache.source === state.glbBytes && cache.ui === ui) {
+  const settings = readSettings();
+  const key = glbKey(settings) + ':ui=' + ui;
+  if (cache.blob && cache.key === key) {
     progress.set(0.95, 'cached');
     return cache.blob;
   }
 
-  progress.set(0.02, 'compressing');
-  const gz = await gzipBytes(state.glbBytes);
+  // optimization occupies 0.02..0.42 of the bar
+  const glb = await optimizedGLB(settings, (f, label) => progress.set(0.02 + f * 0.4, label));
+
+  progress.set(0.44, 'compressing');
+  const gz = await gzipBytes(glb);
   await nextTick();
 
   // length-framed, padded to a 4-byte boundary for base85
@@ -98,8 +172,8 @@ async function buildArtifact() {
   new DataView(framed.buffer).setUint32(0, gz.length, true);
   framed.set(gz, 4);
 
-  // base85 occupies 0.05..0.85 of the bar
-  const payload = await encodeWithProgress(framed, (f) => progress.set(0.05 + f * 0.8, 'encoding'));
+  // base85 occupies 0.48..0.88 of the bar
+  const payload = await encodeWithProgress(framed, (f) => progress.set(0.48 + f * 0.4, 'encoding'));
 
   progress.set(0.9, 'assembling');
   const { tpl, css, viewer } = window.__EXPORT;
@@ -109,14 +183,47 @@ async function buildArtifact() {
   // Viewer feature flags: the "ship viewer controls" checkbox decides whether
   // the artifact carries camera/material/light controls.
   html = put(html, 'CONFIG', JSON.stringify({ ui }));
+  html = put(html, 'POSTER', capturePoster());
   html = put(html, 'PAYLOAD', payload);
   html = put(html, 'BUNDLE', viewer);
 
+  progress.set(0.94, 'self-test');
+  await selfTestArtifact(html, framed, glb);
+
   const blob = new Blob([html], { type: 'text/html' });
-  cache.source = state.glbBytes;
-  cache.ui = ui;
+  cache.key = key;
   cache.blob = blob;
   return blob;
+}
+
+/**
+ * Self-test on the PRODUCED HTML (invariant #3): re-extract the payload from
+ * the final string, decode it back, byte-compare against what was embedded,
+ * and fully parse the optimized GLB with the same three r160 loader family the
+ * artifact ships. Throws on any mismatch — a failing export must never leave
+ * the machine.
+ * @param {string} html the assembled artifact
+ * @param {Uint8Array} framed the length-framed gzip payload that was encoded
+ * @param {Uint8Array} glb the optimized GLB embedded in the payload
+ */
+async function selfTestArtifact(html, framed, glb) {
+  // 1. Payload round-trip: find the exact literal the template wraps.
+  const marker = 'window.__P=\n"';
+  const start = html.indexOf(marker);
+  if (start < 0) throw new Error('self-test: payload marker not found');
+  const from = start + marker.length;
+  const to = html.indexOf('"', from);
+  const back = b85decode(html.slice(from, to));
+  if (back.length !== framed.length) throw new Error('self-test: payload length mismatch');
+  for (let i = 0; i < back.length; i++) {
+    if (back[i] !== framed[i]) throw new Error('self-test: payload corrupted at byte ' + i);
+  }
+
+  // 2. The embedded GLB must decode with the viewer's own loader pairing.
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  await new Promise((ok, ko) =>
+    loader.parse(glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength), '', ok, ko));
 }
 
 /**
@@ -159,8 +266,13 @@ async function runAction(deliver) {
   }
 }
 
-/** Wire the export and share buttons. */
-export function initExport() {
+/**
+ * Wire the export and share buttons.
+ * @param {ReturnType<import('./stage.js').createStage>} stage the render stage
+ *   (used to capture the poster snapshot at build time)
+ */
+export function initExport(stage) {
+  stageRef = stage;
   $('export').addEventListener('click', () =>
     runAction((blob) => {
       const a = document.createElement('a');
@@ -175,6 +287,53 @@ export function initExport() {
   const probe = new File([''], 'probe.html', { type: 'text/html' });
   const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [probe] }));
   if (!canShareFiles) $('share').classList.add('hidden');
+
+  // ---- auto (target size) solver ----
+  // Walks the quality ladder best-first, measuring the real pipeline output,
+  // and stops at the first preset whose estimated artifact fits the target.
+  $('c-auto').addEventListener('click', async () => {
+    if (!state.glbBytes) return;
+    const targetBytes = parseFloat($('c-target').value) * 1e6;
+    if (!targetBytes) return;
+    const buttons = [$('export'), $('share'), $('c-auto')];
+    buttons.forEach((b) => { b.disabled = true; });
+    progress.start();
+    try {
+      // Fixed per-artifact overhead: viewer bundle + template + poster margin.
+      const overhead = window.__EXPORT.viewer.length + window.__EXPORT.tpl.length + 100000;
+      let best = null; // smallest estimate seen, in case no preset fits
+      for (let i = 0; i < AUTO_LADDER.length; i++) {
+        const preset = AUTO_LADDER[i];
+        const base = i / AUTO_LADDER.length;
+        setStatus(`auto: trying quality level ${i + 1}/${AUTO_LADDER.length}…`);
+        let glb;
+        try {
+          glb = await optimizedGLB(preset, (f, label) =>
+            progress.set(base + (f * 0.9) / AUTO_LADDER.length, label), false);
+        } catch (e) {
+          console.warn('auto: preset skipped:', e);
+          continue;
+        }
+        const gz = await gzipBytes(glb);
+        const estimate = gz.length * 1.25 + overhead; // base85 adds 25 %
+        if (!best || estimate < best.estimate) best = { estimate, preset };
+        if (estimate <= targetBytes) break;
+      }
+      if (!best) throw new Error('no preset could process this file');
+      writeSettings(best.preset);
+      const estMB = (best.estimate / 1e6).toFixed(2);
+      setStatus(best.estimate <= targetBytes
+        ? `auto: ~${estMB} MB with these settings — press export`
+        : `auto: target unreachable, best is ~${estMB} MB — press export`);
+      progress.set(1);
+      setTimeout(() => progress.hide(), 1200);
+    } catch (e) {
+      setStatus('auto failed: ' + (e.message || e));
+      progress.hide();
+    } finally {
+      buttons.forEach((b) => { b.disabled = false; });
+    }
+  });
 
   $('share').addEventListener('click', () =>
     runAction(async (blob) => {

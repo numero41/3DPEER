@@ -16,6 +16,7 @@ import { initMenus } from './menus.js';
 import { initSidePanel } from './panels.js';
 import { initViews } from './views.js';
 import { initExport } from './exporter.js';
+import { initCompressionSettings } from './comp-settings.js';
 import { SPRITE } from './sprite.js';
 import { $ } from './dom.js';
 
@@ -31,7 +32,8 @@ initLighting(stage);
 initMenus();
 initSidePanel();
 initViews(stage);
-initExport();
+initExport(stage);
+initCompressionSettings();
 
 // Render loop: advance any playing animation, keep the scrub bar in sync, and
 // draw. OrbitControls needs update() every frame for damping.

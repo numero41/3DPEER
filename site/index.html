@@ -22,9 +22,10 @@
     <canvas id="viewport"></canvas>
 
     <div id="dropzone" class="dropzone">
-      <p class="drop-title">drop a .glb here</p>
-      <label class="btn" for="file-input" title="Choose a .glb or .gltf file from disk">or choose a file</label>
-      <input id="file-input" type="file" accept=".glb,.gltf">
+      <p class="drop-title">drop a 3D file here</p>
+      <p class="drop-formats">glb · gltf · obj · stl · ply · fbx · usdz</p>
+      <label class="btn" for="file-input" title="Choose a 3D model file from disk">or choose a file</label>
+      <input id="file-input" type="file" accept=".glb,.gltf,.obj,.stl,.ply,.fbx,.usdz">
     </div>
 
     <!-- top-right utilities -->
@@ -104,6 +105,39 @@
   <!-- below the viewer: status, export, progress -->
   <div class="under">
     <p id="status" class="under-status">no file loaded</p>
+
+    <details class="comp" id="comp-panel">
+      <summary title="Tune how aggressively the model is optimized">compression settings</summary>
+      <div class="comp-grid">
+        <label class="slider-row" title="Vertex position precision — lower bits, smaller file">
+          <span>positions · <b id="v-pos">12</b> bits</span>
+          <input id="c-pos" type="range" min="8" max="16" step="1" value="12">
+        </label>
+        <label class="slider-row" title="Normal precision — lower bits, smaller file">
+          <span>normals · <b id="v-nrm">8</b> bits</span>
+          <input id="c-nrm" type="range" min="8" max="12" step="1" value="8">
+        </label>
+        <label class="slider-row" title="Maximum texture edge in pixels">
+          <span>texture size · <b id="v-tex">2048</b> px</span>
+          <input id="c-tex" type="range" min="8" max="12" step="1" value="11">
+        </label>
+        <label class="slider-row" title="WebP quality — 100 keeps the original textures">
+          <span>texture quality · <b id="v-q">85</b></span>
+          <input id="c-q" type="range" min="30" max="100" step="5" value="85">
+        </label>
+        <label class="slider-row" title="Share of triangles removed — 0 keeps your geometry untouched">
+          <span>decimate · <b id="v-dec">0</b> %</span>
+          <input id="c-dec" type="range" min="0" max="90" step="5" value="0">
+        </label>
+      </div>
+      <div class="comp-auto">
+        <span>target</span>
+        <input id="c-target" type="number" min="1" max="500" step="1" value="10" title="Target artifact size in MB">
+        <span>MB</span>
+        <button id="c-auto" title="Find the best quality that fits the target size">auto</button>
+      </div>
+    </details>
+
     <label class="opt-row" title="Include camera views, material override and a light slider in the exported file">
       <input id="opt-ui" type="checkbox" checked>
       <span>ship viewer controls (camera · material · light)</span>
@@ -116,7 +150,7 @@
       <progress id="export-progress" max="1" value="0"></progress>
       <p class="progress-eta"><span id="export-pct">0%</span> · <span id="export-eta">estimating…</span></p>
     </div>
-    <p class="under-note">v0: the glb is embedded as-is — adjustable compression comes next</p>
+    <p class="under-note">optimization runs entirely in this browser — tune the sliders, or set a target size and press auto</p>
   </div>
 </main>
 

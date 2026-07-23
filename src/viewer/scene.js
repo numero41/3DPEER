@@ -45,10 +45,17 @@ export function createStage() {
 
   function run(onFrame) {
     hint.textContent = window.__CAPTION || '';
+    let firstFrame = true;
     renderer.setAnimationLoop(() => {
       if (onFrame) onFrame();
       controls.update();
       renderer.render(scene, camera);
+      // Drop the static poster only once real frames exist beneath it.
+      if (firstFrame) {
+        firstFrame = false;
+        const poster = document.getElementById('poster');
+        if (poster) poster.remove();
+      }
     });
   }
   return { renderer, scene, camera, controls, hint, frameObject, run };

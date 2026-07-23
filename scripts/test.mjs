@@ -47,4 +47,22 @@ for (const withMorph of [false, true]) {
   console.log('---', withMorph ? 'morph fixture (gltf mode expected)' : 'geo fixture');
   await pack(glb, glb.replace('.glb', '.html'), { title: 'test' });
 }
+
+// --- in-browser compression pipeline, smoke-tested through NodeIO -----------
+// (The texture stage is canvas-based and auto-skips outside the browser; this
+// exercises dedup/prune/simplify/resample/quantize/meshopt on real transforms.)
+console.log('--- compression pipeline (NodeIO)');
+const { compressGLB, DEFAULT_SETTINGS } = await import('../src/app/compress.js');
+const { ALL_EXTENSIONS } = await import('@gltf-transform/extensions');
+const { MeshoptDecoder, MeshoptEncoder } = await import('meshoptimizer');
+const pipeIO = new NodeIO()
+  .registerExtensions(ALL_EXTENSIONS)
+  .registerDependencies({ 'meshopt.decoder': MeshoptDecoder, 'meshopt.encoder': MeshoptEncoder });
+const srcBytes = fs.readFileSync(path.join(tmp, 'm.glb'));
+const outBytes = await compressGLB(new Uint8Array(srcBytes), { ...DEFAULT_SETTINGS, decimate: 20 }, () => {}, pipeIO);
+const reread = await pipeIO.readBinary(outBytes);
+const meshCount = reread.getRoot().listMeshes().length;
+if (!meshCount) throw new Error('compression pipeline: output has no meshes');
+console.log(`compression pipeline: OK — ${srcBytes.length} -> ${outBytes.length} bytes, meshes:${meshCount}`);
+
 console.log('=== synthetic regression OK ===');

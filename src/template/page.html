@@ -10,10 +10,11 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<!-- Static fallback: mail previews (Gmail web, iOS Mail/QuickLook) render HTML
-     with scripts blocked. The boot script replaces this text the moment it
-     runs, so if it is still visible the scripts never ran — tell the viewer
-     what to do about it. -->
+<!-- Static fallback for script-blocked contexts (Gmail web preview, iOS
+     Mail/QuickLook, Finder space-bar preview): a snapshot of the model taken
+     at export time, plus instructions. The viewer removes the poster at the
+     first rendered frame and swaps the hint text as soon as scripts run. -->
+<img id="poster" src="{{POSTER}}" alt="">
 <div id="hint">interactive 3D file — if this message stays, your app blocks scripts: download the file and open it in a browser</div>
 <script>
 window.__CAPTION="{{CAPTION}}";

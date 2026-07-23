@@ -41,9 +41,6 @@
   /* ---- checkboxes / radios (custom-drawn, rounded) ---- */
   --check-size: 16px;
   --check-bg: #3d3d45;
-  --tick-w: 9px;
-  --tick-h: 5px;
-  --tick-stroke: 2px;
   --dot: 8px;
 
   /* ---- brand ---- */
@@ -152,6 +149,8 @@ button:hover,
   display: block;
   width: var(--logo-size);
   height: var(--logo-size);
+  /* the logo artwork is dark-stroked; invert it to read on the dark page */
+  filter: invert(1);
 }
 
 .mark {
@@ -245,6 +244,13 @@ button:hover,
   margin: 0;
   font-size: var(--fs-lg);
   opacity: var(--op-dim);
+}
+
+.drop-formats {
+  margin: 0;
+  color: var(--faint);
+  font: var(--fs-xs)/1 var(--mono);
+  letter-spacing: var(--track-tight);
 }
 
 .dropzone .btn {
@@ -571,6 +577,61 @@ body.loaded .viewport-toolbar {
   cursor: pointer;
 }
 
+/* ---- compression panel ---- */
+.comp {
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.comp summary {
+  padding: var(--sp-3) var(--sp-4);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--track-tight);
+  cursor: pointer;
+  user-select: none;
+}
+
+.comp[open] summary {
+  border-bottom: var(--hairline) solid var(--line);
+}
+
+.comp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--sp-2) var(--sp-5);
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.comp-grid .slider-row span {
+  color: var(--muted);
+}
+
+.comp-grid .slider-row b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.comp-auto {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.comp-auto input[type="number"] {
+  width: 72px;
+  padding: var(--sp-2) var(--sp-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--btn-dark);
+  color: var(--ink);
+  font: var(--fs-sm) var(--mono);
+}
+
 .btn-block {
   width: 100%;
 }
@@ -722,20 +783,8 @@ input[type="radio"] {
   cursor: pointer;
 }
 
-input[type="checkbox"]::before {
-  content: "";
-  width: var(--tick-w);
-  height: var(--tick-h);
-  border-left: var(--tick-stroke) solid var(--overlay-ink);
-  border-bottom: var(--tick-stroke) solid var(--overlay-ink);
-  transform: rotate(-45deg) translate(1px, -1px);
-  opacity: 0;
-}
-
-input[type="checkbox"]:checked::before {
-  opacity: 1;
-}
-
+/* Checked state: a light inner dot, identical for checkboxes and radios. */
+input[type="checkbox"]::before,
 input[type="radio"]::before {
   content: "";
   width: var(--dot);
@@ -745,6 +794,7 @@ input[type="radio"]::before {
   opacity: 0;
 }
 
+input[type="checkbox"]:checked::before,
 input[type="radio"]:checked::before {
   opacity: 1;
 }

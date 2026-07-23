@@ -23,6 +23,9 @@ export function assemble({ output, title, caption, payload, viewerEntry, ui }) {
   // Viewer feature flags injected as window.__CFG. Controls ship by default;
   // pass ui:false to produce a bare orbit-only artifact.
   html = put(html, 'CONFIG', JSON.stringify({ ui: ui !== false }));
+  // The CLI renders nothing, so the poster is a transparent pixel; the site
+  // exporter substitutes a real snapshot of the viewport instead.
+  html = put(html, 'POSTER', 'data:image/gif;base64,R0lGODlhAQABAAAAACw=');
   html = put(html, 'PAYLOAD', payload);
   html = put(html, 'BUNDLE', bundle);
   fs.writeFileSync(output, html);

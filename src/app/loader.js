@@ -1,6 +1,7 @@
-// loader.js — drag-drop / file-input handling and GLB parsing.
+// loader.js — drag-drop / file-input handling and model parsing.
 //
-// Parses .glb/.gltf with the meshopt-enabled GLTFLoader, disposes any previous
+// Non-glTF formats are first converted to GLB by importers.js, so one path
+// (the meshopt-enabled GLTFLoader) serves every input. Disposes any previous
 // model, populates state + panels, frames the camera, and applies the current
 // display mode. Geometry is never modified here (invariant #10).
 
@@ -10,6 +11,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { state, resetState } from './state.js';
 import { buildPanels } from './panels.js';
 import { reapplyMaterial } from './materials.js';
+import { toGLB } from './importers.js';
 import { setStatus } from './ui.js';
 
 /** Remove the current model from the scene and free its GPU resources. */
@@ -29,7 +31,17 @@ function disposeCurrent(stage) {
  * @param {File} file
  */
 async function loadFile(stage, file) {
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  // Convert whatever was dropped to GLB (a pass-through for .glb/.gltf).
+  let bytes;
+  try {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (ext !== 'glb' && ext !== 'gltf') setStatus(`converting .${ext} → glb…`);
+    bytes = await toGLB(file);
+  } catch (e) {
+    setStatus('import failed: ' + (e.message || e));
+    return;
+  }
+
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
   let gltf;
@@ -43,7 +55,7 @@ async function loadFile(stage, file) {
   disposeCurrent(stage);
   state.root = gltf.scene;
   state.glbBytes = bytes;
-  state.name = file.name.replace(/\.(glb|gltf)$/i, '');
+  state.name = file.name.replace(/\.(glb|gltf|obj|stl|ply|fbx|usdz)$/i, '');
   stage.scene.add(gltf.scene);
   gltf.scene.traverse((o) => {
     if (o.isSkinnedMesh) o.frustumCulled = false;

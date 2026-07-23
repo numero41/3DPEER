@@ -14,6 +14,7 @@ import { parseHeader, HEADER_SIZE } from '../codec/container.js';
 function checkConfig(html) {
   if (!html.includes('window.__CFG={')) throw new Error('self-test: viewer config missing');
   if (html.includes('{{CONFIG}}')) throw new Error('self-test: CONFIG placeholder not substituted');
+  if (html.includes('{{POSTER}}')) throw new Error('self-test: POSTER placeholder not substituted');
 }
 
 export async function selfTestGeo(output, ref) {
