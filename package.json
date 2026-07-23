@@ -1,0 +1,20 @@
+{
+  "name": "3dpeer",
+  "version": "0.3.0",
+  "type": "module",
+  "description": "3DPEER — modèle 3D vers fichier HTML autonome (conteneur 3DPEER, meshopt v0, gzip natif, base85)",
+  "scripts": {
+    "pack": "node scripts/pack.mjs",
+    "test": "node scripts/test.mjs",
+    "build:site": "node scripts/build-site.mjs",
+    "dev": "node scripts/dev.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/cli": "^4.2.1",
+    "@gltf-transform/core": "^4.2.1",
+    "@gltf-transform/functions": "^4.2.1",
+    "esbuild": "^0.25.0",
+    "meshoptimizer": "0.20.0",
+    "three": "0.160.0"
+  }
+}

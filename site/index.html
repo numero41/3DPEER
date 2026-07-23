@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3dpeer — un modèle 3D, un fichier</title>
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header>
+  <h1>3dpeer</h1>
+  <p class="tagline">un modèle 3D → un fichier .html — double-clic, pièce jointe, offline. rien ne quitte ce navigateur.</p>
+</header>
+
+<main>
+  <section id="stage">
+    <canvas id="viewport"></canvas>
+    <div id="dropzone">
+      <p>glisse un .glb ici</p>
+      <label class="btn" for="file-input">ou choisis un fichier</label>
+      <input id="file-input" type="file" accept=".glb,.gltf">
+    </div>
+    <p id="status">aucun fichier chargé</p>
+  </section>
+
+  <aside id="panels">
+    <section class="panel" id="panel-display">
+      <h2>affichage</h2>
+      <div class="seg" role="radiogroup">
+        <label><input type="radio" name="dmode" value="shaded" checked><span>shaded</span></label>
+        <label><input type="radio" name="dmode" value="clay"><span>clay</span></label>
+        <label><input type="radio" name="dmode" value="matcap"><span>matcap</span></label>
+        <label><input type="radio" name="dmode" value="wire"><span>wire</span></label>
+        <label><input type="radio" name="dmode" value="wireshaded"><span>wire+shaded</span></label>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-views">
+      <h2>vues</h2>
+      <div class="btn-grid">
+        <button data-view="front">face</button>
+        <button data-view="back">dos</button>
+        <button data-view="left">gauche</button>
+        <button data-view="right">droite</button>
+        <button data-view="top">dessus</button>
+        <button data-view="bottom">dessous</button>
+        <button data-view="persp">persp</button>
+        <button id="snapshot">snapshot</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="panel-anims">
+      <h2>animations</h2>
+      <select id="anim-select"></select>
+      <div class="row">
+        <button id="anim-toggle">play</button>
+        <input id="anim-scrub" type="range" min="0" max="1" step="0.001" value="0">
+      </div>
+    </section>
+
+    <section class="panel hidden" id="panel-morphs">
+      <h2>morphs <span id="morph-count"></span></h2>
+      <button id="morph-reset">reset</button>
+      <div id="morph-list" class="scroll"></div>
+    </section>
+
+    <section class="panel hidden" id="panel-parts">
+      <h2>parts</h2>
+      <div id="part-list" class="scroll"></div>
+    </section>
+
+    <section class="panel" id="panel-export">
+      <h2>export</h2>
+      <button id="export" class="accent">exporter le .html</button>
+      <p class="note">v0 : le glb est embarqué tel quel — compression réglable à l'étape suivante</p>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <p>3dpeer · les fichiers ne quittent jamais ce navigateur · <span class="mono">Number41</span></p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
