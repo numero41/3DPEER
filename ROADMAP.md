@@ -1,101 +1,121 @@
 # 3dpeer — ROADMAP
 
-Working document for the workshop (Claude Code). Each phase has an objective,
-tasks and a "done when" criterion. Do not open a phase before the
-previous one passes its criterion. The project invariants are in CLAUDE.md —
-read them before any modification.
+Working document for the workshop (Claude Code). Each milestone has a goal, a
+design already agreed with David, and a "done when" criterion. Do not open a
+milestone before the previous one passes its criterion. The project invariants
+and working conventions are in CLAUDE.md — read them before any change.
 
-## Phase 0 — foundations (DONE)
+## Done (reference numbers)
 
-Two packing modes (geo: custom 3DPEER streams, quantized GPU buffers;
-gltf: optimized GLB, paired GLTFLoader, morph sliders), gzip + base85
-envelope, self-test on the produced HTML, workbench site v0 (drag-drop,
-display modes, views, snapshot, auto morphs/parts/anims panels, real
-non-optimized export). Measured references: cube 62.05 → 4.20 MB (÷14.8),
-avatar 6.52 → 1.10 MB with 212 morphs.
+- **Foundations** — two packing modes (geo: custom 3DPEER streams; gltf:
+  optimized GLB, paired GLTFLoader), gzip + base85 envelope, self-test on the
+  produced HTML, workbench site (drag-drop, materials, lighting, panels).
+- **Phase 1 — in-browser compression (the core)** — src/app/compress.js:
+  dedup/prune → optional meshopt decimation → resample → quantization →
+  canvas WebP textures → meshopt packing. Sliders + auto target-size solver
+  (quality ladder, measures real output). Every site export self-tests in the
+  browser: payload re-extracted and byte-compared, GLB re-decoded with the
+  artifact's own r160 loader. Reference: TheFountain.glb 34.5 → 5.0 MB at
+  defaults (85 %), 2.86 MB at a 3 MB auto target (92 %).
+- **Phase 2 — imports (mostly)** — obj/stl/ply/fbx/usdz via three loaders →
+  GLTFExporter → the one GLB path. USDZ partial: three r160 cannot read
+  binary usdc crates; a clean warning is shown ("no geometry found").
+- **Artifact** — optional shipped controls (__CFG.ui: camera views, six
+  material presets, brightness + light-angle sliders), 2×2 poster grid
+  (front/left/right/persp) for script-blocked previews (Gmail preview,
+  iOS Mail, QuickLook), static no-JS fallback message.
+- **Site** — monochrome dark, tokenized CSS, icon sprite (no runtime fetch,
+  works over file://), guide + contact nav, collapsible export settings,
+  colour-coded status (info/ok/warn), Web Share button with build cache.
 
-## Phase 1 — in-browser compression (the heart of the product)
+## M1 — Annotations (next)
 
-Objective: the site's export produces the same quality as the CLI, without the
-file leaving the browser.
+Goal: pins + text on the model, authored by David AND by the recipient
+(the client) inside the artifact itself.
 
-- Port the optimization pipeline to the browser side: prune/weld/resample/
-  quantize via @gltf-transform (core + functions run in the browser),
-  meshopt 0.20 encoder in WASM, simplify() via the meshopt simplifier.
-- Remove the CLI execSync from gltf mode: a single programmatic code path
-  shared between Node/browser (src/pack becomes isomorphic where possible).
-- Textures on the browser side: decode image → canvas → toBlob('image/webp', q)
-  with a size cap (sharp stays reserved for the CLI).
-- Wire up the sliders: position bits, normal bits, texture size + quality,
-  anim resample tolerance, decimation ratio/error.
-- UX: live before/after wipe, estimated weight displayed continuously, a
-  "target weight" field (simple solver that lowers the sliders down to budget).
+Agreed design:
+- A pin = { position on mesh (raycast hit, stored in model space), text,
+  optional face normal for the arrow }. Rendered as a dot + leader line +
+  label; a list panel allows edit/delete.
+- Site: annotation mode toggle → click mesh to add, stored in state,
+  baked into the export via the existing __CFG channel (annotations: [...]).
+- Artifact: renders shipped annotations; when the recipient adds/edits pins,
+  the artifact REBUILDS ITSELF — take document.documentElement.outerHTML,
+  inject the new annotations JSON into a marked slot (split/join, never
+  String.replace — invariant #4), download as <name>.annotated.3dpeer.html.
+  The file travels back by mail; no server, no persistence problem.
+  localStorage as a crash net for unsaved notes.
+- Self-test: assert the annotation slot survives a rebuild round-trip.
 
-Done when: from the site, the 62 MB cube comes out at ≤ 5 MB and the avatar at
-≤ 1.3 MB, mobile opening < 3 s, viewer self-test OK, zero bytes sent
-over the network (verifiable in the Network tab).
+Done when: a pin authored on the site displays in the artifact; a pin added
+in the artifact survives the self-re-export and reopens correctly; the
+annotated copy still passes the payload self-test.
 
-## Phase 2 — imports
+## M2 — Turntable video (the email-body answer)
 
-Objective: accept what the audience actually has on its disk.
+Goal: mail bodies cannot run scripts, so ship motion as media: offscreen
+render of N frames orbiting the model → WebM via MediaRecorder (mp4 later if
+a light muxer). Button next to export/share. The poster grid stays for
+attachments; the turntable goes IN the mail body.
 
-- obj, stl, ply: three loaders → GLTFExporter → existing pipeline.
-  (stl = 3D printing; ply with vertex colors = scans → geo mode.)
-- fbx: FBXLoader (web, approximate materials assumed); FBX2glTF binary
-  on the CLI side for fidelity.
-- Maya "Send to 3DPEER" shelf: Python script that exports the selection to
-  GLB and opens the site. It's an acquisition channel, not a feature.
-- usdz on IMPORT: P2, do not open before phase 4 (TinyUSDZ/WASM, big).
+Done when: a 3-second loop of TheFountain plays in a mail client's body.
 
-Done when: a test stl and ply pass drag-drop → export → mobile;
-a simple fbx (mesh + anim) passes with a defensible render.
+## M3 — Free watermark + paid unlock
 
-## Phase 3 — the enriched artifact + "what ships"
+Agreed direction (decided 2026-07-23): every feature free for everyone;
+free artifacts carry a VISIBLE watermark overlay (corner badge — present but
+not disfiguring) plus the "made with 3dpeer" footer. Paying removes them.
+Do NOT limit compression or formats — they drive conversion and acquisition.
 
-Objective: the export dialog becomes a capability checklist.
+- License: Lemon Squeezy key, verified locally by signature (zero server).
+- Implementation: watermark is part of the artifact template; the unlock flag
+  flows through __CFG but must not be trivially editable — bury the check
+  inside the minified viewer bundle (deterrence, documented as such,
+  never sold as DRM).
 
-- Optional viewer modules in the artifact: animation controls, views,
-  snapshot, parts show/hide, wireframe/clay modes.
-- Export checklist: each box = editorial control (do not expose the
-  topology to the client) and bytes. Pragmatic v1: one complete bundle per mode
-  + injected JSON config that enables/disables; tree-shaking per bundle
-  variant (real byte savings) awaits a server-side build or
-  esbuild-wasm — P2, document the accepted overhead in the meantime.
-- "portfolio" / "client review" presets.
-- Discreet "made with 3dpeer" footer in the artifact + internal flag to
-  remove it (prepares the phase 4 gating). The footer is the distribution
-  loop: every delivered file is a demo.
+Done when: a test purchase delivers a key that removes the watermark.
 
-Done when: two exports of the same model with two presets give two
-artifacts with different capabilities, verified on opening.
+## M4 — NDA tier
 
-## Phase 4 — multiple exports + NDA tier
+- Forensic watermark: per-recipient seed written into the least-significant
+  bits of quantized vertex positions (visually invisible, zero extra bytes,
+  survives file copying). A small reader tool identifies which recipient's
+  copy leaked. This is the "security in the bytes".
+- Expiry date (deterrence, documented as such).
+- Review-mode export preset for client rounds.
 
-- One-click triple export: .html (interaction), .usdz (three's USDZExporter,
-  Apple ecosystem), turntable video (offscreen render of N frames →
-  MediaRecorder webm; mp4 if a lightweight muxer is available).
-- Forensic watermark: per-recipient seed in the low-order bits of
-  the quantization + a small reader tool (identify a leak).
-- Expiration date (deterrence, documented as such).
-- Lemon Squeezy licensing: key verified locally (signature, zero server),
-  footer removal, watermark/expiration unlock.
+Done when: a marked file is identifiable by the reader tool.
 
-Done when: a Lemon Squeezy test purchase delivers a key that unlocks,
-and a marked file is identifiable by the reader tool.
+## M5 — Viewer tools (pick per demand)
+
+- Before/after compression wipe on the site (sells the compression).
+- Measurement: two clicks → world-space distance (pairs with STL users).
+- Section plane: draggable clipping plane.
+- Exploded view: parts drift apart on a slider (the parts list exists).
+
+## M6 — Apple / AR + distribution helpers
+
+- USDZ EXPORT via three's USDZExporter (one click → QuickLook AR on iPhone).
+  Export is far easier than usdz import; do not confuse the two.
+- Embed snippet: copy-paste <iframe> code for portfolios (the user hosts
+  their own artifact — the no-server promise holds).
+- TinyUSDZ/WASM import for usdc crates: only if user demand shows up; heavy.
 
 ## Phase 5 — public site
 
-- Pages: the app IS the landing; embedded examples (artifacts in iframes);
-  pricing; short docs; Number41 legal notices.
-- Cloudflare Pages deployment, 3dpeer.com domain, no third-party cookies.
+- The app IS the landing; embedded example artifacts in iframes; pricing;
+  the guide already exists; legal (Number41).
+- Deploy on Cloudflare Pages, domain 3dpeer.com, zero third-party cookies.
 
-Done when: an outside person goes from the URL to the exported file without
-help, and sends it over WhatsApp successfully.
+Done when: an outsider goes from URL to an exported file without help and
+successfully sends it via WhatsApp.
 
-## Cross-cutting (to maintain at every phase)
+## Transverse (every milestone)
 
-- test.mjs enriched at each feature (procedural fixtures: anim, textures,
-  multi-prims) — never binaries in the repo.
-- Device matrix before any release: iOS Safari (Mail + Files
-  attachment), Android Chrome, desktop file://.
-- Budget: artifact opening < 3 s on an average mobile, viewer ≤ 650 KB/mode.
+- test.mjs grows with every feature that touches the pack path; the site
+  export self-test grows with every feature that touches the artifact.
+- Device matrix before any release: iOS Safari (Mail attachment + Files),
+  Android Chrome, desktop file://. A codec-touching change requires a re-test
+  on a REAL mobile device (invariant #2 exists because of a real incident).
+- Budgets: artifact opens < 3 s on mid-range mobile; viewer ≤ 650 KB per mode
+  (currently 592 KB — check after every viewer change).

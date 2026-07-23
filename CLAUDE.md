@@ -71,26 +71,59 @@ each one encodes a real bug or a product decision. Do not break them.
   "Send to 3DPEER" (GLB export + opening the site).
 - trimesh/Python: no. Decimation goes through the meshopt simplifier already
   in dependencies.
-- "made with 3dpeer" footer in free artifacts; its removal is
-  the first paid feature.
+- Pricing direction (decided 2026-07-23): every feature free; free artifacts
+  carry a visible watermark + "made with 3dpeer" footer, removal is the paid
+  unlock. Never limit compression or formats — they drive conversion.
 
 ## Aesthetics
 
-Site: monochrome dark — page #161618, light-grey text #d6d6da, dark-grey
+Site: monochrome dark — page #161618, light-grey text #ececf0, dark-grey
 buttons #2c2c31 (one shade for every button, export included), neutral-grey
 viewport #262626; system-sans UI with mono only for the wordmark and
 technical readouts; zero marketing gradient. The viewer is a centered
 ~800×800 card (fullscreen on demand); camera/material/light live in three
 icon menus at the bottom of the view, export + progress beneath the card.
+Status messages are colour-coded: info muted, ok bright, warn amber.
 Artifact: dark background #211a14, amber caption #c9a978. Two registers,
 one restrained palette.
 
+## Working conventions (David's requirements — apply to every change)
+
+- **Language**: David writes French in chat; code, comments, UI copy, docs
+  and commits are strictly English.
+- **CSS**: every colour/size/radius/opacity/duration is a token in :root —
+  no literal values below the token block (media-query breakpoints are the
+  only exception). One declaration per line. Hover states derive from the
+  single color-mix contrast formula, never hand-picked colours.
+- **JS**: every module opens with a banner header explaining its role; every
+  function has a docstring with @param descriptions; long files use section
+  separator comments; no WIP notes, no conversational comments.
+- **Icons**: Lucide, vendored in site/icons (mapping in its README), inlined
+  as an SVG sprite at build. Tooltips (title=) on every interactive control.
+- **No runtime fetch on the site**: icons and export assets are inlined at
+  build (sprite.js, export-assets.js) so everything works over file://.
+- **Generated files are never committed**: site/app.js, site/assets/,
+  src/app/sprite.js, site/export-assets.js — rebuild with npm run build:site.
+- **Verification before "done"**: every feature is exercised in a real
+  browser (drop a procedural fixture via DataTransfer, click the actual
+  buttons, read the actual status) — never claimed working from code alone.
+- **Every export self-tests** (site path and CLI path both) before the file
+  reaches the user.
+- **Commits**: one milestone = one commit with a detailed body, pushed to
+  main on github.com/numero41/3DPEER.
+
 ## Known pitfalls
 
-- file:// blocks fetch: the artifact makes none; the SITE does (export
-  assets) → always test the site via npm run dev, not over file://.
+- The artifact performs zero fetches; the site inlines its assets at build,
+  so both work over file:// — but npm run dev remains the reference way to
+  test the site.
 - Workers over file://: via Blob URL only, if ever needed.
-- The wire+shaded overlay does not follow SkinnedMesh (assumed for v0).
+- The wireframe overlay does not follow SkinnedMesh (assumed for v0).
 - iOS < 16.4 does not have DecompressionStream: the artifact shows a clean
   error in #hint — intended behavior, not a bug to "fix" with a
   heavy polyfill.
+- Mail clients: Gmail web previews HTML attachments as source text; iOS Mail
+  previews with scripts disabled (the poster grid + static hint cover this).
+  Neither is fixable from inside the file — documented in the site guide.
+- The browser preview pane pauses requestAnimationFrame when its tab is
+  hidden: stale/blank WebGL captures are a tooling artifact, not a bug.
