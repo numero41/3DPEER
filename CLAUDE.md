@@ -118,12 +118,18 @@ one restrained palette.
   so both work over file:// — but npm run dev remains the reference way to
   test the site.
 - Workers over file://: via Blob URL only, if ever needed.
-- Annotation pins do not follow skinned/morph deformation (static in model
-  space; the wireframe overlay DOES follow skinning since 05fec67).
+- Annotation pins follow skinning/morphs by PROJECTION: the file stores only
+  {p, n}; each surface re-derives a (mesh, triangle, barycentric) attachment
+  at load and re-evaluates it per frame (pins.js update()). Face indices
+  must never be stored in the file — the artifact's compressed topology
+  differs from the site's.
 - Model bounds (framing, pin-leader length) must come from
   src/viewer/bounds.js — Box3.setFromObject counts hidden USD proxy/guide
   prims and collapses on quantized SkinnedMesh (the dequantize transform
   lives in the inverse bind matrices), which framed artifacts on the feet.
+- GENIES pipeline packages: SkelAnimation clips and USD BlendShapes do not
+  survive import yet (the vendored composer builds neither into the GLB) —
+  known import gaps, distinct from the viewer's playback/morph controls.
 - iOS < 16.4 does not have DecompressionStream: the artifact shows a clean
   error in #hint — intended behavior, not a bug to "fix" with a
   heavy polyfill.

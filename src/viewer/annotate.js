@@ -63,6 +63,7 @@ function payloadSlice(html) {
  * @param {ReturnType<import('./scene.js').createStage>} stage the stage
  * @param {import('three').Object3D} root the loaded model root
  * @param {string} pristine the pre-mutation HTML from capturePristine()
+ * @returns {{update: () => void}} per-frame hook (pins follow deformation)
  */
 export function initAnnotations(stage, root, pristine) {
   const { scene, camera, renderer } = stage;
@@ -321,4 +322,6 @@ export function initAnnotations(stage, root, pristine) {
 
   syncPins();
   buildRows();
+
+  return { update: () => layer.update() };
 }

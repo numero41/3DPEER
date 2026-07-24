@@ -134,6 +134,14 @@ export function syncAnnotationVisibility() {
 }
 
 /**
+ * Per-frame hook: keep pins riding the deformed surface while an animation
+ * or morph plays (no-op for static models). Called from the render loop.
+ */
+export function updateAnnotationLayer() {
+  if (layer) layer.update();
+}
+
+/**
  * Build one row: [badge (colour popover)]|[field + delete inside]. The badge
  * opens a NATIVE popover with the colour presets — top layer, so it can never
  * be clipped by the panel's scroll boxes (popovertarget needs no JS at all;

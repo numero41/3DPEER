@@ -31,9 +31,12 @@ async function boot() {
   const anim = initAnimationControls(gltf.scene, gltf.animations);
   buildMorphPanel(collectMorphs(gltf.scene));
   if (window.__CFG && window.__CFG.ui) initViewerControls(stage, gltf.scene);
-  initAnnotations(stage, gltf.scene, pristine);
+  const notes = initAnnotations(stage, gltf.scene, pristine);
 
   const clock = new THREE.Clock();
-  stage.run(() => { if (anim) anim.update(clock.getDelta()); });
+  stage.run(() => {
+    if (anim) anim.update(clock.getDelta());
+    notes.update(); // pins ride the deformed surface
+  });
 }
 boot().catch(showError);

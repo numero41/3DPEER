@@ -16,7 +16,7 @@ import { initLighting } from './lighting.js';
 import { initMenus } from './menus.js';
 import { initSidePanel } from './panels.js';
 import { initViews } from './views.js';
-import { initAnnotations } from './annotate.js';
+import { initAnnotations, updateAnnotationLayer } from './annotate.js';
 import { initExport } from './exporter.js';
 import { initDecimatePreview } from './decimate-preview.js';
 import { initCompare } from './compare.js';
@@ -66,6 +66,7 @@ stage.renderer.setAnimationLoop(() => {
   } else {
     state.clock.getDelta(); // keep the clock current even while paused
   }
+  updateAnnotationLayer();
   stage.update();
   stage.render();
 });

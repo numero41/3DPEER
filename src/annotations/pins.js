@@ -17,9 +17,16 @@
 // any orbit distance. Picking is done in screen space (projected pin heads),
 // not with three's sprite raycaster — simpler and threshold-based.
 //
-// Pins are static in model space: skinned/animated deformation is not tracked
-// (v0, same stance as the wireframe overlay). A pin remembers the index of
-// the mesh it was placed on (pin.m) so it hides together with that mesh.
+// Pins FOLLOW deformation (skinning + morphs): the stored format stays a
+// model-space point + normal, and each surface derives a live attachment —
+// nearest triangle + barycentric coordinates — by projecting that point onto
+// the current mesh at build time. Every frame the anchor is recomputed from
+// the deformed triangle (getVertexPosition applies bones and morphs), so the
+// pin rides the surface. Deriving the attachment per surface (instead of
+// storing it) matters: the artifact's compressed mesh has different topology
+// than the site's original, so face indices could never travel in the file.
+// A pin remembers the index of the mesh it was placed on (pin.m) so it hides
+// together with that mesh.
 // =============================================================================
 
 import * as THREE from 'three';
@@ -127,6 +134,7 @@ function makeTagTexture(number, text, color, palette) {
  * @returns {{
  *   setPins: (list: Array<{p: number[], n: number[], text: string,
  *             c?: number, m?: number}>) => void,
+ *   update: () => void,
  *   pickPin: (event: {clientX: number, clientY: number}, camera: THREE.Camera,
  *             dom: HTMLElement) => number,
  *   pickSurface: (event: {clientX: number, clientY: number}, camera: THREE.Camera,
@@ -155,9 +163,122 @@ export function createPinLayer(scene, root, palette) {
   /** Per-pin picking data ({head, aspect}, world space + tag proportions);
    *  the entry is null for pins hidden with their mesh. */
   let tags = [];
+  /** Per-pin live surface attachment for deformation tracking:
+   *  { mesh, i0, i1, i2, bary, n0, line, sprite, anchor, head } or null for
+   *  pins without a surface to ride (they stay static). */
+  let attachments = [];
+  /** Whether any attachment can actually move (skinning or morphs). */
+  let deforms = false;
   /** Disposable GPU resources created by the last setPins call. */
   let resources = [];
   const raycaster = new THREE.Raycaster();
+
+  // ---------------------------------------------------------------------------
+  // Surface attachment (deformation tracking)
+  // ---------------------------------------------------------------------------
+
+  /** Scratch objects for attachment math (no per-frame allocations). */
+  const _tri = new THREE.Triangle();
+  const _closest = new THREE.Vector3();
+  const _bary = new THREE.Vector3();
+  const _target = new THREE.Vector3();
+  const _vA = new THREE.Vector3();
+  const _vB = new THREE.Vector3();
+  const _vC = new THREE.Vector3();
+  const _edge1 = new THREE.Vector3();
+  const _edge2 = new THREE.Vector3();
+  const _normal = new THREE.Vector3();
+
+  /**
+   * Whether a mesh can deform at runtime (bones or morph targets).
+   * @param {THREE.Mesh} mesh
+   * @returns {boolean}
+   */
+  function meshDeforms(mesh) {
+    return !!(mesh.isSkinnedMesh
+      || (mesh.morphTargetInfluences && mesh.morphTargetInfluences.length));
+  }
+
+  /**
+   * Project a world-space point onto one mesh's CURRENT surface.
+   * @param {THREE.Mesh} mesh candidate mesh
+   * @param {THREE.Vector3} point world-space pin anchor
+   * @returns {{d2: number, i0: number, i1: number, i2: number,
+   *            bary: THREE.Vector3} | null} best triangle, or null
+   */
+  function projectOntoMesh(mesh, point) {
+    const geometry = mesh.geometry;
+    const position = geometry.getAttribute('position');
+    if (!position) return null;
+    const index = geometry.index;
+    const triCount = (index ? index.count : position.count) / 3;
+    let best = null;
+    for (let t = 0; t < triCount; t++) {
+      const i0 = index ? index.getX(t * 3) : t * 3;
+      const i1 = index ? index.getX(t * 3 + 1) : t * 3 + 1;
+      const i2 = index ? index.getX(t * 3 + 2) : t * 3 + 2;
+      mesh.getVertexPosition(i0, _vA).applyMatrix4(mesh.matrixWorld);
+      mesh.getVertexPosition(i1, _vB).applyMatrix4(mesh.matrixWorld);
+      mesh.getVertexPosition(i2, _vC).applyMatrix4(mesh.matrixWorld);
+      _tri.set(_vA, _vB, _vC);
+      _tri.closestPointToPoint(point, _closest);
+      const d2 = _closest.distanceToSquared(point);
+      if (!best || d2 < best.d2) {
+        _tri.getBarycoord(_closest, _bary);
+        best = { d2, i0, i1, i2, bary: _bary.clone() };
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Derive the live attachment for one pin: nearest triangle + barycentric
+   * coordinates, preferring the mesh the pin was authored on.
+   * @param {{p: number[], n: number[], m?: number}} pin
+   * @returns {object | null} attachment core, or null (pin stays static)
+   */
+  function attachPin(pin) {
+    const point = root.localToWorld(new THREE.Vector3(...pin.p));
+    const preferred = pin.m != null ? meshes[pin.m] : null;
+    const candidates = preferred ? [preferred] : meshes;
+    let best = null;
+    for (const mesh of candidates) {
+      const hit = projectOntoMesh(mesh, point);
+      if (hit && (!best || hit.d2 < best.d2)) best = { mesh, ...hit };
+    }
+    if (!best) return null;
+    return {
+      mesh: best.mesh,
+      i0: best.i0,
+      i1: best.i1,
+      i2: best.i2,
+      bary: best.bary,
+      n0: new THREE.Vector3(...pin.n).transformDirection(root.matrixWorld),
+    };
+  }
+
+  /**
+   * Current world-space anchor + outward normal of one attachment, computed
+   * from the deformed triangle (bones + morphs applied).
+   * @param {object} attachment
+   * @param {THREE.Vector3} outAnchor written with the anchor
+   * @param {THREE.Vector3} outNormal written with the unit normal
+   */
+  function evaluateAttachment(attachment, outAnchor, outNormal) {
+    const { mesh, i0, i1, i2, bary, n0 } = attachment;
+    mesh.getVertexPosition(i0, _vA).applyMatrix4(mesh.matrixWorld);
+    mesh.getVertexPosition(i1, _vB).applyMatrix4(mesh.matrixWorld);
+    mesh.getVertexPosition(i2, _vC).applyMatrix4(mesh.matrixWorld);
+    outAnchor.set(0, 0, 0)
+      .addScaledVector(_vA, bary.x)
+      .addScaledVector(_vB, bary.y)
+      .addScaledVector(_vC, bary.z);
+    _edge1.subVectors(_vB, _vA);
+    _edge2.subVectors(_vC, _vA);
+    outNormal.crossVectors(_edge1, _edge2).normalize();
+    // Keep the leader on the side the author chose (winding can flip).
+    if (outNormal.dot(n0) < 0) outNormal.negate();
+  }
 
   /**
    * Whether a pin should be shown (its mesh, when known, must be visible).
@@ -175,6 +296,8 @@ export function createPinLayer(scene, root, palette) {
     for (const resource of resources) resource.dispose();
     resources = [];
     tags = [];
+    attachments = [];
+    deforms = false;
   }
 
   /**
@@ -183,14 +306,19 @@ export function createPinLayer(scene, root, palette) {
    */
   function setPins(list) {
     clear();
+    root.updateWorldMatrix(true, true);
     list.forEach((pin, i) => {
       if (!pinVisible(pin)) {
         tags.push(null);
+        attachments.push(null);
         return;
       }
       const anchor = root.localToWorld(new THREE.Vector3(...pin.p));
       const normal = new THREE.Vector3(...pin.n).transformDirection(root.matrixWorld);
-      const head = anchor.clone().add(normal.multiplyScalar(leader));
+      // Ride the surface when one is found; static placement otherwise.
+      const attachment = attachPin(pin);
+      if (attachment) evaluateAttachment(attachment, anchor, normal);
+      const head = anchor.clone().addScaledVector(normal, leader);
 
       const lineGeometry = new THREE.BufferGeometry().setFromPoints([anchor, head]);
       const lineMaterial = new THREE.LineBasicMaterial({
@@ -198,6 +326,9 @@ export function createPinLayer(scene, root, palette) {
       });
       const line = new THREE.Line(lineGeometry, lineMaterial);
       line.renderOrder = ORDER_LINE;
+      // The leader endpoints move under deformation: never frustum-cull from
+      // the stale initial bounding sphere.
+      line.frustumCulled = false;
       resources.push(lineGeometry, lineMaterial);
       group.add(line);
 
@@ -216,7 +347,33 @@ export function createPinLayer(scene, root, palette) {
       resources.push(tag.texture, tagMaterial);
       group.add(sprite);
       tags.push({ head, aspect: tag.aspect });
+      if (attachment) {
+        attachment.line = lineGeometry;
+        attachment.sprite = sprite;
+        attachment.head = head;
+        if (meshDeforms(attachment.mesh)) deforms = true;
+      }
+      attachments.push(attachment);
     });
+  }
+
+  /**
+   * Follow the deformed surface: recompute every attached pin's anchor from
+   * its triangle (bones + morphs applied) and move the leader + tag. Call
+   * once per rendered frame; a no-op for models that cannot deform.
+   */
+  function update() {
+    if (!deforms || !group.visible) return;
+    for (const attachment of attachments) {
+      if (!attachment || !meshDeforms(attachment.mesh)) continue;
+      evaluateAttachment(attachment, _target, _normal);
+      attachment.head.copy(_target).addScaledVector(_normal, leader);
+      const positions = attachment.line.getAttribute('position');
+      positions.setXYZ(0, _target.x, _target.y, _target.z);
+      positions.setXYZ(1, attachment.head.x, attachment.head.y, attachment.head.z);
+      positions.needsUpdate = true;
+      attachment.sprite.position.copy(attachment.head);
+    }
   }
 
   /**
@@ -306,5 +463,5 @@ export function createPinLayer(scene, root, palette) {
     scene.remove(group);
   }
 
-  return { setPins, pickPin, pickSurface, setVisible, dispose };
+  return { setPins, update, pickPin, pickSurface, setVisible, dispose };
 }

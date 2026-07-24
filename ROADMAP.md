@@ -69,7 +69,13 @@ and working conventions are in CLAUDE.md — read them before any change.
   src/viewer/anim.js, NOT gated by __CFG.ui: playback is content, not
   chrome; one clip at a time replaces the old play-everything-at-once).
   The morph panel already shipped; verified live. Site: compare split view
-  (M5 item, see below). Viewer bundle 620 KB (budget 650).
+  (M5 item, see below). Pins FOLLOW deformation on both surfaces: stored
+  format stays {p, n}; each surface projects onto its own topology at load
+  (nearest triangle + barycentric) and re-evaluates per frame — measured:
+  morph Δy exactly 1.0 on the test cube, 45° bone bend swings the pin with
+  the skinned tip, live in the exported artifact too. Viewer bundle 622 KB
+  (budget 650). Known GENIES import gaps (not viewer bugs): SkelAnimation
+  clips and USD BlendShapes are not composed into the GLB yet.
 
 ## M2 — Turntable video (the email-body answer)
 
