@@ -2805,7 +2805,34 @@ class USDComposer {
 
 	}
 
+	// LOCAL PATCH (3dpeer): a mesh may carry SEVERAL texCoord primvars — the
+	// GENIES body ships primvars:st alongside primvars:cullingUV and
+	// primvars:UVMap:cullingmesh, which are auxiliary sets for other passes.
+	// Returning whichever came first in field order textured the body with a
+	// culling-pass layout, which reads as rectangular patches across the
+	// skin. The conventional names win first, and an auxiliary set is only
+	// used when a mesh has nothing else.
+	/**
+	 * Pick the primvar that the surface shader means by "the UVs".
+	 * @param {Object} fields merged attributes of the mesh prim
+	 * @returns {{uvs: ArrayLike<number>|undefined, uvIndices: ArrayLike<number>|undefined}}
+	 */
 	_findUVPrimvar( fields ) {
+
+		const pick = ( key ) => ( {
+			uvs: fields[ key ],
+			uvIndices: fields[ key + ':indices' ]
+		} );
+
+		// 1. The UsdPreviewSurface convention, in order of how common it is.
+		for ( const name of [ 'primvars:st', 'primvars:st0', 'primvars:UVMap', 'primvars:uv' ] ) {
+
+			if ( fields[ name ] && fields[ name ].length ) return pick( name );
+
+		}
+
+		// 2. Any other texCoord primvar, auxiliary-looking ones last.
+		const candidates = [];
 
 		for ( const key in fields ) {
 
@@ -2814,20 +2841,14 @@ class USDComposer {
 			if ( key.includes( 'skel:' ) ) continue;
 
 			const typeName = fields[ key + ':typeName' ];
-			if ( typeName && typeName.includes( 'texCoord' ) ) {
-
-				return {
-					uvs: fields[ key ],
-					uvIndices: fields[ key + ':indices' ]
-				};
-
-			}
+			if ( typeName && typeName.includes( 'texCoord' ) ) candidates.push( key );
 
 		}
 
-		const uvs = fields[ 'primvars:st' ] || fields[ 'primvars:UVMap' ];
-		const uvIndices = fields[ 'primvars:st:indices' ];
-		return { uvs, uvIndices };
+		const AUXILIARY = /culling|lightmap|occlusion|proxy|guide|debug/i;
+		candidates.sort( ( a, b ) => Number( AUXILIARY.test( a ) ) - Number( AUXILIARY.test( b ) ) );
+
+		return candidates.length ? pick( candidates[ 0 ] ) : { uvs: undefined, uvIndices: undefined };
 
 	}
 
