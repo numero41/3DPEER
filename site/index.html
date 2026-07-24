@@ -14,7 +14,7 @@
   <nav class="nav">
     <button id="signin" class="nav-btn" title="Sign in to apply your licence">Sign in</button>
     <span class="nav-right">
-      <a class="nav-btn" href="guide.html" target="_blank" rel="noopener" title="How 3DPEER works">Guide</a>
+      <button id="guide-open" class="nav-btn" title="How 3DPEER works">Guide</button>
       <a class="nav-btn" href="mailto:contact@3dpeer.com" target="_blank" rel="noopener" title="Write to us">Contact</a>
     </span>
   </nav>
@@ -198,6 +198,138 @@
 <footer>
   <p>© 2026 <span class="legal-mark">Number41/3DPEER</span>. All rights reserved.</p>
 </footer>
+
+<!-- Guide: a modal over the workbench (blurred backdrop). Native <dialog>
+     so the top layer, ESC-to-close and focus trapping come from the browser. -->
+<dialog id="guide-modal" class="guide-modal">
+  <div class="guide-modal-head">
+    <span class="guide-modal-title">Guide</span>
+    <button id="guide-close" class="icon-btn" title="Close the guide" aria-label="Close the guide"><svg class="ico" viewBox="0 0 24 24"><use href="#i-close"></use></svg></button>
+  </div>
+  <div class="guide guide-modal-body">
+    <section>
+      <h2>What it does</h2>
+      <p>3DPEER turns a 3D model into a single <code>.html</code> file. The model,
+      its decompressor and its viewer travel together: the file opens with a
+      double-click, works offline, and will still work years from now. Nothing
+      is ever uploaded — every step runs in your browser.</p>
+    </section>
+
+    <section>
+      <h2>View offline, forever</h2>
+      <p>The exported file needs no app, no plugin, no account and no internet.
+      It opens on any device with a browser — from a mail attachment, a USB
+      stick or a chat message — and makes zero network requests, ever.</p>
+    </section>
+
+    <section>
+      <h2>Compress up to 100×</h2>
+      <p>The built-in pipeline compresses geometry and textures on your
+      machine; heavy production files routinely come out 10–100× smaller. The
+      defaults are visually safe, the estimated output updates live, and the
+      <b>compare</b> view shows original and compressed side by side in the
+      viewport:</p>
+      <ul>
+        <li><b>geometry precision</b> — how finely the shape is kept. Lower is
+        smaller; very low can look faceted.</li>
+        <li><b>shading precision</b> — how finely surface shading is kept.</li>
+        <li><b>texture size / quality</b> — cap texture size and quality.
+        Quality 100 keeps your originals.</li>
+        <li><b>decimate</b> — removes a share of triangles. Off by default:
+        your geometry is never touched unless you ask.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Annotate and collaborate</h2>
+      <p>Pin numbered notes directly on the model before exporting. The
+      recipient sees them, can answer with their own pins, and saves an
+      annotated copy that travels back to you like any file — a full review
+      round with no platform in between.</p>
+    </section>
+
+    <section>
+      <h2>Present your work</h2>
+      <p>Files can ship camera views, material presets, lighting controls and
+      animation playback, so a portfolio piece or a client delivery is
+      explorable, not just visible. Script-blocked previews (webmail, phone
+      mail apps) still show a built-in four-view snapshot of the model.</p>
+    </section>
+
+    <section>
+      <h2>Validate and showcase — teams</h2>
+      <p>Because a file is the whole review, asset validation gets simple:
+      send the compressed artifact, collect annotated copies, compare rounds.
+      The same file embeds cleanly in an intranet or portfolio page for
+      showcasing approved assets. Enterprise options (batch tooling, shared
+      note threads, self-hosted bundles) are on the roadmap — write to us.</p>
+    </section>
+
+    <section>
+      <h2>Nothing is stored on this site</h2>
+      <p>The site has no upload endpoint — there is nowhere to store your
+      model even by accident. Import, compression, annotation and export all
+      run inside your browser, and the files you generate make no network
+      requests. Close the tab and nothing remains.</p>
+    </section>
+
+    <section>
+      <h2>Supported formats</h2>
+      <p>Drop a <code>glb</code>, <code>gltf</code>, <code>obj</code>, <code>stl</code>,
+      <code>ply</code>, <code>fbx</code> or <code>usdz</code> file. Non-glTF formats
+      are brought in automatically. Fidelity on materials and textures can vary
+      with how the original file was produced.</p>
+    </section>
+
+    <section>
+      <h2>Sharing the file</h2>
+      <p>The exported file is self-contained — send it like any attachment
+      (mail, WhatsApp, Drive, Slack). Two mail-client behaviours to know about,
+      both by design of the mail providers:</p>
+      <ul>
+        <li><b>Gmail on desktop</b> shows HTML attachments as source text in its
+        preview. Recipients should download the file, then open it — it launches
+        in their browser.</li>
+        <li><b>iPhone Mail</b> previews attachments with scripts disabled: the
+        recipient sees the built-in snapshot views and a short notice instead of
+        the interactive model. Opening the file in a real browser restores full
+        interaction.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Viewer controls in the file</h2>
+      <p>When "ship viewer controls" is checked, the exported file carries the
+      on-screen controls — camera views, material and lighting options, and any
+      notes you added. Uncheck it for a minimal orbit-only file. Animation
+      playback ships whenever the model has clips.</p>
+    </section>
+
+    <section>
+      <h2>Free tier, licences and the watermark</h2>
+      <p>Every feature is free: all formats, all compression settings, no size
+      limit, no account required. Files you generate carry a small visible
+      watermark and a "made with 3DPEER" footer. Buying a licence removes them —
+      that is the only thing you pay for.</p>
+      <p>A licence is a signed key you paste into the app. It is checked on your
+      machine, offline: no account lookup, no phone-home, nothing about your
+      models or your licence leaves the browser.</p>
+    </section>
+
+    <section>
+      <h2>What the watermark is — and is not</h2>
+      <p>The watermark is a <b>deterrent, not a lock</b>. An exported file is an
+      ordinary HTML document that has to run on any browser, ten years from now,
+      with no server to check anything — so anyone determined enough can edit it.
+      We would rather say that plainly than pretend otherwise.</p>
+      <p>What that means in practice: the watermark makes casual reuse obviously
+      unlicensed, and licence terms cover the rest. Automated or bulk processing,
+      and redistribution of unwatermarked files, require a commercial licence.
+      For work that genuinely needs traceability, ask us about the review tier —
+      it marks each recipient's copy so a leaked file can be identified.</p>
+    </section>
+  </div>
+</dialog>
 
 <script src="export-assets.js"></script>
 <script src="app.js"></script>

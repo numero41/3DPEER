@@ -3,117 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The guide lives in a modal on the app page now; keep old links working. -->
+<meta http-equiv="refresh" content="0;url=index.html#guide">
 <title>3DPEER — guide</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
-<header class="topbar">
-  <nav class="nav">
-    <a class="nav-btn" href="index.html" title="Back to the app">App</a>
-    <span class="nav-right">
-      <a class="nav-btn" href="mailto:contact@3dpeer.com" target="_blank" rel="noopener" title="Write to us">Contact</a>
-    </span>
-  </nav>
-  <div class="brand">
-    <img src="logo.svg" alt="3DPEER logo" class="logo">
-    <span class="mark">3DPEER</span>
-  </div>
-  <p class="tagline">Guide</p>
-</header>
-
 <main class="guide">
   <section>
-    <h2>What it does</h2>
-    <p>3DPEER turns a 3D model into a single <code>.html</code> file. The model, its
-    decompressor and its viewer travel together: the file opens with a
-    double-click, works offline, and will still work years from now. Nothing is
-    ever uploaded — every step runs in your browser.</p>
-  </section>
-
-  <section>
-    <h2>Supported formats</h2>
-    <p>Drop a <code>glb</code>, <code>gltf</code>, <code>obj</code>, <code>stl</code>,
-    <code>ply</code>, <code>fbx</code> or <code>usdz</code> file. Non-glTF formats
-    are brought in automatically. Fidelity on materials and textures can vary
-    with how the original file was produced.</p>
-  </section>
-
-  <section>
-    <h2>Compression</h2>
-    <p>Everything is compressed locally, on your machine. The defaults are
-    visually safe; the estimated output size updates as you move the sliders in
-    <b>export settings</b>:</p>
-    <ul>
-      <li><b>geometry precision</b> — how finely the shape is kept. Lower is
-      smaller; very low can look faceted.</li>
-      <li><b>shading precision</b> — how finely surface shading is kept.</li>
-      <li><b>texture size / quality</b> — cap texture size and quality.
-      Quality 100 keeps your originals.</li>
-      <li><b>decimate</b> — removes a share of triangles. Off by default:
-      your geometry is never touched unless you ask.</li>
-      <li><b>reset</b> — restores the default quality.</li>
-    </ul>
-  </section>
-
-  <section>
-    <h2>Sharing the file</h2>
-    <p>The exported file is self-contained — send it like any attachment
-    (mail, WhatsApp, Drive, Slack). Two mail-client behaviours to know about,
-    both by design of the mail providers:</p>
-    <ul>
-      <li><b>Gmail on desktop</b> shows HTML attachments as source text in its
-      preview. Recipients should download the file, then open it — it launches
-      in their browser.</li>
-      <li><b>iPhone Mail</b> previews attachments with scripts disabled: the
-      recipient sees the built-in snapshot views and a short notice instead of
-      the interactive model. Opening the file in a real browser restores full
-      interaction.</li>
-    </ul>
-    <p>Each export embeds a four-view snapshot grid, so even script-blocked
-    previews show your model.</p>
-  </section>
-
-  <section>
-    <h2>Viewer controls in the file</h2>
-    <p>When "ship viewer controls" is checked, the exported file carries the
-    on-screen controls — camera views, material and lighting options, and any
-    notes you added. Uncheck it for a minimal orbit-only file.</p>
-  </section>
-
-  <section>
-    <h2>Free tier, licences and the watermark</h2>
-    <p>Every feature is free: all formats, all compression settings, no size
-    limit, no account required. Files you generate carry a small visible
-    watermark and a "made with 3DPEER" footer. Buying a licence removes them —
-    that is the only thing you pay for.</p>
-    <p>A licence is a signed key you paste into the app. It is checked on your
-    machine, offline: no account lookup, no phone-home, nothing about your
-    models or your licence leaves the browser.</p>
-  </section>
-
-  <section>
-    <h2>What the watermark is — and is not</h2>
-    <p>The watermark is a <b>deterrent, not a lock</b>. An exported file is an
-    ordinary HTML document that has to run on any browser, ten years from now,
-    with no server to check anything — so anyone determined enough can edit it.
-    We would rather say that plainly than pretend otherwise.</p>
-    <p>What that means in practice: the watermark makes casual reuse obviously
-    unlicensed, and licence terms cover the rest. Automated or bulk processing,
-    and redistribution of unwatermarked files, require a commercial licence.
-    For work that genuinely needs traceability, ask us about the review tier —
-    it marks each recipient's copy so a leaked file can be identified.</p>
-  </section>
-
-  <section>
-    <h2>Privacy</h2>
-    <p>The site has no upload endpoint. Models never leave your device; the
-    exported file makes zero network requests, ever.</p>
+    <h2>Guide</h2>
+    <p>The guide has moved into the app — <a href="index.html#guide">open it here</a>.</p>
   </section>
 </main>
-
-<footer>
-  <p>© 2026 <span class="legal-mark">Number41/3DPEER</span>. All rights reserved.</p>
-</footer>
 </body>
 </html>

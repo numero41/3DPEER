@@ -120,6 +120,13 @@
   --stage-max: 800px;
   --compare-split-w: 42%;
   --compare-label-b-right: 64px;
+
+  /* ---- guide modal ---- */
+  --modal-w: 720px;
+  --modal-max-h: 84vh;
+  --modal-head-h: 46px;
+  --backdrop-blur: 8px;
+  --backdrop-tint: rgba(10, 10, 12, 0.55);
   --panel-w: 300px;
   --progress-h: 10px;
   --note-badge: 20px;
@@ -1292,6 +1299,49 @@ input[type="radio"]:checked::before {
   max-width: 680px;
   margin: 0 auto;
   padding: var(--sp-5) var(--sp-6) var(--sp-7);
+}
+
+/* The guide modal: native <dialog> over the workbench, blurred backdrop. */
+.guide-modal {
+  width: min(var(--modal-w), 92vw);
+  max-height: var(--modal-max-h);
+  padding: 0;
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.guide-modal::backdrop {
+  background: var(--backdrop-tint);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+}
+
+.guide-modal-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-6);
+  border-bottom: var(--hairline) solid var(--line);
+  background: var(--surface);
+}
+
+.guide-modal-title {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: var(--fs-md);
+  font-weight: 600;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+.guide-modal-body {
+  overflow-y: auto;
+  max-height: calc(var(--modal-max-h) - var(--modal-head-h));
 }
 
 .guide section {
