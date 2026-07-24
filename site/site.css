@@ -32,7 +32,6 @@
   --overlay-ink: #fbf8f1;
   --overlay-line: rgba(246, 243, 234, 0.22);
   --panel-bg: rgba(24, 22, 18, 0.96);
-  --face-fill: rgba(246, 243, 234, 0.07);
   --face-line: rgba(246, 243, 234, 0.40);
   --field-bg: rgba(0, 0, 0, 0.28);
   --soft-ink: rgba(246, 243, 234, 0.08);
@@ -121,7 +120,6 @@
   --icon: 18px;
   --icon-stroke: 2;
   --icon-stroke-bold: 3;
-  --cube-w: 140px;
   --menu-w: 190px;
   --page-max: 1440px;
   --stage-min-w: 250px;
@@ -757,7 +755,7 @@ body.loaded .stage-toggle {
   position: relative;
 }
 
-.menu-group.open .icon-btn {
+.menu-group.open > .icon-btn {
   background: var(--overlay-ink);
   color: var(--bg);
 }
@@ -840,34 +838,42 @@ body.loaded .stage-toggle {
    Sized so ONE FACE matches an icon button: the net is 107 viewBox units wide
    for a 26-unit face, so a 34px face needs a 140px net. */
 .cube-net {
-  display: block;
-  width: var(--cube-w);
-  height: auto;
-  margin: 0 auto;
-  overflow: visible;
+  display: grid;
+  grid-template-areas:
+    ".    top    .     ."
+    "left front  right back"
+    ".    bottom .     ."
+    ".    persp  .     .";
+  gap: var(--sp-2);
+  justify-content: center;
 }
 
-.cube-face rect {
-  fill: var(--face-fill);
-  stroke: var(--face-line);
-  stroke-width: var(--hairline);
-  cursor: pointer;
-  transition: fill var(--dur);
+.cube-net [data-view="top"] {
+  grid-area: top;
 }
 
-.cube-face text {
-  fill: color-mix(in srgb, var(--overlay-ink), transparent 25%);
-  font: 600 var(--fs-xs) var(--mono);
-  text-anchor: middle;
-  pointer-events: none;
+.cube-net [data-view="left"] {
+  grid-area: left;
 }
 
-.cube-face:hover rect {
-  fill: color-mix(in srgb, var(--face-fill), var(--overlay-ink) 85%);
+.cube-net [data-view="front"] {
+  grid-area: front;
 }
 
-.cube-face:hover text {
-  fill: var(--bg);
+.cube-net [data-view="right"] {
+  grid-area: right;
+}
+
+.cube-net [data-view="back"] {
+  grid-area: back;
+}
+
+.cube-net [data-view="bottom"] {
+  grid-area: bottom;
+}
+
+.cube-net [data-view="persp"] {
+  grid-area: persp;
 }
 
 /* ---- heads-up readouts: centred at the top, no frame, "Label: value" ---- */
@@ -1030,6 +1036,23 @@ body.loaded .hud {
 }
 
 .side-panel.collapsed .panel-chevron {
+  transform: rotate(180deg);
+}
+
+/* The export panel is the mirror of the scene panel: its chevron sits on the
+   inboard edge and its title on the outboard one, so the two heads point
+   away from each other rather than both leaning right. */
+#side-right-head {
+  flex-direction: row-reverse;
+}
+
+.side-panel.collapsed #side-right-head {
+  flex-direction: column-reverse;
+}
+
+/* Mirroring the head mirrors its strip label too: the scene panel reads
+   downward, the export panel upward. */
+.side-panel.collapsed #side-right-head h2 {
   transform: rotate(180deg);
 }
 
