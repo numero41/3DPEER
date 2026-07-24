@@ -2,29 +2,47 @@
 // usdz.js
 //
 // Multi-layer .usdz reading. A .usdz is a zip package; real-world exports
-// (DCC pipelines, avatar systems) frequently NEST further .usdz packages
-// inside the outer one, which three's USDZLoader never looks into. This
-// module walks the whole package tree with a small zip reader (no
-// dependencies), tries three's USDZLoader on every package found, and merges
-// whatever produced geometry into one group.
+// (DCC pipelines, avatar systems) nest further .usdz packages inside — the
+// GENIES avatars go three deep (outer -> 1/avatar.usdz -> 0/avatar.usdz).
+// three's loader is handed one package at a time, so this module walks the
+// whole tree with a small zip reader (no dependencies) and solves the two
+// problems that nesting creates:
+//
+//   1. TEXTURES. USD references assets with package-relative paths such as
+//      `1/avatar.usdz[0/avatar.usdz[head/textures/a.png]]`. The image usually
+//      lives in a DIFFERENT package than the layer that references it, so no
+//      single parse can resolve it. Every image in the tree is collected into
+//      one shared pool (by full path and by basename) and published to the
+//      loader, which normalises the bracketed path before looking it up.
+//
+//   2. DUPLICATE GEOMETRY. A package and the package nested inside it usually
+//      describe the SAME asset at different stages. Parsing both merges two
+//      overlapping copies, which z-fights and reads as "broken faces". The
+//      walk therefore stops descending as soon as a package yields geometry,
+//      while still visiting siblings (so avatar + hair both load, once each).
 //
 // Parsing itself goes through the official three.js USDLoader vendored from
-// r185 (src/vendor/usd — pure JS, MIT): it reads ASCII .usda AND binary
-// .usdc crates, so most DCC exports load. When a package still yields
-// nothing, the error names the crates it saw instead of a generic
-// "no geometry".
+// r185 (src/vendor/usd — pure JS, MIT): it reads ASCII .usda AND binary .usdc.
 // =============================================================================
 
 import * as THREE from 'three';
 import { USDLoader } from '../vendor/usd/USDLoader.js';
+import { setSharedUSDAssets } from '../vendor/usd/USDComposer.js';
 
 /** Zip signatures. */
 const SIG_EOCD = 0x06054b50;
 const SIG_CENTRAL = 0x02014b50;
 const SIG_LOCAL = 0x04034b50;
 
-/** Maximum nesting depth walked (defensive bound, real files use 1-2). */
+/** Maximum nesting depth walked (defensive bound; real files use 1-3). */
 const MAX_DEPTH = 4;
+
+/** Extensions treated as texture assets worth pooling. */
+const IMAGE_RE = /\.(png|jpe?g|webp|avif)$/i;
+
+// -----------------------------------------------------------------------------
+// Minimal zip reader
+// -----------------------------------------------------------------------------
 
 /**
  * List the entries of a zip archive from its central directory.
@@ -85,85 +103,208 @@ async function readEntry(bytes, entry) {
   throw new Error('zip: unsupported compression method ' + entry.method);
 }
 
+// -----------------------------------------------------------------------------
+// Package tree
+// -----------------------------------------------------------------------------
+
 /**
- * Walk a usdz package tree, collecting every package buffer and noting which
- * layer formats were seen along the way.
- * @param {Uint8Array} bytes a usdz package
- * @param {number} depth current nesting depth
- * @param {{buffers: Uint8Array[], usdc: string[], usda: string[]}} out accumulator
- * @returns {Promise<typeof out>}
+ * @typedef {Object} UsdPackage
+ * @property {string} name label for diagnostics
+ * @property {Uint8Array} bytes the package archive
+ * @property {UsdPackage[]} children packages nested inside it
  */
-async function collectPackages(bytes, depth, out) {
+
+/**
+ * Walk one package: pool its images, recurse into nested packages, and note
+ * which crate layers it holds (for the error message when nothing loads).
+ * @param {Uint8Array} bytes the package
+ * @param {string} name label
+ * @param {number} depth current nesting depth
+ * @param {{assets: Record<string, Uint8Array>, ambiguous: Set<string>, usdc: string[]}} out accumulator
+ * @returns {Promise<UsdPackage>}
+ */
+async function walkPackage(bytes, name, depth, out) {
+  const node = { name, bytes, children: [] };
   let entries;
   try {
     entries = listZipEntries(bytes);
   } catch (e) {
-    return out; // not a zip at this level — nothing further to walk
+    return node; // not a zip at this level — nothing to walk
   }
   for (const entry of entries) {
     const lower = entry.name.toLowerCase();
     if (lower.endsWith('.usdc')) out.usdc.push(entry.name);
-    if (lower.endsWith('.usda')) out.usda.push(entry.name);
+    if (IMAGE_RE.test(lower)) {
+      try {
+        const image = await readEntry(bytes, entry);
+        // First writer wins: the outermost package is the most specific.
+        if (!out.assets[entry.name]) out.assets[entry.name] = image;
+        // Basenames are only a fallback, and only when unambiguous — matching
+        // the wrong same-named file would paint a texture onto the wrong mesh.
+        const base = entry.name.split('/').pop();
+        if (out.ambiguous.has(base)) {
+          // already known to collide
+        } else if (out.assets[base] && out.assets[base] !== image) {
+          delete out.assets[base];
+          out.ambiguous.add(base);
+        } else {
+          out.assets[base] = image;
+        }
+      } catch (e) {
+        console.warn('usdz: image skipped', entry.name, e && e.message);
+      }
+    }
     if (lower.endsWith('.usdz') && depth < MAX_DEPTH) {
       const nested = await readEntry(bytes, entry);
-      out.buffers.push(nested);
-      await collectPackages(nested, depth + 1, out);
+      node.children.push(await walkPackage(nested, entry.name, depth + 1, out));
     }
   }
-  return out;
+  return node;
+}
+
+// -----------------------------------------------------------------------------
+// Parsing
+// -----------------------------------------------------------------------------
+
+/**
+ * Parse one package with three's USDLoader.
+ * @param {UsdPackage} pkg
+ * @returns {{object: THREE.Object3D, meshes: number} | null}
+ */
+function parsePackage(pkg) {
+  let object;
+  try {
+    const slice = pkg.bytes.buffer.slice(
+      pkg.bytes.byteOffset, pkg.bytes.byteOffset + pkg.bytes.byteLength);
+    object = new USDLoader().parse(slice);
+  } catch (e) {
+    console.warn('usdz: package skipped:', pkg.name, e && e.message);
+    return null;
+  }
+  let meshes = 0;
+  object.traverse((o) => {
+    if (!o.isMesh) return;
+    meshes++;
+    // Some layers omit normals; the exporter and lit materials need them.
+    if (!o.geometry.getAttribute('normal')) o.geometry.computeVertexNormals();
+    // USD materials often arrive flagged transparent at full opacity with no
+    // alpha source, which only produces blend-sorting artifacts. Textures that
+    // DO carry alpha (…AlbedoTransparency) keep their transparency.
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const mat of mats) {
+      if (mat && mat.transparent && mat.opacity >= 1
+        && !mat.map && !mat.alphaMap && !(mat.transmission > 0)) {
+        mat.transparent = false;
+      }
+    }
+  });
+  return { object, meshes };
+}
+
+/** Give a texture image this long to decode before it is dropped (ms). */
+const TEXTURE_TIMEOUT_MS = 20000;
+
+/**
+ * Wait for every texture image in the tree to finish decoding, then drop the
+ * ones that never produced pixels. The loader creates textures from object
+ * URLs, which decode asynchronously — handing a half-loaded texture to
+ * GLTFExporter fails with "No valid image data found".
+ * @param {THREE.Object3D} root
+ * @returns {Promise<void>}
+ */
+async function settleTextures(root) {
+  /** @type {Set<THREE.Texture>} */
+  const textures = new Set();
+  root.traverse((node) => {
+    if (!node.isMesh) return;
+    const mats = Array.isArray(node.material) ? node.material : [node.material];
+    for (const mat of mats) {
+      if (!mat) continue;
+      for (const key of Object.keys(mat)) {
+        const value = mat[key];
+        if (value && value.isTexture) textures.add(value);
+      }
+    }
+  });
+
+  const pending = [];
+  for (const texture of textures) {
+    const image = texture.image;
+    if (!image || typeof image.addEventListener !== 'function') continue;
+    if (image.complete) continue;
+    pending.push(new Promise((resolve) => {
+      const done = () => resolve();
+      image.addEventListener('load', done, { once: true });
+      image.addEventListener('error', done, { once: true });
+      setTimeout(done, TEXTURE_TIMEOUT_MS);
+    }));
+  }
+  await Promise.all(pending);
+
+  // Any texture still without pixels would break the GLB conversion.
+  const broken = new Set();
+  for (const texture of textures) {
+    const image = texture.image;
+    const width = image && (image.width || image.videoWidth);
+    if (!width) broken.add(texture);
+  }
+  if (!broken.size) return;
+  root.traverse((node) => {
+    if (!node.isMesh) return;
+    const mats = Array.isArray(node.material) ? node.material : [node.material];
+    for (const mat of mats) {
+      if (!mat) continue;
+      for (const key of Object.keys(mat)) {
+        if (broken.has(mat[key])) mat[key] = null;
+      }
+      mat.needsUpdate = true;
+    }
+  });
+  console.warn('usdz: dropped ' + broken.size + ' texture(s) that failed to decode');
 }
 
 /**
- * Parse a possibly multi-layered .usdz into one three.js group: every package
- * in the tree (outer + nested) is offered to three's USDZLoader, and every
- * result that contains geometry is merged.
+ * Depth-first collect of geometry: a package that yields meshes wins and its
+ * descendants are skipped (they re-describe the same asset), while siblings
+ * are still visited.
+ * @param {UsdPackage} pkg
+ * @param {THREE.Group} merged destination
+ * @returns {number} meshes added from this subtree
+ */
+function collectGeometry(pkg, merged) {
+  const parsed = parsePackage(pkg);
+  if (parsed && parsed.meshes > 0) {
+    merged.add(parsed.object);
+    return parsed.meshes;
+  }
+  let count = 0;
+  for (const child of pkg.children) count += collectGeometry(child, merged);
+  return count;
+}
+
+/**
+ * Parse a possibly multi-layered .usdz into one three.js group.
  * @param {ArrayBuffer} buffer the dropped file's contents
  * @returns {Promise<THREE.Group>}
  * @throws with a format-specific message when nothing was readable
  */
 export async function parseMultiLayerUSDZ(buffer) {
   const bytes = new Uint8Array(buffer);
-  const tree = await collectPackages(bytes, 0, { buffers: [bytes], usdc: [], usda: [] });
+  const out = { assets: {}, ambiguous: new Set(), usdc: [] };
+  const root = await walkPackage(bytes, 'root', 0, out);
+
+  // Publish every image in the tree so package-relative texture references
+  // resolve across package boundaries.
+  setSharedUSDAssets(out.assets);
 
   const merged = new THREE.Group();
-  let meshCount = 0;
-  for (const packageBytes of tree.buffers) {
-    let object = null;
-    try {
-      const slice = packageBytes.buffer.slice(
-        packageBytes.byteOffset, packageBytes.byteOffset + packageBytes.byteLength);
-      object = new USDLoader().parse(slice);
-    } catch (e) {
-      console.warn('usdz: package skipped:', e);
-      continue; // this package had no layer the parser could read — try the others
-    }
-    let meshes = 0;
-    object.traverse((o) => {
-      if (!o.isMesh) return;
-      meshes++;
-      // some layers omit normals; the exporter and lit materials need them.
-      if (!o.geometry.getAttribute('normal')) o.geometry.computeVertexNormals();
-      // USD materials often arrive flagged transparent at full opacity with no
-      // alpha source, which only produces blend-sorting artifacts (e.g. hair
-      // reading as see-through). Make those opaque.
-      const mats = Array.isArray(o.material) ? o.material : [o.material];
-      for (const mat of mats) {
-        if (mat && mat.transparent && mat.opacity >= 1
-          && !mat.map && !mat.alphaMap && !(mat.transmission > 0)) {
-          mat.transparent = false;
-        }
-      }
-    });
-    if (meshes) {
-      merged.add(object);
-      meshCount += meshes;
-    }
-  }
+  const meshCount = collectGeometry(root, merged);
+  if (meshCount) await settleTextures(merged);
 
   if (!meshCount) {
-    if (tree.usdc.length) {
+    if (out.usdc.length) {
       throw new Error('could not read this .usdz — its usdc crates ('
-        + tree.usdc.slice(0, 3).join(', ') + (tree.usdc.length > 3 ? ', …' : '')
+        + out.usdc.slice(0, 3).join(', ') + (out.usdc.length > 3 ? ', …' : '')
         + ') did not parse; export a .glb instead and report the file');
     }
     throw new Error('no readable geometry found in this .usdz');

@@ -41,6 +41,62 @@ import {
 // Pre-compiled regex patterns for performance
 const VARIANT_PATH_REGEX = /^(.+?)\/\{(\w+)=(\w+)\}\/(.+)$/;
 
+// LOCAL PATCH (3dpeer) -------------------------------------------------------
+// A .usdz may nest further .usdz packages, and USD then references assets with
+// package-relative paths like `1/avatar.usdz[0/avatar.usdz[head/tex/a.png]]`.
+// The loader is handed one package at a time, so such a path never matches a
+// plain zip-entry key. src/app/usdz.js walks the whole package tree, collects
+// every image from every package, and publishes them here; the texture lookup
+// falls back to this pool after normalising the path.
+let sharedAssets = {};
+
+/**
+ * Publish the image assets gathered from a whole usdz package tree.
+ * @param {Record<string, Uint8Array>} assets path (and basename) -> bytes
+ */
+function setSharedUSDAssets( assets ) {
+
+	sharedAssets = assets || {};
+
+}
+
+/**
+ * Identify an image's type from its magic bytes. Blobs built without a MIME
+ * type fail to decode in <img> for some formats (WebP in particular), which
+ * silently drops the texture.
+ * @param {Uint8Array|ArrayBuffer} data
+ * @returns {string} a MIME type, or '' when unrecognised
+ */
+function sniffImageMime( data ) {
+
+	const b = data instanceof Uint8Array ? data : new Uint8Array( data );
+	if ( b.length < 12 ) return '';
+	if ( b[ 0 ] === 0x89 && b[ 1 ] === 0x50 && b[ 2 ] === 0x4e && b[ 3 ] === 0x47 ) return 'image/png';
+	if ( b[ 0 ] === 0xff && b[ 1 ] === 0xd8 && b[ 2 ] === 0xff ) return 'image/jpeg';
+	if ( b[ 0 ] === 0x52 && b[ 1 ] === 0x49 && b[ 2 ] === 0x46 && b[ 3 ] === 0x46
+		&& b[ 8 ] === 0x57 && b[ 9 ] === 0x45 && b[ 10 ] === 0x42 && b[ 11 ] === 0x50 ) return 'image/webp';
+	if ( b[ 4 ] === 0x66 && b[ 5 ] === 0x74 && b[ 6 ] === 0x79 && b[ 7 ] === 0x70 ) return 'image/avif';
+	return '';
+
+}
+
+/**
+ * Reduce a USD package-relative asset path to the file path inside the
+ * innermost package: `a.usdz[b.usdz[dir/f.png]]` -> `dir/f.png`.
+ * @param {string} path
+ * @returns {string}
+ */
+function innermostAssetPath( path ) {
+
+	const open = path.lastIndexOf( '[' );
+	if ( open < 0 ) return path;
+	let inner = path.slice( open + 1 );
+	while ( inner.endsWith( ']' ) ) inner = inner.slice( 0, - 1 );
+	return inner;
+
+}
+// end LOCAL PATCH ------------------------------------------------------------
+
 // Spec types (must match USDCParser)
 const SpecType = {
 	Unknown: 0,
@@ -3808,6 +3864,11 @@ class USDComposer {
 		if ( cleanPath.startsWith( '@' ) ) cleanPath = cleanPath.slice( 1 );
 		if ( cleanPath.endsWith( '@' ) ) cleanPath = cleanPath.slice( 0, - 1 );
 
+		// LOCAL PATCH (3dpeer): package-relative paths point inside a nested
+		// .usdz; reduce to the path within the innermost package so the plain
+		// zip-entry keys (and the shared pool) can match.
+		cleanPath = innermostAssetPath( cleanPath );
+
 		// Resolve relative to basePath first
 		const resolvedPath = this._resolveFilePath( cleanPath );
 		let assetData = this.assets[ resolvedPath ];
@@ -3816,6 +3877,14 @@ class USDComposer {
 		if ( ! assetData ) {
 
 			assetData = this.assets[ cleanPath ];
+
+		}
+
+		// LOCAL PATCH (3dpeer): the asset may live in a sibling/nested package
+		// of the same tree — consult the shared pool before giving up.
+		if ( ! assetData ) {
+
+			assetData = sharedAssets[ cleanPath ] || sharedAssets[ resolvedPath ];
 
 		}
 
@@ -3831,6 +3900,12 @@ class USDComposer {
 					return this._createTextureFromData( this.assets[ key ], textureAttrs, transformAttrs );
 
 				}
+
+			}
+
+			if ( sharedAssets[ baseName ] ) {
+
+				return this._createTextureFromData( sharedAssets[ baseName ], textureAttrs, transformAttrs );
 
 			}
 
@@ -3881,7 +3956,10 @@ class USDComposer {
 
 		} else if ( data instanceof Uint8Array || data instanceof ArrayBuffer ) {
 
-			const blob = new Blob( [ data ] );
+			// LOCAL PATCH (3dpeer): tag the blob with its real type — an
+			// untyped blob URL fails to decode for WebP and AVIF.
+			const type = sniffImageMime( data );
+			const blob = type ? new Blob( [ data ], { type } ) : new Blob( [ data ] );
 			url = URL.createObjectURL( blob );
 
 		} else {
@@ -4639,4 +4717,4 @@ class USDComposer {
 
 }
 
-export { USDComposer, SpecType };
+export { USDComposer, SpecType, setSharedUSDAssets };

@@ -170,5 +170,8 @@ export function initSidePanel() {
   toggle.addEventListener('click', () => {
     const open = $('side').classList.toggle('open');
     toggle.querySelector('use').setAttribute('href', open ? '#i-panel-close' : '#i-panel-open');
+    // Docking/undocking the panel reflows the row, so the canvas must re-fit
+    // its box — otherwise the drawing buffer keeps the old size and letterboxes.
+    requestAnimationFrame(() => dispatchEvent(new Event('resize')));
   });
 }

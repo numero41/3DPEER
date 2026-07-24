@@ -26,6 +26,22 @@ import { $ } from './dom.js';
 /** mesh -> its original index attribute (null when the mesh was non-indexed). */
 const originalIndex = new Map();
 
+/** Ever-increasing index version. three caches the wireframe edge buffer per
+ *  geometry and only rebuilds it when `index.version` EXCEEDS the cached one,
+ *  so a fresh attribute (version 0) would leave the wireframe overlay showing
+ *  the original topology. Stamping a rising version forces the rebuild. */
+let indexVersion = 0;
+
+/**
+ * Install an index attribute and force three to re-derive dependent buffers.
+ * @param {THREE.BufferGeometry} geometry
+ * @param {THREE.BufferAttribute|null} attribute
+ */
+function setIndexAndInvalidate(geometry, attribute) {
+  geometry.setIndex(attribute);
+  if (geometry.index) geometry.index.version = ++indexVersion;
+}
+
 /** Debounce timer for slider-driven previews. */
 let timer = 0;
 
@@ -51,7 +67,7 @@ function applyToMesh(mesh, ratio) {
     : Uint32Array.from({ length: position.count }, (_, i) => i);
 
   if (ratio >= 1) {
-    geometry.setIndex(source);
+    setIndexAndInvalidate(geometry, source);
     return;
   }
 
@@ -70,7 +86,7 @@ function applyToMesh(mesh, ratio) {
     sourceArray instanceof Uint32Array ? sourceArray : new Uint32Array(sourceArray),
     positions, 3, target, 0.05, [],
   );
-  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+  setIndexAndInvalidate(geometry, new THREE.BufferAttribute(indices, 1));
 }
 
 /** Run the preview for the current decimate value across all real meshes. */

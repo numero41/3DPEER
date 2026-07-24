@@ -21,6 +21,7 @@ import { initExport } from './exporter.js';
 import { initDecimatePreview } from './decimate-preview.js';
 import { initCompressionSettings } from './comp-settings.js';
 import { SPRITE } from './sprite.js';
+import { setStatus } from './ui.js';
 import { $ } from './dom.js';
 
 // Inject the inline icon sprite so <use href="#i-..."> resolves with no fetch.
@@ -43,6 +44,10 @@ initAnnotations(stage);
 initExport(stage);
 initDecimatePreview();
 initCompressionSettings();
+
+// Licensing is not live yet: say so plainly rather than leaving a dead button.
+$('signin').addEventListener('click', () =>
+  setStatus('Accounts are not live yet — every feature is free and exported files carry a watermark.', 'info'));
 
 // Render loop: advance any playing animation, keep the scrub bar in sync, and
 // draw. OrbitControls needs update() every frame for damping.

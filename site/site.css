@@ -70,6 +70,7 @@
 
   /* ---- brand ---- */
   --logo-size: 26px;
+  --nav-btn-w: 96px;
 
   /* ---- hover contrast formula ---- */
   --hover-amount: 12%;
@@ -189,17 +190,28 @@ button:hover,
 
 /* Right-aligned within the same centred column as the workbench panel, so
    the buttons line up with the panel's right edge. */
+/* Sign in + Guide sit at the left of the panel column, Contact at its right. */
 .nav {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--sp-3);
   width: min(var(--stage-max), 100%);
   margin: 0 auto var(--sp-5);
 }
 
-.nav a {
+.nav-left {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+/* One width for every top button, links and buttons alike. */
+.nav-btn {
   --btn-bg: var(--surface);
   --btn-fg: var(--ink);
+  display: inline-grid;
+  place-items: center;
+  width: var(--nav-btn-w);
   padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-md);
@@ -208,16 +220,18 @@ button:hover,
   font: var(--fs-sm)/1 var(--sans);
   letter-spacing: var(--track-tight);
   text-decoration: none;
+  cursor: pointer;
   transition: background var(--dur), color var(--dur);
 }
 
-.nav a:hover {
+.nav-btn:hover {
   background: color-mix(in srgb, var(--btn-bg), var(--btn-fg) var(--hover-amount));
 }
 
 /* Nav sits at the top of the page — its tooltips open DOWNWARD (opening up
    would clip against the viewport edge). */
-.nav [data-tip]::after {
+.nav [data-tip]::after,
+.nav-left [data-tip]::after {
   top: calc(100% + var(--sp-2));
   bottom: auto;
 }
@@ -645,6 +659,7 @@ body.loaded .stage-tools {
 
 .side.open {
   width: min(var(--panel-w), 84vw);
+  max-width: min(var(--panel-w), 84vw);
   max-height: min(var(--stage-max), 82vh);
   padding: var(--sp-4);
   overflow-y: auto;
@@ -1281,8 +1296,10 @@ footer .legal-mark {
     max-width: 100%;
   }
 
+  /* Wrapped below the stage: the panel spans the full width. */
   .side.open {
     width: 100%;
+    max-width: 100%;
   }
 
   .comp-grid {
@@ -1292,5 +1309,10 @@ footer .legal-mark {
   .comp-reset {
     grid-column: 1 / -1;
     justify-content: end;
+  }
+
+  .nav-btn {
+    width: auto;
+    flex: 1;
   }
 }
