@@ -24,8 +24,12 @@ import { SPRITE } from './sprite.js';
 import { setStatus } from './ui.js';
 import { $ } from './dom.js';
 
-// Inject the inline icon sprite so <use href="#i-..."> resolves with no fetch.
-document.body.insertAdjacentHTML('afterbegin', SPRITE);
+// site/sprite.js already inserted the sprite while the page was parsing (it
+// has to land before the first <use href="#i-…">). This is the fallback for
+// any page that does not load it.
+if (!document.querySelector('.icon-sprite')) {
+  document.body.insertAdjacentHTML('afterbegin', SPRITE);
+}
 
 // Static title= attributes become instant CSS tooltips before anything else
 // reads the DOM (dynamic elements get data-tip through the el() helper).

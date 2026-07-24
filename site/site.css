@@ -190,7 +190,7 @@ button:hover,
 
 /* Right-aligned within the same centred column as the workbench panel, so
    the buttons line up with the panel's right edge. */
-/* Sign in + Guide sit at the left of the panel column, Contact at its right. */
+/* Sign in sits at the far left; Guide and Contact pair up at the right. */
 .nav {
   display: flex;
   align-items: center;
@@ -200,7 +200,7 @@ button:hover,
   margin: 0 auto var(--sp-5);
 }
 
-.nav-left {
+.nav-right {
   display: flex;
   gap: var(--sp-3);
 }
@@ -231,7 +231,7 @@ button:hover,
 /* Nav sits at the top of the page — its tooltips open DOWNWARD (opening up
    would clip against the viewport edge). */
 .nav [data-tip]::after,
-.nav-left [data-tip]::after {
+.nav-right [data-tip]::after {
   top: calc(100% + var(--sp-2));
   bottom: auto;
 }
@@ -644,10 +644,14 @@ body.loaded .stage-tools {
   display: none;
 }
 
-/* Docked next to the stage: zero width when closed, panel width when open. */
+/* Docked next to the stage: no box at all when closed. max-height matters as
+   much as width — a closed panel still grows to its CONTENT height otherwise,
+   making the row taller than the square stage and leaving a gap between the
+   view and the status line (very visible with the tall USDZ hierarchy). */
 .side {
   align-self: stretch;
   width: 0;
+  max-height: 0;
   padding: 0;
   overflow: hidden;
   border: 0;

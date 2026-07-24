@@ -8,13 +8,15 @@
 <link rel="stylesheet" href="site.css">
 </head>
 <body>
+<!-- Inserts the icon sprite before any <use href="#i-…"> is parsed. -->
+<script src="sprite.js"></script>
 <header class="topbar">
   <nav class="nav">
-    <span class="nav-left">
-      <button id="signin" class="nav-btn" title="Sign in to apply your licence">Sign in</button>
+    <button id="signin" class="nav-btn" title="Sign in to apply your licence">Sign in</button>
+    <span class="nav-right">
       <a class="nav-btn" href="guide.html" target="_blank" rel="noopener" title="How 3DPEER works">Guide</a>
+      <a class="nav-btn" href="mailto:contact@3dpeer.com" target="_blank" rel="noopener" title="Write to us">Contact</a>
     </span>
-    <a class="nav-btn" href="mailto:contact@3dpeer.com" target="_blank" rel="noopener" title="Write to us">Contact</a>
   </nav>
   <div class="brand">
     <img src="logo.svg" alt="3DPEER logo" class="logo">

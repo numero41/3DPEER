@@ -167,20 +167,36 @@ async function walkPackage(bytes, name, depth, out) {
 // -----------------------------------------------------------------------------
 
 /**
- * Parse one package with three's USDLoader.
+ * Parse one package with three's USDLoader, waiting for its textures.
+ *
+ * The loader builds the scene synchronously but decodes texture images
+ * asynchronously, and only assigns `texture.image` once an image has loaded —
+ * so the group must not be inspected (or handed to GLTFExporter) before the
+ * loader's own onLoad callback fires.
  * @param {UsdPackage} pkg
- * @returns {{object: THREE.Object3D, meshes: number} | null}
+ * @returns {Promise<{object: THREE.Object3D, meshes: number} | null>}
  */
-function parsePackage(pkg) {
+async function parsePackage(pkg) {
   let object;
+  let settle;
+  const texturesReady = new Promise((resolve) => { settle = resolve; });
   try {
     const slice = pkg.bytes.buffer.slice(
       pkg.bytes.byteOffset, pkg.bytes.byteOffset + pkg.bytes.byteLength);
-    object = new USDLoader().parse(slice);
+    object = new USDLoader().parse(slice, '', () => settle(), (e) => {
+      console.warn('usdz: texture load reported an error in', pkg.name, e && e.message);
+      settle();
+    });
   } catch (e) {
     console.warn('usdz: package skipped:', pkg.name, e && e.message);
     return null;
   }
+  // Bounded wait: a stuck image must not hang the import.
+  await Promise.race([
+    texturesReady,
+    new Promise((resolve) => setTimeout(resolve, TEXTURE_TIMEOUT_MS)),
+  ]);
+
   let meshes = 0;
   object.traverse((o) => {
     if (!o.isMesh) return;
@@ -205,16 +221,14 @@ function parsePackage(pkg) {
 const TEXTURE_TIMEOUT_MS = 20000;
 
 /**
- * Wait for every texture image in the tree to finish decoding, then drop the
- * ones that never produced pixels. The loader creates textures from object
- * URLs, which decode asynchronously — handing a half-loaded texture to
- * GLTFExporter fails with "No valid image data found".
+ * Drop textures that genuinely failed to decode. Called only AFTER the
+ * loader's onLoad has fired, so a null image here means a real failure —
+ * handing one to GLTFExporter fails with "No valid image data found".
  * @param {THREE.Object3D} root
- * @returns {Promise<void>}
  */
-async function settleTextures(root) {
+function pruneBrokenTextures(root) {
   /** @type {Set<THREE.Texture>} */
-  const textures = new Set();
+  const broken = new Set();
   root.traverse((node) => {
     if (!node.isMesh) return;
     const mats = Array.isArray(node.material) ? node.material : [node.material];
@@ -222,32 +236,13 @@ async function settleTextures(root) {
       if (!mat) continue;
       for (const key of Object.keys(mat)) {
         const value = mat[key];
-        if (value && value.isTexture) textures.add(value);
+        if (value && value.isTexture) {
+          const image = value.image;
+          if (!image || !(image.width || image.videoWidth)) broken.add(value);
+        }
       }
     }
   });
-
-  const pending = [];
-  for (const texture of textures) {
-    const image = texture.image;
-    if (!image || typeof image.addEventListener !== 'function') continue;
-    if (image.complete) continue;
-    pending.push(new Promise((resolve) => {
-      const done = () => resolve();
-      image.addEventListener('load', done, { once: true });
-      image.addEventListener('error', done, { once: true });
-      setTimeout(done, TEXTURE_TIMEOUT_MS);
-    }));
-  }
-  await Promise.all(pending);
-
-  // Any texture still without pixels would break the GLB conversion.
-  const broken = new Set();
-  for (const texture of textures) {
-    const image = texture.image;
-    const width = image && (image.width || image.videoWidth);
-    if (!width) broken.add(texture);
-  }
   if (!broken.size) return;
   root.traverse((node) => {
     if (!node.isMesh) return;
@@ -269,16 +264,16 @@ async function settleTextures(root) {
  * are still visited.
  * @param {UsdPackage} pkg
  * @param {THREE.Group} merged destination
- * @returns {number} meshes added from this subtree
+ * @returns {Promise<number>} meshes added from this subtree
  */
-function collectGeometry(pkg, merged) {
-  const parsed = parsePackage(pkg);
+async function collectGeometry(pkg, merged) {
+  const parsed = await parsePackage(pkg);
   if (parsed && parsed.meshes > 0) {
     merged.add(parsed.object);
     return parsed.meshes;
   }
   let count = 0;
-  for (const child of pkg.children) count += collectGeometry(child, merged);
+  for (const child of pkg.children) count += await collectGeometry(child, merged);
   return count;
 }
 
@@ -298,8 +293,8 @@ export async function parseMultiLayerUSDZ(buffer) {
   setSharedUSDAssets(out.assets);
 
   const merged = new THREE.Group();
-  const meshCount = collectGeometry(root, merged);
-  if (meshCount) await settleTextures(merged);
+  const meshCount = await collectGeometry(root, merged);
+  if (meshCount) pruneBrokenTextures(merged);
 
   if (!meshCount) {
     if (out.usdc.length) {
