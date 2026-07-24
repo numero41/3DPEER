@@ -5,6 +5,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { unenvelope } from './decode.js';
 import { createStage, showError } from './scene.js';
 import { collectMorphs, buildMorphPanel } from './morphs.js';
+import { initAnimationControls } from './anim.js';
 import { initViewerControls } from './controls.js';
 import { capturePristine, initAnnotations } from './annotate.js';
 
@@ -25,16 +26,14 @@ async function boot() {
   gltf.scene.traverse((o) => { if (o.isSkinnedMesh) o.frustumCulled = false; });
   stage.frameObject(gltf.scene, 0.35);
 
-  let mixer = null;
-  if (gltf.animations && gltf.animations.length) {
-    mixer = new THREE.AnimationMixer(gltf.scene);
-    gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
-  }
+  // Playback controls ship whenever clips exist (an animation without them is
+  // unplayable at the receiving end); the first clip auto-plays.
+  const anim = initAnimationControls(gltf.scene, gltf.animations);
   buildMorphPanel(collectMorphs(gltf.scene));
   if (window.__CFG && window.__CFG.ui) initViewerControls(stage, gltf.scene);
   initAnnotations(stage, gltf.scene, pristine);
 
   const clock = new THREE.Clock();
-  stage.run(() => { if (mixer) mixer.update(clock.getDelta()); });
+  stage.run(() => { if (anim) anim.update(clock.getDelta()); });
 }
 boot().catch(showError);

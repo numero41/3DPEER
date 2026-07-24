@@ -64,6 +64,12 @@ and working conventions are in CLAUDE.md — read them before any change.
   index for non-indexed meshes (a null restore could never invalidate
   three's wireframe cache — the overlay stayed stuck on the last decimated
   topology). test.mjs: USDZExporter→import round-trip.
+- **Artifact playback + compare (2026-07-24)** — the artifact ships
+  animation controls whenever clips exist (clip select, play/pause, scrub —
+  src/viewer/anim.js, NOT gated by __CFG.ui: playback is content, not
+  chrome; one clip at a time replaces the old play-everything-at-once).
+  The morph panel already shipped; verified live. Site: compare split view
+  (M5 item, see below). Viewer bundle 620 KB (budget 650).
 
 ## M2 — Turntable video (the email-body answer)
 

@@ -42,11 +42,13 @@
   --pad-btn-y: 8px;
   --pad-btn-x: 10px;
   --bar-offset: 44px;
+  --anbar-offset: 88px;
 
   /* ---- sizes ---- */
   --hairline: 1px;
   --panel-w: min(78vw, 300px);
   --range-w: 90px;
+  --range-w-wide: 150px;
   --range-track: 3px;
   --range-thumb: 10px;
   --range-h: 18px;
@@ -195,8 +197,33 @@ body.noting #c {
   z-index: var(--z-bar);
 }
 
+/* ---- animation playback (ships whenever the model has clips) ---- */
+#anbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--anbar-offset);
+  margin: 0 auto;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--bar-bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-md);
+  z-index: var(--z-bar);
+}
+
+/* Without the optional control bar beneath it, playback sits in its place. */
+#anbar.solo {
+  bottom: var(--bar-offset);
+}
+
 #vbar button,
-#vbar select {
+#vbar select,
+#anbar button,
+#anbar select {
   font: var(--fs-xs)/var(--lh-tight) var(--mono);
   color: var(--ink);
   background: var(--field-bg);
@@ -207,12 +234,22 @@ body.noting #c {
   cursor: pointer;
 }
 
-#vbar button:hover {
+#anbar button {
+  display: inline-flex;
+  align-items: center;
+}
+
+#vbar button:hover,
+#anbar button:hover {
   background: var(--hover-bg);
 }
 
 #vbar input[type="range"] {
   width: var(--range-w);
+}
+
+#anbar input[type="range"] {
+  width: var(--range-w-wide);
 }
 
 /* ---- custom thin range sliders (hand-drawn, match the site register) ---- */

@@ -15,7 +15,7 @@ import fs from 'fs';
 import path from 'path';
 
 /** Icons the artifact UI ships (a subset of site/icons). */
-export const VIEWER_ICONS = ['pin', 'close', 'eye', 'eye-off', 'export'];
+export const VIEWER_ICONS = ['pin', 'close', 'eye', 'eye-off', 'export', 'play', 'pause'];
 
 /**
  * Build one inline SVG sprite from vendored Lucide files.
