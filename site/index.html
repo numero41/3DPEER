@@ -10,8 +10,8 @@
 <body>
 <header class="topbar">
   <nav class="nav">
-    <a href="guide.html" title="How 3DPEER works">guide</a>
-    <a href="mailto:contact@3dpeer.com" title="Write to us">contact</a>
+    <a href="guide.html" target="_blank" rel="noopener" title="How 3DPEER works">guide</a>
+    <a href="mailto:contact@3dpeer.com" target="_blank" rel="noopener" title="Write to us">contact</a>
   </nav>
   <div class="brand">
     <img src="logo.svg" alt="3DPEER logo" class="logo">
@@ -139,11 +139,11 @@
     <details class="comp" id="comp-panel">
       <summary title="Compression and artifact options">export settings</summary>
       <div class="comp-grid">
-        <label class="slider-row" title="How precisely vertex positions are stored (bits per coordinate). 16 = exact, 12 = safe default, below 10 may show faceting on large models.">
+        <label class="slider-row" title="How finely the shape is preserved. Lower is smaller; very low can look faceted.">
           <span>geometry precision · <b id="v-pos">12</b></span>
           <input id="c-pos" type="range" min="8" max="16" step="1" value="12">
         </label>
-        <label class="slider-row" title="How precisely surface directions are stored (bits per normal). Lower values may band the highlights.">
+        <label class="slider-row" title="How finely surface shading is preserved. Lower is smaller.">
           <span>shading precision · <b id="v-nrm">8</b></span>
           <input id="c-nrm" type="range" min="8" max="12" step="1" value="8">
         </label>
@@ -151,7 +151,7 @@
           <span>texture size · <b id="v-tex">2048</b> px</span>
           <input id="c-tex" type="range" min="8" max="12" step="1" value="11">
         </label>
-        <label class="slider-row" title="Textures are re-encoded as WebP at this quality — 100 keeps the originals untouched.">
+        <label class="slider-row" title="Texture quality — 100 keeps the originals untouched.">
           <span>texture quality · <b id="v-q">85</b></span>
           <input id="c-q" type="range" min="30" max="100" step="5" value="85">
         </label>
@@ -159,15 +159,15 @@
           <span>decimate · <b id="v-dec">0</b> %</span>
           <input id="c-dec" type="range" min="0" max="90" step="5" value="0">
         </label>
+        <div class="comp-reset">
+          <button id="c-reset" title="Reset all sliders to the default quality">reset</button>
+        </div>
       </div>
-      <div class="comp-auto">
-        <span>estimated output · <b id="v-est">—</b></span>
-        <button id="c-reset" title="Reset all sliders to the default quality">reset</button>
-      </div>
-      <label class="opt-row comp-opt" title="Include camera views, material override and lighting sliders in the exported file">
+      <label class="opt-row comp-opt" title="Choose which controls travel inside the exported file">
         <input id="opt-ui" type="checkbox" checked>
-        <span>ship viewer controls (camera · material · light)</span>
+        <span>ship viewer controls</span>
       </label>
+      <p class="comp-est">estimated output · <b id="v-est">—</b></p>
     </details>
 
     <div class="action-row">

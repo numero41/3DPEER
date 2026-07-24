@@ -11,7 +11,7 @@
 <header class="topbar">
   <nav class="nav">
     <a href="index.html" title="Back to the app">app</a>
-    <a href="mailto:contact@3dpeer.com" title="Write to us">contact</a>
+    <a href="mailto:contact@3dpeer.com" target="_blank" rel="noopener" title="Write to us">contact</a>
   </nav>
   <div class="brand">
     <img src="logo.svg" alt="3DPEER logo" class="logo">
@@ -31,30 +31,26 @@
 
   <section>
     <h2>Supported formats</h2>
-    <p><code>glb</code> and <code>gltf</code> are native. <code>obj</code>, <code>stl</code>,
-    <code>ply</code>, <code>fbx</code> and <code>usdz</code> are converted on the fly.
-    FBX materials are approximated on the web. USDZ reads ASCII layers and
-    binary usdc crates, including packages nested inside packages; material
-    and texture fidelity on complex production files is still approximate.
-    If a file yields no geometry, you will get a clear warning instead of an
-    empty viewport.</p>
+    <p>Drop a <code>glb</code>, <code>gltf</code>, <code>obj</code>, <code>stl</code>,
+    <code>ply</code>, <code>fbx</code> or <code>usdz</code> file. Non-glTF formats
+    are brought in automatically. Fidelity on materials and textures can vary
+    with how the original file was produced.</p>
   </section>
 
   <section>
     <h2>Compression</h2>
-    <p>The export pipeline compresses geometry, animations and textures locally.
-    The defaults are visually safe. In <b>export settings</b>:</p>
+    <p>Everything is compressed locally, on your machine. The defaults are
+    visually safe; the estimated output size updates as you move the sliders in
+    <b>export settings</b>:</p>
     <ul>
-      <li><b>geometry precision</b> — how exactly vertex positions are stored.
-      Lower is smaller; very low values can facet large models.</li>
-      <li><b>shading precision</b> — accuracy of surface directions; affects
-      highlight smoothness.</li>
-      <li><b>texture size / quality</b> — textures are scaled down to the given
-      edge and re-encoded as WebP. Quality 100 keeps your originals.</li>
+      <li><b>geometry precision</b> — how finely the shape is kept. Lower is
+      smaller; very low can look faceted.</li>
+      <li><b>shading precision</b> — how finely surface shading is kept.</li>
+      <li><b>texture size / quality</b> — cap texture size and quality.
+      Quality 100 keeps your originals.</li>
       <li><b>decimate</b> — removes a share of triangles. Off by default:
       your geometry is never touched unless you ask.</li>
-      <li><b>auto</b> — give a target size in MB and the best quality that fits
-      is found for you.</li>
+      <li><b>reset</b> — restores the default quality.</li>
     </ul>
   </section>
 
@@ -78,9 +74,9 @@
 
   <section>
     <h2>Viewer controls in the file</h2>
-    <p>When "ship viewer controls" is checked, the exported file carries camera
-    view presets, a material override (original, clay, metallic, glass, matcap,
-    wireframe) and lighting sliders. Uncheck it for a minimal orbit-only file.</p>
+    <p>When "ship viewer controls" is checked, the exported file carries the
+    on-screen controls — camera views, material and lighting options, and any
+    notes you added. Uncheck it for a minimal orbit-only file.</p>
   </section>
 
   <section>

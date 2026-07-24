@@ -162,6 +162,21 @@ class USDComposer {
 	applyTransform( obj, fields, attrs = {} ) {
 
 		const data = { ...fields, ...attrs };
+
+		// LOCAL PATCH (3dpeer): honour USD visibility + purpose so a loaded
+		// package matches what a normal USD viewer (QuickLook) shows — hidden
+		// prims and proxy/guide-purpose prims are not displayed. Tokens may
+		// arrive quoted; strip quotes before comparing. Three inherits
+		// visibility down the subtree at render time.
+		const token = ( v ) => ( typeof v === 'string' ? v.replace( /["']/g, '' ) : v );
+		const visibility = token( data[ 'visibility' ] );
+		const purpose = token( data[ 'purpose' ] );
+		if ( visibility === 'invisible' || purpose === 'proxy' || purpose === 'guide' ) {
+
+			obj.visible = false;
+
+		}
+
 		const xformOpOrder = data[ 'xformOpOrder' ];
 
 		// If we have xformOpOrder, apply transforms using matrices

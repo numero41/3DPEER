@@ -250,11 +250,16 @@ export function initAnnotations(stage) {
   });
   $('vis-meshes').addEventListener('change', () => {
     const on = $('vis-meshes').checked;
-    for (const mesh of state.originals.keys()) mesh.visible = on;
-    // Keep the per-part checkboxes coherent with the bulk toggle.
-    document.querySelectorAll('#part-list input[type="checkbox"]').forEach((box) => {
-      box.checked = on;
-    });
+    const boxes = document.querySelectorAll('#part-list input[type="checkbox"]');
+    if (boxes.length) {
+      // Drive the hierarchy rows so groups + meshes both follow.
+      boxes.forEach((box) => {
+        box.checked = on;
+        box.dispatchEvent(new Event('change'));
+      });
+    } else {
+      for (const mesh of state.originals.keys()) mesh.visible = on;
+    }
     syncPins();
   });
 

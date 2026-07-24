@@ -17,9 +17,11 @@ Local patches (keep when refreshing):
 - `USDLoader.js`: fflate import re-pointed to
   `three/examples/jsm/libs/fflate.module.js` (r160's copy), `./usd/*` imports
   flattened to `./*`.
-- No other modifications — nested usdz-inside-usdz packages are handled
-  OUTSIDE the loader by `src/app/usdz.js` (the multi-layer walker feeds each
-  package to this loader separately).
+- `USDComposer.js`: `applyTransform()` honours USD `visibility` (invisible)
+  and `purpose` (proxy/guide) by setting `obj.visible = false`, so a loaded
+  package shows what QuickLook shows. Grep for "LOCAL PATCH (3dpeer)".
+- Nested usdz-inside-usdz packages are handled OUTSIDE the loader by
+  `src/app/usdz.js` (the multi-layer walker feeds each package separately).
 
 To refresh: download the four files from the new three version, re-apply the
 import patches, run the usdz fixtures + a real usdc file in the browser.

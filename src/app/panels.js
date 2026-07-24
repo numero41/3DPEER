@@ -53,27 +53,55 @@ function buildMorphs(scene) {
   });
 }
 
-/** Build the parts section (one visibility checkbox per named mesh). */
+/**
+ * @param {THREE.Object3D} node
+ * @returns {boolean} whether node is a mesh or has a mesh descendant.
+ */
+function hasGeometry(node) {
+  if (node.isMesh) return true;
+  return node.children.some(hasGeometry);
+}
+
+/**
+ * Append one hierarchy row (indented) and recurse into geometry-bearing
+ * children. Each row's checkbox drives that node's visibility; a group node
+ * hides its whole subtree (three inherits visibility at render).
+ * @param {THREE.Object3D} node
+ * @param {HTMLElement} list the container
+ * @param {number} depth nesting level (for indentation)
+ * @param {number} index sibling index (fallback label)
+ */
+function appendPartRow(node, list, depth, index) {
+  const kind = node.isMesh ? 'mesh' : 'group';
+  const label = node.name || kind + ' ' + index;
+  const row = el('label', {
+    cls: 'part-row depth-' + Math.min(depth, 6),
+    attrs: { title: 'Show / hide ' + label },
+  });
+  const box = el('input', { attrs: { type: 'checkbox' } });
+  box.checked = node.visible;
+  box.addEventListener('change', () => {
+    node.visible = box.checked;
+    syncAnnotationVisibility();
+  });
+  row.append(box, el('span', { cls: 'part-name part-' + kind, text: label }));
+  list.append(row);
+
+  const children = node.children.filter(hasGeometry);
+  children.forEach((child, i) => appendPartRow(child, list, depth + 1, i));
+}
+
+/** Build the parts section as the real scene hierarchy (visibility per node). */
 function buildParts(scene) {
   const box = $('panel-parts');
   const list = $('part-list');
   clearChildren(list);
-  const meshes = [];
-  scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
-  box.classList.toggle('hidden', meshes.length < 2);
-  meshes.forEach((m, i) => {
-    const label = m.name || 'mesh ' + i;
-    const row = el('label', { cls: 'check-row', attrs: { title: 'Toggle visibility of ' + label } });
-    const c = el('input', { attrs: { type: 'checkbox', title: 'Show / hide ' + label } });
-    c.checked = true;
-    c.addEventListener('change', () => {
-      m.visible = c.checked;
-      // Pins placed on this mesh follow its visibility.
-      syncAnnotationVisibility();
-    });
-    row.append(c, el('span', { text: label }));
-    list.append(row);
-  });
+  let meshCount = 0;
+  scene.traverse((o) => { if (o.isMesh) meshCount++; });
+  box.classList.toggle('hidden', meshCount < 2);
+  if (meshCount < 2) return;
+  // The GLTF scene root is a wrapper; show its geometry-bearing children.
+  scene.children.filter(hasGeometry).forEach((child, i) => appendPartRow(child, list, 0, i));
 }
 
 /** Build the animations section (clip picker + play/pause + scrub). */

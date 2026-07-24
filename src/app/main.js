@@ -53,6 +53,6 @@ stage.renderer.setAnimationLoop(() => {
   } else {
     state.clock.getDelta(); // keep the clock current even while paused
   }
-  stage.controls.update();
+  stage.update();
   stage.render();
 });

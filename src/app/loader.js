@@ -36,7 +36,7 @@ async function loadFile(stage, file) {
   let bytes;
   try {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (ext !== 'glb' && ext !== 'gltf') setStatus(`converting .${ext} → glb…`);
+    if (ext !== 'glb' && ext !== 'gltf') setStatus('Converting…');
     bytes = await toGLB(file);
   } catch (e) {
     setStatus('import failed: ' + (e.message || e), 'error');

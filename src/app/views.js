@@ -44,6 +44,7 @@ export function initViews(stage) {
   $('quad').addEventListener('click', () => {
     const on = $('quad').getAttribute('aria-pressed') !== 'true';
     $('quad').setAttribute('aria-pressed', String(on));
+    $('stage').classList.toggle('quad', on); // draws the pane separators
     stage.setQuad(on);
   });
 

@@ -55,6 +55,18 @@ export function createStage() {
   ];
   const axisCameras = AXIS_PANES.map(() => new THREE.PerspectiveCamera(45, 1, 0.1, 100));
 
+  // Each axis pane has its own controls: pan + zoom only (no rotate — the
+  // view stays axis-aligned), enabled only while the pointer is over it.
+  const axisControls = axisCameras.map((axisCamera) => {
+    const c = new OrbitControls(axisCamera, canvas);
+    c.enableDamping = true;
+    c.dampingFactor = 0.08;
+    c.enableRotate = false;
+    c.screenSpacePanning = true;
+    c.enabled = false;
+    return c;
+  });
+
   /**
    * Point the axis cameras at the framed model (called by frameObject).
    * @param {THREE.Vector3} center model centre
@@ -71,8 +83,37 @@ export function createStage() {
       axisCamera.lookAt(center);
       axisCamera.aspect = camera.aspect;
       axisCamera.updateProjectionMatrix();
+      axisControls[i].target.copy(center);
+      axisControls[i].minDistance = dist * 0.1;
+      axisControls[i].maxDistance = dist * 8;
+      axisControls[i].update();
     });
   }
+
+  /**
+   * Enable only the controls for the pane under the pointer. In single view
+   * the perspective controls are always active.
+   * @param {number} [clientX]
+   * @param {number} [clientY]
+   */
+  function routeControls(clientX, clientY) {
+    if (!quad || clientX === undefined) {
+      controls.enabled = true;
+      axisControls.forEach((c) => { c.enabled = false; });
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const left = clientX - rect.left < rect.width / 2;
+    const top = clientY - rect.top < rect.height / 2;
+    // Panes: TL top, TR front, BL right, BR perspective (the orbit camera).
+    let active = controls;
+    if (top && left) active = axisControls[0];
+    else if (top && !left) active = axisControls[1];
+    else if (!top && left) active = axisControls[2];
+    controls.enabled = active === controls;
+    axisControls.forEach((c) => { c.enabled = c === active; });
+  }
+  canvas.addEventListener('pointermove', (event) => routeControls(event.clientX, event.clientY));
 
   /**
    * Turn quad view on or off.
@@ -80,11 +121,18 @@ export function createStage() {
    */
   function setQuad(on) {
     quad = on;
+    routeControls();
   }
 
   /** @returns {boolean} whether quad view is active */
   function isQuad() {
     return quad;
+  }
+
+  /** Advance damping on the active controls (called once per frame). */
+  function update() {
+    controls.update();
+    if (quad) axisControls.forEach((c) => c.update());
   }
 
   /**
@@ -151,5 +199,5 @@ export function createStage() {
     return { center, dist };
   }
 
-  return { canvas, renderer, scene, camera, controls, resize, frameObject, render, setQuad, isQuad };
+  return { canvas, renderer, scene, camera, controls, resize, frameObject, render, update, setQuad, isQuad };
 }

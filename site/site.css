@@ -134,6 +134,26 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: var(--sp-2);
+  height: var(--sp-2);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: var(--r-pill);
+  background: var(--line-strong);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
 }
 
 html,
@@ -167,20 +187,22 @@ button:hover,
   text-align: center;
 }
 
+/* Right-aligned within the same centred column as the workbench panel, so
+   the buttons line up with the panel's right edge. */
 .nav {
-  position: absolute;
-  top: var(--sp-5);
-  right: var(--sp-6);
   display: flex;
-  gap: var(--sp-5);
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  width: min(var(--stage-max), 100%);
+  margin: 0 auto var(--sp-5);
 }
 
 .nav a {
   --btn-bg: var(--surface);
   --btn-fg: var(--ink);
-  padding: var(--sp-2) var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) solid var(--line-strong);
-  border-radius: var(--r-pill);
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--ink);
   font: var(--fs-sm)/1 var(--sans);
@@ -191,6 +213,13 @@ button:hover,
 
 .nav a:hover {
   background: color-mix(in srgb, var(--btn-bg), var(--btn-fg) var(--hover-amount));
+}
+
+/* Nav sits at the top of the page — its tooltips open DOWNWARD (opening up
+   would clip against the viewport edge). */
+.nav [data-tip]::after {
+  top: calc(100% + var(--sp-2));
+  bottom: auto;
 }
 
 .brand {
@@ -281,6 +310,33 @@ button:hover,
 
 #viewport:active {
   cursor: grabbing;
+}
+
+/* Quad-view separators: a dark cross drawn over the canvas at the pane
+   boundaries (the render tiles four scissored viewports edge-to-edge). */
+.stage.quad::before,
+.stage.quad::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  background: var(--bg);
+  pointer-events: none;
+}
+
+.stage.quad::before {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: var(--dash);
+  transform: translateX(-50%);
+}
+
+.stage.quad::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--dash);
+  transform: translateY(-50%);
 }
 
 .stage:fullscreen {
@@ -390,7 +446,7 @@ body.loaded .stage-tools {
 .tool-group {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
+  gap: var(--sp-2);
 }
 
 .tool-sep {
@@ -427,6 +483,12 @@ body.loaded .stage-tools {
 
 [data-tip]:hover::after {
   display: block;
+}
+
+/* A trigger's tooltip must vanish the instant its menu opens (otherwise it
+   lingers over the just-opened popover). */
+.menu-group.open > [data-tip]::after {
+  display: none;
 }
 
 /* In the tool column and the side panel, tips open leftward instead. */
@@ -652,10 +714,10 @@ body.loaded .stage-tools {
 
 .note-row .note-num {
   flex: none;
+  align-self: stretch;
   display: grid;
   place-items: center;
   width: var(--note-badge);
-  height: 100%;
   padding: 0;
   border: 0;
   border-radius: var(--r-sm) 0 0 var(--r-sm);
@@ -708,6 +770,11 @@ body.loaded .stage-tools {
    panel and scroll box, centred by the UA styles. Only the open state sets
    display (the UA hides closed popovers). */
 .note-colors:popover-open {
+  /* Anchored to the badge that opened it (implicit popovertarget anchor),
+     dropping just below-right so the palette sits next to the label. */
+  position: fixed;
+  position-area: bottom span-right;
+  margin: var(--sp-1) 0 0;
   display: grid;
   grid-template-columns: repeat(5, var(--swatch));
   gap: var(--sp-3);
@@ -820,24 +887,31 @@ body.loaded .stage-tools {
   font-weight: 600;
 }
 
-.comp-auto {
+/* reset sits under the last slider column, aligned to the far right end. */
+.comp-reset {
+  grid-column: 5;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  align-items: end;
+  justify-content: end;
+}
+
+.comp-opt {
+  padding: var(--sp-3) var(--sp-4);
+  border-top: var(--hairline) solid var(--line);
+}
+
+/* estimated output: the last line of the panel, under ship-controls. */
+.comp-est {
+  margin: 0;
+  padding: 0 var(--sp-4) var(--sp-4);
   color: var(--muted);
   font-size: var(--fs-sm);
 }
 
-.comp-auto b {
+.comp-est b {
   color: var(--ink);
   font-family: var(--mono);
   font-weight: 600;
-}
-
-.comp-opt {
-  padding: 0 var(--sp-4) var(--sp-4);
 }
 
 .btn-block {
@@ -1105,6 +1179,34 @@ input[type="radio"]:checked::before {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* ---- parts: the real scene hierarchy (indented rows) ---- */
+.part-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-2) 0;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.part-row.depth-1 { padding-left: var(--sp-5); }
+.part-row.depth-2 { padding-left: calc(var(--sp-5) * 2); }
+.part-row.depth-3 { padding-left: calc(var(--sp-5) * 3); }
+.part-row.depth-4 { padding-left: calc(var(--sp-5) * 4); }
+.part-row.depth-5 { padding-left: calc(var(--sp-5) * 5); }
+.part-row.depth-6 { padding-left: calc(var(--sp-5) * 6); }
+
+.part-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Group nodes read dimmer than the meshes they contain. */
+.part-group {
+  color: var(--muted);
 }
 
 /* ===================================================================== guide */

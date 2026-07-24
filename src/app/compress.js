@@ -120,11 +120,16 @@ export async function compressGLB(glbBytes, settings, onProgress, io) {
   if (settings.decimate > 0) {
     await MeshoptSimplifier.ready;
     transforms.push(
+      // weld() merges only vertices identical across ALL attributes, so
+      // UV-seam vertices stay split and become border edges; lockBorder then
+      // keeps the simplifier from collapsing those edges, preserving the
+      // seams (at the cost of a little decimation reach).
       weld(),
       simplify({
         simplifier: MeshoptSimplifier,
         ratio: 1 - settings.decimate / 100,
         error: 0.01,
+        lockBorder: true,
       }),
     );
   }

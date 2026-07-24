@@ -102,6 +102,25 @@
   stroke-linejoin: round;
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+::-webkit-scrollbar {
+  width: var(--sp-2);
+  height: var(--sp-2);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: var(--r-pill);
+  background: var(--line);
+}
+
 html,
 body {
   margin: 0;
@@ -387,6 +406,7 @@ input[type="range"]::-moz-range-thumb {
 
 .anum {
   flex: none;
+  align-self: stretch;
   display: grid;
   place-items: center;
   width: var(--badge);
@@ -398,9 +418,12 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
-/* Colour palette: a NATIVE popover — top layer, never clipped, centred by
-   the UA styles. Only the open state sets display. */
+/* Colour palette: a NATIVE popover — top layer, never clipped. Anchored to
+   the badge that opened it, dropping just below-right (next to the label). */
 .acolors:popover-open {
+  position: fixed;
+  position-area: bottom span-right;
+  margin: var(--sp-1) 0 0;
   display: grid;
   grid-template-columns: repeat(5, var(--swatch));
   gap: var(--sp-3);
