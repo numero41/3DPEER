@@ -13,7 +13,8 @@ export function createStage() {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x211a14);
+  // Same neutral page colour as the workbench stage (--bg in page.css).
+  scene.background = new THREE.Color(0x161618);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 

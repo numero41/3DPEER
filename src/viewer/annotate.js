@@ -21,13 +21,14 @@ import { createPinLayer, PIN_COLORS } from '../annotations/pins.js';
 import { injectAnnotations, extractAnnotations } from '../codec/annotations.js';
 import { SPRITE } from './sprite.js';
 
-/** Artifact register palette for the pin layer (mirrors page.css tokens). */
+/** Pin palette for the artifact (mirrors page.css tokens, which now mirror
+ *  the site's neutral dark register — one look across both surfaces). */
 const PALETTE = {
-  tagText: '#211a14',
-  line: '#c9a978',
-  labelBg: 'rgba(33, 26, 20, 0.92)',
-  labelLine: '#4a3a2c',
-  labelText: '#c9a978',
+  tagText: '#161618',
+  line: '#fcfcfd',
+  labelBg: 'rgba(24, 24, 27, 0.82)',
+  labelLine: 'rgba(244, 244, 245, 0.22)',
+  labelText: '#fcfcfd',
 };
 
 /** Presses that move less than this many px count as clicks, not orbits. */

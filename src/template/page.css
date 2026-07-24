@@ -1,21 +1,22 @@
 /* =============================================================================
-   Artifact stylesheet. Dark background, amber accents — the artifact register.
-   Inlined into the exported HTML; keep it lean.
+   Artifact stylesheet. The SAME neutral dark register as the workbench site
+   (site/site.css): a file you receive should look like the tool that made it,
+   not like a different product. Inlined into the exported HTML; keep it lean.
 
    Every colour, size, radius, opacity and duration is a token in :root —
    no literal values below the token block. One declaration per line.
    ============================================================================= */
 
 :root {
-  /* ---- palette (amber on dark) ---- */
-  --bg: #211a14;
-  --ink: #c9a978;
-  --accent: #d98b52;
-  --line: #4a3a2c;
-  --bar-bg: rgba(33, 26, 20, 0.92);
-  --panel-bg: rgba(26, 20, 15, 0.94);
-  --field-bg: rgba(0, 0, 0, 0.25);
-  --hover-bg: rgba(201, 169, 120, 0.18);
+  /* ---- palette (monochrome dark, mirrors site.css) ---- */
+  --bg: #161618;
+  --ink: #ececf0;
+  --accent: #ececf0;
+  --line: #35353b;
+  --bar-bg: rgba(24, 24, 27, 0.82);
+  --panel-bg: rgba(20, 20, 22, 0.96);
+  --field-bg: rgba(0, 0, 0, 0.30);
+  --hover-bg: rgba(244, 244, 245, 0.12);
 
   /* ---- type ---- */
   --mono: ui-monospace, Menlo, Consolas, monospace;
@@ -43,6 +44,8 @@
   --pad-btn-x: 10px;
   --bar-offset: 44px;
   --anbar-offset: 88px;
+  --abtn-offset: 8px;
+  --bar-w: 800px;
 
   /* ---- sizes ---- */
   --hairline: 1px;
@@ -83,6 +86,12 @@
   /* ---- icons (inline sprite shipped in the bundle) ---- */
   --icon: 14px;
   --icon-stroke: 2;
+}
+
+/* Border-box everywhere: the bottom bars are width-matched to the pixel, and
+   content-box would add their padding and border on top of that width. */
+* {
+  box-sizing: border-box;
 }
 
 /* The inline sprite itself never renders. */
@@ -179,14 +188,16 @@ body.noting #c {
   opacity: 0;
 }
 
-/* ---- optional viewer controls (shipped when __CFG.ui) ---- */
+/* ---- optional viewer controls (shipped when __CFG.ui) ----
+   Same width as the transport above it; the notes button docks to its right
+   edge (see #abtn) so the whole bottom chrome reads as one block. */
 #vbar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: var(--bar-offset);
   margin: 0 auto;
-  width: fit-content;
+  width: min(var(--bar-w), calc(100vw - var(--sp-8) * 2));
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -197,14 +208,22 @@ body.noting #c {
   z-index: var(--z-bar);
 }
 
-/* ---- animation playback (ships whenever the model has clips) ---- */
+/* The lighting sliders absorb the leftover width. */
+#vbar input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- animation playback (ships whenever the model has clips) ----
+   The transport spans the same width as the control bar beneath it, so the
+   two read as one stack rather than two floating islands. */
 #anbar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: var(--anbar-offset);
   margin: 0 auto;
-  width: fit-content;
+  width: min(var(--bar-w), calc(100vw - var(--sp-8) * 2));
   display: flex;
   align-items: center;
   gap: var(--sp-2);
@@ -213,6 +232,12 @@ body.noting #c {
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-md);
   z-index: var(--z-bar);
+}
+
+/* The scrub takes whatever the buttons leave. */
+#anbar input[type="range"] {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Without the optional control bar beneath it, playback sits in its place. */
@@ -355,10 +380,12 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ---- annotation notes (always shipped) ---- */
+/* Notes docks against the control bar's right edge, on the same baseline —
+   not floating loose in the page corner. */
 #abtn {
   position: fixed;
-  right: var(--sp-6);
-  bottom: var(--sp-6);
+  right: max(var(--sp-6), calc((100vw - min(var(--bar-w), calc(100vw - var(--sp-8) * 2))) / 2));
+  bottom: var(--abtn-offset);
   z-index: var(--z-bar);
   display: flex;
   align-items: center;
