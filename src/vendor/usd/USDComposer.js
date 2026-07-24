@@ -1331,16 +1331,24 @@ class USDComposer {
 	 */
 	_buildMesh( path, spec ) {
 
-		const attrs = this._getAttributes( path );
+		let attrs = this._getAttributes( path );
+
+		// Collect GeomSubsets for multi-material support
+		const geomSubsets = this._getGeomSubsets( path );
+
+		// LOCAL PATCH (3dpeer): honour the schema's subdivision default — one
+		// Catmull-Clark level before triangulation (see _subdivideMeshFields).
+		if ( this._wantsSubdivision( attrs, geomSubsets.length > 0 ) ) {
+
+			attrs = this._subdivideMeshFields( attrs );
+
+		}
 
 		// Check for skinning data
 		const jointIndices = attrs[ 'primvars:skel:jointIndices' ];
 		const jointWeights = attrs[ 'primvars:skel:jointWeights' ];
 		const hasSkinning = jointIndices && jointWeights &&
 			jointIndices.length > 0 && jointWeights.length > 0;
-
-		// Collect GeomSubsets for multi-material support
-		const geomSubsets = this._getGeomSubsets( path );
 
 		let geometry, material;
 
@@ -1823,6 +1831,397 @@ class USDComposer {
 		}
 
 		return null;
+
+	}
+
+	// LOCAL PATCH (3dpeer): Catmull-Clark subdivision, one level, applied to
+	// the polygon-level fields BEFORE triangulation. UsdGeomMesh defaults
+	// subdivisionScheme to catmullClark, so a mesh that does not opt out is
+	// AUTHORED as a subdivision surface — usdview/QuickLook render the smooth
+	// limit surface while rendering the raw cage shows creased, blotchy
+	// shading (measured on the GENIES avatar chest). One level closes most of
+	// that gap at 4x the face count. Interpolates positions (full CC rules
+	// with boundary handling), faceVarying st (per-corner bilinear), and skin
+	// weights (per-joint merge + renormalise); authored normals are dropped so
+	// smooth vertex normals are recomputed downstream.
+
+	/** Meshes above this face count are left unsubdivided (cost guard). */
+	static SUBDIV_MAX_FACES = 24000;
+
+	/**
+	 * Whether a mesh's fields ask for subdivision we can honour.
+	 * @param {Object} attrs merged attribute map of the mesh prim
+	 * @param {boolean} hasRenderSubsets material subsets present (skip: their
+	 *   face indices would need remapping)
+	 * @returns {boolean}
+	 */
+	_wantsSubdivision( attrs, hasRenderSubsets ) {
+
+		const token = ( v ) => ( typeof v === 'string' ? v.replace( /["']/g, '' ) : v );
+		const scheme = token( attrs[ 'subdivisionScheme' ] );
+		if ( scheme === 'none' || scheme === 'bilinear' ) return false;
+		if ( hasRenderSubsets ) return false;
+		const visibility = token( attrs[ 'visibility' ] );
+		const purpose = token( attrs[ 'purpose' ] );
+		if ( visibility === 'invisible' || purpose === 'proxy' || purpose === 'guide' ) return false;
+		const counts = attrs[ 'faceVertexCounts' ];
+		const points = attrs[ 'points' ];
+		if ( ! counts || ! counts.length || ! points || ! points.length ) return false;
+		if ( counts.length > USDComposer.SUBDIV_MAX_FACES ) return false;
+		const holes = attrs[ 'primvars:arnold:polygon_holes' ];
+		if ( holes && holes.length ) return false;
+		return true;
+
+	}
+
+	/**
+	 * One Catmull-Clark iteration over the mesh fields. Returns a NEW attrs
+	 * object with subdivided points/topology/primvars (all-quad output).
+	 * @param {Object} attrs merged attribute map of the mesh prim
+	 * @returns {Object} subdivided attrs
+	 */
+	_subdivideMeshFields( attrs ) {
+
+		const srcPoints = attrs[ 'points' ];
+		const counts = attrs[ 'faceVertexCounts' ];
+		const flat = attrs[ 'faceVertexIndices' ];
+		const nVerts = srcPoints.length / 3;
+
+		// faces as vertex-id lists + per-corner flat offsets
+		const faces = [];
+		const faceOffsets = [];
+		let cursor = 0;
+		for ( let f = 0; f < counts.length; f ++ ) {
+
+			const k = counts[ f ];
+			const ids = new Array( k );
+			for ( let i = 0; i < k; i ++ ) ids[ i ] = flat[ cursor + i ];
+			faces.push( ids );
+			faceOffsets.push( cursor );
+			cursor += k;
+
+		}
+
+		// edge table: key -> { a, b, faces[], id }
+		const edges = new Map();
+		const edgeKey = ( a, b ) => ( a < b ? a + '_' + b : b + '_' + a );
+		for ( let f = 0; f < faces.length; f ++ ) {
+
+			const ids = faces[ f ];
+			for ( let i = 0; i < ids.length; i ++ ) {
+
+				const a = ids[ i ], b = ids[ ( i + 1 ) % ids.length ];
+				const key = edgeKey( a, b );
+				let e = edges.get( key );
+				if ( ! e ) { e = { a: Math.min( a, b ), b: Math.max( a, b ), faces: [] }; edges.set( key, e ); }
+				e.faces.push( f );
+
+			}
+
+		}
+
+		// vertex adjacency
+		const vertexFaces = Array.from( { length: nVerts }, () => [] );
+		const vertexEdges = Array.from( { length: nVerts }, () => [] );
+		for ( let f = 0; f < faces.length; f ++ ) {
+
+			for ( const v of faces[ f ] ) vertexFaces[ v ].push( f );
+
+		}
+		for ( const e of edges.values() ) {
+
+			vertexEdges[ e.a ].push( e );
+			vertexEdges[ e.b ].push( e );
+
+		}
+
+		const px = ( i ) => srcPoints[ i * 3 ];
+		const py = ( i ) => srcPoints[ i * 3 + 1 ];
+		const pz = ( i ) => srcPoints[ i * 3 + 2 ];
+
+		// new point layout: [ vertex points | face points | edge points ]
+		const facePointBase = nVerts;
+		const edgePointBase = nVerts + faces.length;
+		const newPoints = new Float32Array( ( nVerts + faces.length + edges.size ) * 3 );
+
+		// face points: centroids
+		const faceCenters = new Float32Array( faces.length * 3 );
+		for ( let f = 0; f < faces.length; f ++ ) {
+
+			let x = 0, y = 0, z = 0;
+			for ( const v of faces[ f ] ) { x += px( v ); y += py( v ); z += pz( v ); }
+			const k = faces[ f ].length;
+			faceCenters[ f * 3 ] = x / k;
+			faceCenters[ f * 3 + 1 ] = y / k;
+			faceCenters[ f * 3 + 2 ] = z / k;
+			newPoints.set( [ x / k, y / k, z / k ], ( facePointBase + f ) * 3 );
+
+		}
+
+		// edge points (+ ids)
+		let edgeId = 0;
+		for ( const e of edges.values() ) {
+
+			e.id = edgePointBase + edgeId ++;
+			const boundary = e.faces.length < 2;
+			let x, y, z;
+			if ( boundary ) {
+
+				x = ( px( e.a ) + px( e.b ) ) / 2;
+				y = ( py( e.a ) + py( e.b ) ) / 2;
+				z = ( pz( e.a ) + pz( e.b ) ) / 2;
+
+			} else {
+
+				x = ( px( e.a ) + px( e.b ) + faceCenters[ e.faces[ 0 ] * 3 ] + faceCenters[ e.faces[ 1 ] * 3 ] ) / 4;
+				y = ( py( e.a ) + py( e.b ) + faceCenters[ e.faces[ 0 ] * 3 + 1 ] + faceCenters[ e.faces[ 1 ] * 3 + 1 ] ) / 4;
+				z = ( pz( e.a ) + pz( e.b ) + faceCenters[ e.faces[ 0 ] * 3 + 2 ] + faceCenters[ e.faces[ 1 ] * 3 + 2 ] ) / 4;
+
+			}
+			newPoints.set( [ x, y, z ], e.id * 3 );
+
+		}
+
+		// vertex points (smooth / boundary rules)
+		for ( let v = 0; v < nVerts; v ++ ) {
+
+			const boundaryEdges = vertexEdges[ v ].filter( ( e ) => e.faces.length < 2 );
+			let x, y, z;
+			if ( boundaryEdges.length >= 2 ) {
+
+				// boundary: (neighbourA + 6*S + neighbourB) / 8
+				const nA = boundaryEdges[ 0 ].a === v ? boundaryEdges[ 0 ].b : boundaryEdges[ 0 ].a;
+				const nB = boundaryEdges[ 1 ].a === v ? boundaryEdges[ 1 ].b : boundaryEdges[ 1 ].a;
+				x = ( px( nA ) + 6 * px( v ) + px( nB ) ) / 8;
+				y = ( py( nA ) + 6 * py( v ) + py( nB ) ) / 8;
+				z = ( pz( nA ) + 6 * pz( v ) + pz( nB ) ) / 8;
+
+			} else if ( vertexFaces[ v ].length === 0 ) {
+
+				x = px( v ); y = py( v ); z = pz( v );
+
+			} else {
+
+				const n = vertexEdges[ v ].length;
+				let qx = 0, qy = 0, qz = 0;
+				for ( const f of vertexFaces[ v ] ) { qx += faceCenters[ f * 3 ]; qy += faceCenters[ f * 3 + 1 ]; qz += faceCenters[ f * 3 + 2 ]; }
+				qx /= vertexFaces[ v ].length; qy /= vertexFaces[ v ].length; qz /= vertexFaces[ v ].length;
+				let rx = 0, ry = 0, rz = 0;
+				for ( const e of vertexEdges[ v ] ) {
+
+					rx += ( px( e.a ) + px( e.b ) ) / 2;
+					ry += ( py( e.a ) + py( e.b ) ) / 2;
+					rz += ( pz( e.a ) + pz( e.b ) ) / 2;
+
+				}
+				rx /= n; ry /= n; rz /= n;
+				x = ( qx + 2 * rx + ( n - 3 ) * px( v ) ) / n;
+				y = ( qy + 2 * ry + ( n - 3 ) * py( v ) ) / n;
+				z = ( qz + 2 * rz + ( n - 3 ) * pz( v ) ) / n;
+
+			}
+			newPoints.set( [ x, y, z ], v * 3 );
+
+		}
+
+		// new topology: one quad per original face corner
+		let quadCount = 0;
+		for ( const ids of faces ) quadCount += ids.length;
+		const newCounts = new Int32Array( quadCount ).fill( 4 );
+		const newIndices = new Int32Array( quadCount * 4 );
+		let w = 0;
+		for ( let f = 0; f < faces.length; f ++ ) {
+
+			const ids = faces[ f ];
+			const k = ids.length;
+			for ( let i = 0; i < k; i ++ ) {
+
+				const ePrev = edges.get( edgeKey( ids[ ( i + k - 1 ) % k ], ids[ i ] ) ).id;
+				const eNext = edges.get( edgeKey( ids[ i ], ids[ ( i + 1 ) % k ] ) ).id;
+				newIndices[ w ++ ] = ids[ i ];
+				newIndices[ w ++ ] = eNext;
+				newIndices[ w ++ ] = facePointBase + f;
+				newIndices[ w ++ ] = ePrev;
+
+			}
+
+		}
+
+		const out = { ...attrs };
+		out[ 'points' ] = newPoints;
+		out[ 'faceVertexCounts' ] = newCounts;
+		out[ 'faceVertexIndices' ] = newIndices;
+		// smooth normals are recomputed downstream from the denser topology
+		delete out[ 'normals' ];
+		delete out[ 'normals:indices' ];
+		delete out[ 'primvars:normals' ];
+		delete out[ 'primvars:normals:indices' ];
+
+		// Primvars. Every texCoord primvar is subdivided per corner (downstream
+		// picks the FIRST texCoord it finds, so leaving any of them at the old
+		// topology corrupts the geometry); other float primvars interpolate
+		// per vertex when their size allows, and anything that cannot be
+		// interpolated safely is dropped rather than shipped misaligned.
+		const numFaceVertices = cursor;
+
+		/**
+		 * Subdivide one per-corner value set (K floats per corner).
+		 * @param {ArrayLike<number>} corner numFaceVertices*K floats
+		 * @param {number} K components per corner
+		 * @returns {Float32Array} quadCount*4*K floats (faceVarying output)
+		 */
+		const subdivideCorners = ( corner, K ) => {
+
+			const outArr = new Float32Array( quadCount * 4 * K );
+			let sw = 0;
+			const tmpC = new Array( K ), tmpN = new Array( K ), tmpP = new Array( K ), tmpF = new Array( K );
+			for ( let f = 0; f < faces.length; f ++ ) {
+
+				const k = faces[ f ].length;
+				const at = ( i, dst ) => {
+
+					for ( let c = 0; c < K; c ++ ) dst[ c ] = corner[ ( faceOffsets[ f ] + i ) * K + c ];
+					return dst;
+
+				};
+				tmpF.fill( 0 );
+				for ( let i = 0; i < k; i ++ ) {
+
+					at( i, tmpC );
+					for ( let c = 0; c < K; c ++ ) tmpF[ c ] += tmpC[ c ] / k;
+
+				}
+				for ( let i = 0; i < k; i ++ ) {
+
+					at( i, tmpC );
+					at( ( i + 1 ) % k, tmpN );
+					at( ( i + k - 1 ) % k, tmpP );
+					for ( let c = 0; c < K; c ++ ) outArr[ sw ++ ] = tmpC[ c ];
+					for ( let c = 0; c < K; c ++ ) outArr[ sw ++ ] = ( tmpC[ c ] + tmpN[ c ] ) / 2;
+					for ( let c = 0; c < K; c ++ ) outArr[ sw ++ ] = tmpF[ c ];
+					for ( let c = 0; c < K; c ++ ) outArr[ sw ++ ] = ( tmpC[ c ] + tmpP[ c ] ) / 2;
+
+				}
+
+			}
+			return outArr;
+
+		};
+
+		/**
+		 * Bring one primvar's values to per-corner layout (K floats/corner),
+		 * from indexed, faceVarying or per-vertex input. Null when impossible.
+		 */
+		const toCorners = ( values, valueIndices, K ) => {
+
+			if ( valueIndices && valueIndices.length === numFaceVertices ) {
+
+				const corner = new Float32Array( numFaceVertices * K );
+				for ( let i = 0; i < numFaceVertices; i ++ ) {
+
+					for ( let c = 0; c < K; c ++ ) corner[ i * K + c ] = values[ valueIndices[ i ] * K + c ];
+
+				}
+				return corner;
+
+			}
+			if ( values.length / K === numFaceVertices ) return Float32Array.from( values );
+			if ( values.length / K === nVerts ) {
+
+				const corner = new Float32Array( numFaceVertices * K );
+				for ( let i = 0; i < numFaceVertices; i ++ ) {
+
+					for ( let c = 0; c < K; c ++ ) corner[ i * K + c ] = values[ flat[ i ] * K + c ];
+
+				}
+				return corner;
+
+			}
+			return null;
+
+		};
+
+		for ( const key of Object.keys( out ) ) {
+
+			if ( ! key.startsWith( 'primvars:' ) ) continue;
+			if ( key.endsWith( ':indices' ) || key.endsWith( ':typeName' ) || key.endsWith( ':elementSize' ) ) continue;
+			if ( key.startsWith( 'primvars:skel:' ) ) continue; // handled below
+			const values = out[ key ];
+			if ( ! values || typeof values === 'string' || values.length === undefined || typeof values === 'boolean' ) continue;
+			if ( typeof values === 'number' || values.length === 16 && key.includes( 'Transform' ) ) continue;
+			const typeName = out[ key + ':typeName' ] || '';
+			const isTexCoord = typeof typeName === 'string' && typeName.includes( 'texCoord' );
+			const K = isTexCoord ? 2
+				: ( values.length % numFaceVertices === 0 ? values.length / numFaceVertices
+					: ( values.length % nVerts === 0 ? values.length / nVerts : 0 ) );
+			if ( K < 1 || K > 4 || ( ! isTexCoord && ! Number.isInteger( K ) ) ) {
+
+				delete out[ key ];
+				delete out[ key + ':indices' ];
+				continue;
+
+			}
+			const corner = toCorners( values, out[ key + ':indices' ], K );
+			if ( ! corner ) {
+
+				delete out[ key ];
+				delete out[ key + ':indices' ];
+				continue;
+
+			}
+			out[ key ] = subdivideCorners( corner, K );
+			delete out[ key + ':indices' ];
+
+		}
+
+		// skin weights: per-joint merge at face/edge points, renormalised
+		const ji = out[ 'primvars:skel:jointIndices' ];
+		const jw = out[ 'primvars:skel:jointWeights' ];
+		const elementSize = out[ 'primvars:skel:jointIndices:elementSize' ] || 4;
+		if ( ji && jw && ji.length === nVerts * elementSize ) {
+
+			const totalNew = nVerts + faces.length + edges.size;
+			const newJi = new ( ji.constructor === Array ? Int32Array : ji.constructor )( totalNew * elementSize );
+			const newJw = new Float32Array( totalNew * elementSize );
+
+			/** Merge several vertices' (joint, weight) pairs into one slot. */
+			const merge = ( targetIdx, sources ) => {
+
+				const acc = new Map();
+				for ( const s of sources ) {
+
+					for ( let k = 0; k < elementSize; k ++ ) {
+
+						const joint = ji[ s * elementSize + k ];
+						const weight = jw[ s * elementSize + k ];
+						if ( weight <= 0 ) continue;
+						acc.set( joint, ( acc.get( joint ) || 0 ) + weight / sources.length );
+
+					}
+
+				}
+				const top = [ ...acc.entries() ].sort( ( a, b ) => b[ 1 ] - a[ 1 ] ).slice( 0, elementSize );
+				let sum = 0;
+				for ( const [ , weight ] of top ) sum += weight;
+				for ( let k = 0; k < elementSize; k ++ ) {
+
+					newJi[ targetIdx * elementSize + k ] = k < top.length ? top[ k ][ 0 ] : 0;
+					newJw[ targetIdx * elementSize + k ] = k < top.length && sum > 0 ? top[ k ][ 1 ] / sum : 0;
+
+				}
+
+			};
+
+			for ( let v = 0; v < nVerts; v ++ ) merge( v, [ v ] );
+			for ( let f = 0; f < faces.length; f ++ ) merge( facePointBase + f, faces[ f ] );
+			for ( const e of edges.values() ) merge( e.id, [ e.a, e.b ] );
+
+			out[ 'primvars:skel:jointIndices' ] = newJi;
+			out[ 'primvars:skel:jointWeights' ] = newJw;
+
+		}
+
+		return out;
 
 	}
 

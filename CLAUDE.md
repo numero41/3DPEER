@@ -130,6 +130,12 @@ one restrained palette.
 - GENIES pipeline packages: SkelAnimation clips and USD BlendShapes do not
   survive import yet (the vendored composer builds neither into the GLB) —
   known import gaps, distinct from the viewer's playback/morph controls.
+- USD meshes DEFAULT to catmullClark subdivision (UsdGeomMesh schema); the
+  composer applies one CC level at import (see _subdivideMeshFields) or the
+  render shows the control cage — creased shading QuickLook never shows.
+  When subdividing, EVERY primvar must be re-emitted at the new topology
+  (downstream picks the first texCoord primvar it finds; one stale primvar
+  made the whole body invisible via a misaligned uv attribute).
 - iOS < 16.4 does not have DecompressionStream: the artifact shows a clean
   error in #hint — intended behavior, not a bug to "fix" with a
   heavy polyfill.
