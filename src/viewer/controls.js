@@ -89,7 +89,7 @@ export function initViewerControls(stage, root) {
       transparent: true, opacity: 0.22, depthWrite: false,
     }),
     matcap: new THREE.MeshMatcapMaterial({ matcap: makeMatcapTexture() }),
-    wire: new THREE.MeshBasicMaterial({ wireframe: true, color: 0xececf0 }),
+    wire: new THREE.MeshBasicMaterial({ wireframe: true, color: 0xefece3 }),
   };
 
   /**

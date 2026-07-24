@@ -24,11 +24,11 @@ import { SPRITE } from './sprite.js';
 /** Pin palette for the artifact (mirrors page.css tokens, which now mirror
  *  the site's neutral dark register — one look across both surfaces). */
 const PALETTE = {
-  tagText: '#161618',
-  line: '#fcfcfd',
-  labelBg: 'rgba(24, 24, 27, 0.82)',
-  labelLine: 'rgba(244, 244, 245, 0.22)',
-  labelText: '#fcfcfd',
+  tagText: '#1c1a16',
+  line: '#f6f3ea',
+  labelBg: 'rgba(28, 26, 22, 0.82)',
+  labelLine: 'rgba(246, 243, 234, 0.22)',
+  labelText: '#f6f3ea',
 };
 
 /** Presses that move less than this many px count as clicks, not orbits. */

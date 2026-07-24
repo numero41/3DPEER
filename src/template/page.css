@@ -1,5 +1,5 @@
 /* =============================================================================
-   Artifact stylesheet. The SAME neutral dark register as the workbench site
+   Artifact stylesheet. The SAME warm dark register as the workbench site
    (site/site.css): a file you receive should look like the tool that made it,
    not like a different product. Inlined into the exported HTML; keep it lean.
 
@@ -8,15 +8,15 @@
    ============================================================================= */
 
 :root {
-  /* ---- palette (monochrome dark, mirrors site.css) ---- */
-  --bg: #161618;
-  --ink: #ececf0;
-  --accent: #ececf0;
-  --line: #35353b;
-  --bar-bg: rgba(24, 24, 27, 0.82);
-  --panel-bg: rgba(20, 20, 22, 0.96);
-  --field-bg: rgba(0, 0, 0, 0.30);
-  --hover-bg: rgba(244, 244, 245, 0.12);
+  /* ---- palette: warm dark, mirrors site.css ---- */
+  --bg: #1c1a16;
+  --ink: #efece3;
+  --accent: #efece3;
+  --line: #3e3a30;
+  --bar-bg: rgba(28, 26, 22, 0.82);
+  --panel-bg: rgba(24, 22, 18, 0.96);
+  --field-bg: rgba(0, 0, 0, 0.28);
+  --hover-bg: rgba(246, 243, 234, 0.12);
 
   /* ---- type ---- */
   --mono: ui-monospace, Menlo, Consolas, monospace;

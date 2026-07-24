@@ -19,11 +19,11 @@ import { $, clearChildren, el } from './dom.js';
 
 /** Site register for the pin layer (mirrors site.css overlay tokens). */
 const PALETTE = {
-  tagText: '#161618',
-  line: '#fcfcfd',
-  labelBg: 'rgba(24, 24, 27, 0.82)',
-  labelLine: 'rgba(244, 244, 245, 0.22)',
-  labelText: '#fcfcfd',
+  tagText: '#1c1a16',
+  line: '#f6f3ea',
+  labelBg: 'rgba(28, 26, 22, 0.82)',
+  labelLine: 'rgba(246, 243, 234, 0.22)',
+  labelText: '#f6f3ea',
 };
 
 /** Presses that move less than this many px count as clicks, not orbits. */
@@ -85,7 +85,7 @@ function modeOn() {
  * @param {number} index pin index in state.annotations
  */
 function focusRow(index) {
-  $('side').classList.add('open');
+  $('side-left').classList.add('open');
   const row = $('note-list').children[index];
   if (row) row.querySelector('textarea').focus();
 }

@@ -38,10 +38,9 @@ const partBoxes = new Map();
 /** outliner row -> its DIRECT child rows, for collapse/expand. */
 const rowChildren = new Map();
 
-/** Show the side panel + edge toggle iff at least one section is visible, and
- *  tag the first visible section so section dividers land between the rest. */
+/** Tag the first visible scene section so dividers land between the rest. */
 function refreshSideVisibility() {
-  const ids = ['panel-notes', 'panel-morphs', 'panel-parts'];
+  const ids = ['panel-notes', 'panel-parts', 'panel-morphs'];
   let first = true;
   for (const id of ids) {
     const section = $(id);
@@ -49,10 +48,6 @@ function refreshSideVisibility() {
     section.classList.toggle('first-visible', visible && first);
     if (visible) first = false;
   }
-  const anyVisible = !first;
-  $('side').classList.toggle('has-content', anyVisible);
-  $('panel-toggle').classList.toggle('hidden', !anyVisible);
-  if (!anyVisible) $('side').classList.remove('open');
 }
 
 /** Build the morphs section (one slider per named morph target). */
@@ -177,20 +172,22 @@ function appendPartRow(group, list, depth, index) {
   const kind = nodes.every((n) => n.isMesh) ? 'mesh' : 'group';
   const label = (single ? collapsed.label : group.label) || kind + ' ' + index;
 
+  // No tooltip on the row itself: hovering a list of objects should not pop a
+  // label that only repeats the name already on screen.
   const row = el('div', { cls: 'part-row depth-' + Math.min(depth, MAX_INDENT_DEPTH) });
 
   // Disclosure triangle: present on every row so names stay aligned, but
   // inert (and invisible) when the row has nothing under it.
   const twisty = el('button', {
     cls: 'part-twisty',
-    attrs: { title: 'Collapse or expand ' + label, 'aria-expanded': 'true' },
+    attrs: { 'aria-label': 'Collapse or expand ' + label, 'aria-expanded': 'true' },
   });
   twisty.insertAdjacentHTML('afterbegin', '<svg class="ico" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg>');
 
   // Visibility: an eye that closes when the part is hidden.
   const eye = el('button', {
     cls: 'part-eye',
-    attrs: { title: 'Show or hide ' + label, 'aria-pressed': 'true' },
+    attrs: { 'aria-label': 'Show or hide ' + label, 'aria-pressed': 'true' },
   });
   eye.insertAdjacentHTML('afterbegin', '<svg class="ico" viewBox="0 0 24 24"><use href="#i-eye"></use></svg>');
 
@@ -336,14 +333,28 @@ export function buildPanels(gltf) {
   refreshPolyCount();
 }
 
-/** Wire the toggle that opens/closes the docked side panel (icon flips). */
-export function initSidePanel() {
-  const toggle = $('panel-toggle');
+/**
+ * Wire one panel toggle to its panel. Each icon points at its own side and
+ * flips between the open and close glyph.
+ * @param {string} buttonId the toggle button
+ * @param {string} panelId the panel it controls
+ * @param {string} openIcon sprite id shown while the panel is closed
+ * @param {string} closeIcon sprite id shown while the panel is open
+ */
+function wirePanelToggle(buttonId, panelId, openIcon, closeIcon) {
+  const toggle = $(buttonId);
   toggle.addEventListener('click', () => {
-    const open = $('side').classList.toggle('open');
-    toggle.querySelector('use').setAttribute('href', open ? '#i-panel-close' : '#i-panel-open');
-    // Docking/undocking the panel reflows the row, so the canvas must re-fit
-    // its box — otherwise the drawing buffer keeps the old size and letterboxes.
+    const open = $(panelId).classList.toggle('open');
+    toggle.setAttribute('aria-pressed', String(open));
+    toggle.querySelector('use').setAttribute('href', open ? closeIcon : openIcon);
+    // Docking/undocking a panel reflows the row, so the canvas must re-fit its
+    // box — otherwise the drawing buffer keeps the old size and letterboxes.
     requestAnimationFrame(() => dispatchEvent(new Event('resize')));
   });
+}
+
+/** Wire both side-panel toggles (scene on the left, export on the right). */
+export function initSidePanel() {
+  wirePanelToggle('panel-left-toggle', 'side-left', '#i-panel-left-open', '#i-panel-left-close');
+  wirePanelToggle('panel-right-toggle', 'side-right', '#i-panel-open', '#i-panel-close');
 }

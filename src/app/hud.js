@@ -39,7 +39,7 @@ function group(n) {
 export function refreshPolyCount() {
   const line = $('hud-poly');
   if (!state.root) {
-    line.textContent = '— verts · — faces · — edges';
+    line.textContent = 'Polys: —';
     return;
   }
   let vertices = 0;
@@ -56,7 +56,7 @@ export function refreshPolyCount() {
   // Closed triangle mesh: E = 3F/2. Open meshes have slightly more; this is
   // the standard DCC estimate and is labelled as a count, not a proof.
   const edges = Math.round(faces * 1.5);
-  line.textContent = `${group(vertices)} verts · ${group(faces)} faces · ${group(edges)} edges`;
+  line.textContent = `Verts: ${group(vertices)}   Faces: ${group(faces)}   Edges: ${group(edges)}`;
 }
 
 /**
@@ -72,7 +72,7 @@ export function tickFps() {
   }
   const elapsed = now - windowStart;
   if (elapsed < FPS_WINDOW_MS) return;
-  $('hud-fps').textContent = Math.round((frames * 1000) / elapsed) + ' fps';
+  $('hud-fps').textContent = 'FPS: ' + Math.round((frames * 1000) / elapsed);
   frames = 0;
   windowStart = now;
 }

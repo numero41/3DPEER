@@ -11,28 +11,29 @@
    ============================================================================= */
 
 :root {
-  /* ---- palette (monochrome, dark) ---- */
+  /* ---- palette: warm dark. Every neutral carries a little yellow (hue ~45°,
+     low saturation) — never blue-grey, never brown. ---- */
   --white: #ffffff;
   --black: #000000;
-  --bg: #161618;
-  --surface: #202024;
-  --ink: #ececf0;
-  --muted: #aeaeb6;
-  --faint: #82828b;
-  --line: #26262b;
-  --line-strong: #35353b;
-  --stage-bg: #262626;
-  --btn-dark: #2c2c31;
+  --bg: #1c1a16;
+  --surface: #26241e;
+  --ink: #efece3;
+  --muted: #b2ac9d;
+  --faint: #878172;
+  --line: #2e2b23;
+  --line-strong: #3e3a30;
+  --stage-bg: #2b2822;
+  --btn-dark: #322e26;
 
   /* ---- overlays drawn over the dark viewport ---- */
-  --overlay: rgba(24, 24, 27, 0.82);
-  --overlay-ink: #fcfcfd;
-  --overlay-line: rgba(244, 244, 245, 0.22);
-  --panel-bg: rgba(20, 20, 22, 0.96);
-  --face-fill: rgba(244, 244, 245, 0.07);
-  --face-line: rgba(244, 244, 245, 0.40);
-  --field-bg: rgba(0, 0, 0, 0.30);
-  --soft-ink: rgba(244, 244, 245, 0.08);
+  --overlay: rgba(28, 26, 22, 0.82);
+  --overlay-ink: #f6f3ea;
+  --overlay-line: rgba(246, 243, 234, 0.22);
+  --panel-bg: rgba(24, 22, 18, 0.96);
+  --face-fill: rgba(246, 243, 234, 0.07);
+  --face-line: rgba(246, 243, 234, 0.40);
+  --field-bg: rgba(0, 0, 0, 0.28);
+  --soft-ink: rgba(246, 243, 234, 0.08);
 
   /* ---- semantic roles ---- */
   --accent: var(--btn-dark);
@@ -122,7 +123,8 @@
   --compare-label-b-right: 64px;
 
   /* ---- viewport HUD + transport ---- */
-  --stage-corner-bottom: 62px;
+  --transport-bottom: 58px;
+  --under-max: 1200px;
   --transport-clip-w: 160px;
   --transport-time-w: 48px;
   --twisty: 16px;
@@ -304,17 +306,27 @@ button:hover,
    stage vertically — the panel scrolls internally instead. */
 .stage-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: center;
   gap: var(--sp-4);
   width: 100%;
 }
 
+/* Panels keep their width; the stage gives up space for them. A flex item's
+   used width comes from its BASIS, so the basis is what has to carry the
+   open/closed size — setting `width` alone leaves the basis at auto and the
+   panel collapses. */
+.side-panel {
+  flex: 0 0 0;
+}
+
 /* ===================================================================== stage */
 .stage {
   position: relative;
-  width: min(var(--stage-max), 100%);
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
   max-width: var(--stage-max);
   aspect-ratio: 1 / 1;
   overflow: hidden;
@@ -461,12 +473,17 @@ body.loaded .dropzone {
 }
 
 /* ---- viewer chrome: hidden until a model is loaded ---- */
-.stage-tools {
+.stage-bar,
+.stage-toggle {
   display: none;
 }
 
-body.loaded .stage-tools {
+body.loaded .stage-bar {
   display: flex;
+}
+
+body.loaded .stage-toggle {
+  display: grid;
 }
 
 /* ==================================================== inline SVG icon sprite */
@@ -504,20 +521,37 @@ body.loaded .stage-tools {
   cursor: pointer;
 }
 
-/* ---- right-edge tool column: panel toggle, then category groups ---- */
-.stage-tools {
+/* ---- bottom tool bar: groups spread across the whole width ---- */
+.stage-bar {
   position: absolute;
-  top: var(--sp-4);
   right: var(--sp-4);
-  flex-direction: column;
-  gap: var(--sp-6);
+  bottom: var(--sp-4);
+  left: var(--sp-4);
+  align-items: center;
+  justify-content: space-between;
   z-index: var(--z-overlay);
 }
 
 .tool-group {
   display: flex;
-  flex-direction: column;
   gap: var(--sp-2);
+}
+
+/* ---- panel toggles, one in each top corner of the viewport ----
+   Scoped under .stage so this wins over the tooltip rule ([data-tip] sets
+   position: relative, and it is declared later in this file). */
+.stage .stage-toggle {
+  position: absolute;
+  top: var(--sp-4);
+  z-index: var(--z-overlay);
+}
+
+.stage .stage-toggle-l {
+  left: var(--sp-4);
+}
+
+.stage .stage-toggle-r {
+  right: var(--sp-4);
 }
 
 .tool-sep {
@@ -676,15 +710,15 @@ body.loaded .stage-tools {
   width: 100%;
 }
 
-/* ---- heads-up displays (top-left of the viewport) ---- */
+/* ---- heads-up readouts: centred at the top, no frame, "Label: value" ---- */
 .hud {
   position: absolute;
   top: var(--sp-4);
-  left: var(--sp-4);
+  left: 50%;
   z-index: 1;
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
+  gap: var(--sp-5);
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
@@ -695,51 +729,31 @@ body.loaded .stage-tools {
 
 .hud-line {
   margin: 0;
-  padding: var(--sp-1) var(--sp-3);
-  border: var(--hairline) solid var(--overlay-line);
-  border-radius: var(--r-sm);
-  background: var(--overlay);
   color: var(--overlay-ink);
   font: var(--fs-2xs)/1.5 var(--mono);
   letter-spacing: var(--track-tight);
   white-space: nowrap;
+  opacity: var(--op-dim);
 }
 
-/* ---- bottom-right cluster: camera views + snapshot ---- */
-.stage-corner {
-  position: absolute;
-  right: var(--sp-4);
-  bottom: var(--stage-corner-bottom);
-  z-index: 2;
-  display: none;
-  gap: var(--sp-2);
-}
-
-body.loaded .stage-corner {
-  display: flex;
-}
-
-/* This popover opens UPWARD from a bottom-anchored button. */
+/* Popovers anchored to the bottom bar open UPWARD. */
 .menu-pop-up {
   top: auto;
-  right: 0;
+  right: auto;
   bottom: calc(100% + var(--sp-2));
+  left: 0;
 }
 
-/* ---- transport bar (playback, across the bottom of the viewport) ---- */
+/* ---- transport: unframed timeline above the tool bar ---- */
 .transport {
   position: absolute;
   right: var(--sp-4);
-  bottom: var(--sp-4);
+  bottom: var(--transport-bottom);
   left: var(--sp-4);
   z-index: 2;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-2);
-  border: var(--hairline) solid var(--overlay-line);
-  border-radius: var(--r-md);
-  background: var(--overlay);
 }
 
 .transport.hidden {
@@ -777,15 +791,16 @@ body.loaded .stage-corner {
   display: none;
 }
 
-/* Docked next to the stage: no box at all when closed. max-height matters as
-   much as width — a closed panel still grows to its CONTENT height otherwise,
-   making the row taller than the square stage and leaving a gap between the
-   view and the status line (very visible with the tall USDZ hierarchy). */
-.side {
+/* Side panels flank the stage: scene on the left, export on the right. Closed
+   they collapse to nothing — max-height matters as much as width, since a
+   closed panel still grows to its CONTENT height otherwise, making the row
+   taller than the square stage. */
+.side-panel {
+  display: flex;
+  flex-direction: column;
   align-self: stretch;
   width: 0;
   max-height: 0;
-  padding: 0;
   overflow: hidden;
   border: 0;
   border-radius: var(--r-lg);
@@ -794,14 +809,39 @@ body.loaded .stage-corner {
   transition: width var(--dur) ease;
 }
 
-.side.open {
+.side-panel.open {
+  flex-basis: min(var(--panel-w), 84vw);
   width: min(var(--panel-w), 84vw);
   max-width: min(var(--panel-w), 84vw);
   max-height: min(var(--stage-max), 82vh);
-  padding: var(--sp-4);
-  overflow-y: auto;
   border: var(--hairline) solid var(--line-strong);
   background: var(--surface);
+}
+
+/* The panel title stays put while the body scrolls under it. */
+.panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--sp-4);
+  border-bottom: var(--hairline) solid var(--line-strong);
+  background: var(--surface);
+}
+
+.panel-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--track-mid);
+  text-transform: uppercase;
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--sp-4);
+  overflow-y: auto;
 }
 
 /* Sections are divided by a hairline; the first visible one has no rule
@@ -821,13 +861,38 @@ body.loaded .stage-corner {
   display: none;
 }
 
-.side-sec h2 {
+.side-sec h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   margin: 0 0 var(--sp-4);
   color: var(--faint);
   font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: var(--track-mid);
   text-transform: uppercase;
+}
+
+/* The three export actions stack at the foot of the right panel. */
+.action-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border-top: var(--hairline) solid var(--line-strong);
+}
+
+.action-col .btn-primary {
+  width: 100%;
+}
+
+/* Reset + estimate share the last line of the settings section. */
+.comp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
 }
 
 /* ================================================================ annotations */
@@ -962,18 +1027,18 @@ body.loaded .stage-corner {
   outline: var(--hairline) solid var(--overlay-ink);
 }
 
-.side-sec h2 {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
 /* ======================================================= below-viewer block */
+/* One cartouche under the whole row: what happened, and how far along. */
 .under {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
-  width: min(var(--stage-max), 100%);
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: var(--under-max);
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
 }
 
 .under-status {
@@ -1536,24 +1601,24 @@ footer .legal-mark {
 }
 
 /* ==================================================================== narrow */
+/* Not enough room for panels beside the stage: stack them instead of
+   squeezing the viewport into a sliver. */
+@media (max-width: 1100px) {
+  .stage-row {
+    flex-wrap: wrap;
+  }
+
+  .side-panel.open {
+    flex-basis: 100%;
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+  }
+}
+
 @media (max-width: 560px) {
   .under-status {
     max-width: 100%;
-  }
-
-  /* Wrapped below the stage: the panel spans the full width. */
-  .side.open {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .comp-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .comp-reset {
-    grid-column: 1 / -1;
-    justify-content: end;
   }
 
   .nav-btn {
