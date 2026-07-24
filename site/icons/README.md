@@ -24,6 +24,16 @@ via `currentColor`, so leave no hard-coded colours in the files.
 | `fullscreen-exit.svg` | `minimize-2`       | exit fullscreen                  |
 | `quad.svg`          | `layout-grid`        | quad-view toggle                 |
 | `compare.svg`       | `columns-2`          | before/after compression split   |
+| `view-front.svg`    | *(bespoke cube)*     | front camera preset              |
+| `view-back.svg`     | *(bespoke cube)*     | back camera preset               |
+| `view-left.svg`     | *(bespoke cube)*     | left camera preset               |
+| `view-right.svg`    | *(bespoke cube)*     | right camera preset              |
+| `view-top.svg`      | *(bespoke cube)*     | top camera preset                |
+| `view-bottom.svg`   | *(bespoke cube)*     | bottom camera preset             |
+| `view-persp.svg`    | *(bespoke cube)*     | perspective camera preset        |
+
+The seven `view-*.svg` are original to this project: one cabinet-projection
+cube per preset, with the face you look at filled in `currentColor`.
 | `panel-open.svg`    | `panel-right-open`   | open the right-side panel        |
 | `panel-close.svg`   | `panel-right-close`  | close the right-side panel       |
 

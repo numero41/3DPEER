@@ -107,3 +107,56 @@ if ((object.animations || []).length !== 0) {
   throw new Error('fbx guard: the trackless clip should have been dropped');
 }
 console.log('fbx empty-animation-track guard: OK — mesh loads, keyless curve skipped, trackless clip dropped');
+
+// --- skin-weight renormalisation ------------------------------------------
+// FBX allows any number of influences per vertex; three keeps the four
+// largest and drops the rest WITHOUT renormalising, so the weights sum to
+// less than 1 and the skinning shader drags those vertices toward the
+// skeleton origin (the "exploded mesh"). importers.js repairs this with
+// normalizeSkinWeights(); this measures the collapse and the repair.
+console.log('--- skin-weight renormalisation');
+{
+  const THREE = await import('three');
+  const geometry = new THREE.BoxGeometry(1, 1, 4, 1, 1, 4);
+  geometry.translate(0, 0, 2);
+  const count = geometry.getAttribute('position').count;
+  const skinIndex = new Uint16Array(count * 4);
+  const skinWeight = new Float32Array(count * 4);
+  for (let i = 0; i < count; i++) {
+    // A truncated 6-influence vertex: the kept weights sum to 0.5, not 1.
+    skinIndex[i * 4] = 1;
+    skinWeight[i * 4] = 0.5;
+  }
+  geometry.setAttribute('skinIndex', new THREE.BufferAttribute(skinIndex, 4));
+  geometry.setAttribute('skinWeight', new THREE.BufferAttribute(skinWeight, 4));
+
+  const root = new THREE.Bone();
+  const moved = new THREE.Bone();
+  moved.position.set(0, 10, 0); // a bone far from the origin
+  root.add(moved);
+  const mesh = new THREE.SkinnedMesh(geometry, new THREE.MeshStandardMaterial());
+  mesh.add(root);
+  mesh.bind(new THREE.Skeleton([root, moved]));
+  mesh.updateMatrixWorld(true);
+
+  const probe = new THREE.Vector3();
+  mesh.getVertexPosition(0, probe);
+  const before = probe.clone();
+  mesh.normalizeSkinWeights();
+  mesh.getVertexPosition(0, probe);
+  const after = probe.clone();
+
+  // Un-normalised weights collapse the vertex toward the origin; after the
+  // repair it sits exactly where the single full-weight bone puts it.
+  const expected = new THREE.Vector3();
+  mesh.getVertexPosition(0, expected); // recomputed with weights summing to 1
+  if (before.distanceTo(after) < 1e-6) {
+    throw new Error('skin renormalisation: expected the collapsed vertex to move');
+  }
+  const sum = geometry.getAttribute('skinWeight');
+  const total = sum.getX(0) + sum.getY(0) + sum.getZ(0) + sum.getW(0);
+  if (Math.abs(total - 1) > 1e-5) {
+    throw new Error('skin renormalisation: weights still sum to ' + total);
+  }
+  console.log(`skin-weight renormalisation: OK — weight sum 0.5 -> ${total.toFixed(3)}, vertex moved ${before.distanceTo(after).toFixed(2)} units back into place`);
+}

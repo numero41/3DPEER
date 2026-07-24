@@ -20,6 +20,7 @@
 
 import * as THREE from 'three';
 import { MeshoptSimplifier } from 'meshoptimizer';
+import { refreshPolyCount } from './hud.js';
 import { state } from './state.js';
 import { $ } from './dom.js';
 
@@ -182,6 +183,8 @@ async function run() {
         }
       }
     } while (queued);
+    // The HUD reports what is on screen, decimation preview included.
+    refreshPolyCount();
   } finally {
     busy = false;
   }

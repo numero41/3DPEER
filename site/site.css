@@ -121,6 +121,12 @@
   --compare-split-w: 42%;
   --compare-label-b-right: 64px;
 
+  /* ---- viewport HUD + transport ---- */
+  --stage-corner-bottom: 62px;
+  --transport-clip-w: 160px;
+  --transport-time-w: 48px;
+  --twisty: 16px;
+
   /* ---- guide modal ---- */
   --modal-w: 720px;
   --modal-max-h: 84vh;
@@ -658,36 +664,112 @@ body.loaded .stage-tools {
   width: 100%;
 }
 
-/* ---- camera cube (inside the camera popover) ---- */
-.cube-net {
-  display: block;
-  width: var(--cube-w);
-  height: auto;
-  margin: 0 auto;
-  overflow: visible;
+/* ---- camera view presets (inside the camera popover) ---- */
+.view-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
 }
 
-.cube-face rect {
-  fill: var(--face-fill);
-  stroke: var(--face-line);
-  stroke-width: var(--hairline);
-  cursor: pointer;
-  transition: fill var(--dur);
+.view-grid .icon-btn {
+  width: 100%;
 }
 
-.cube-face text {
-  fill: color-mix(in srgb, var(--overlay-ink), transparent 25%);
-  font: 600 var(--fs-xs) var(--mono);
-  text-anchor: middle;
+/* ---- heads-up displays (top-left of the viewport) ---- */
+.hud {
+  position: absolute;
+  top: var(--sp-4);
+  left: var(--sp-4);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
   pointer-events: none;
 }
 
-.cube-face:hover rect {
-  fill: color-mix(in srgb, var(--face-fill), var(--overlay-ink) 85%);
+.hud.hidden,
+.hud-line.hidden {
+  display: none;
 }
 
-.cube-face:hover text {
-  fill: var(--bg);
+.hud-line {
+  margin: 0;
+  padding: var(--sp-1) var(--sp-3);
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-sm);
+  background: var(--overlay);
+  color: var(--overlay-ink);
+  font: var(--fs-2xs)/1.5 var(--mono);
+  letter-spacing: var(--track-tight);
+  white-space: nowrap;
+}
+
+/* ---- bottom-right cluster: camera views + snapshot ---- */
+.stage-corner {
+  position: absolute;
+  right: var(--sp-4);
+  bottom: var(--stage-corner-bottom);
+  z-index: 2;
+  display: none;
+  gap: var(--sp-2);
+}
+
+body.loaded .stage-corner {
+  display: flex;
+}
+
+/* This popover opens UPWARD from a bottom-anchored button. */
+.menu-pop-up {
+  top: auto;
+  right: 0;
+  bottom: calc(100% + var(--sp-2));
+}
+
+/* ---- transport bar (playback, across the bottom of the viewport) ---- */
+.transport {
+  position: absolute;
+  right: var(--sp-4);
+  bottom: var(--sp-4);
+  left: var(--sp-4);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2);
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-md);
+  background: var(--overlay);
+}
+
+.transport.hidden {
+  display: none;
+}
+
+.transport-scrub {
+  flex: 1;
+  min-width: 0;
+}
+
+.transport-clip {
+  max-width: var(--transport-clip-w);
+  padding: var(--sp-1) var(--sp-2);
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-sm);
+  background: var(--field-bg);
+  color: var(--overlay-ink);
+  font: var(--fs-xs)/1 var(--sans);
+}
+
+.transport-clip.hidden {
+  display: none;
+}
+
+.transport-time {
+  min-width: var(--transport-time-w);
+  color: var(--overlay-ink);
+  font: var(--fs-2xs)/1 var(--mono);
+  text-align: right;
 }
 
 /* ======================================================== right-side panel */
@@ -968,10 +1050,12 @@ body.loaded .stage-tools {
 }
 
 /* reset sits on the same line as the sliders, past the last one, aligned to
-   the slider inputs (the bottom of each two-line slider cell). */
+   the slider inputs: same vertical margins as .slider-row so the button's
+   bottom edge tracks the input line, not the grid cell. */
 .comp-reset {
   display: flex;
   align-items: end;
+  margin: var(--sp-4) 0;
 }
 
 .comp-opt {
@@ -1292,6 +1376,63 @@ input[type="radio"]:checked::before {
 /* Group nodes read dimmer than the meshes they contain. */
 .part-group {
   color: var(--muted);
+}
+
+/* Rows inside a collapsed parent. */
+.part-row.row-collapsed {
+  display: none;
+}
+
+/* Disclosure triangle + eye: bare icon buttons sized to the row. */
+.part-twisty,
+.part-eye {
+  --btn-bg: transparent;
+  --btn-fg: var(--ink);
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--twisty);
+  height: var(--twisty);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.part-twisty .ico,
+.part-eye .ico {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  stroke-width: var(--icon-stroke);
+}
+
+/* The vendored chevron points LEFT: rotate it down when the row is open and
+   right when it is collapsed. */
+.part-twisty .ico {
+  transform: rotate(-90deg);
+  transition: transform var(--dur);
+}
+
+.part-twisty[aria-expanded="false"] .ico {
+  transform: rotate(180deg);
+}
+
+/* Leaf rows keep the slot (names stay aligned) without an active control. */
+.part-leaf .part-twisty {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.part-eye[aria-pressed="false"] {
+  color: var(--faint);
+}
+
+/* A hidden part reads greyed out, name and icons together. */
+.part-row.part-hidden .part-name {
+  color: var(--faint);
+  opacity: var(--op-disabled);
 }
 
 /* ===================================================================== guide */

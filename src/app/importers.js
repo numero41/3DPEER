@@ -79,6 +79,82 @@ function withBatchedWarnings(parse) {
 }
 
 /**
+ * Repair skin weights that do not sum to 1.
+ *
+ * FBX supports any number of influences per vertex; three's shader supports
+ * four, so the loader keeps the four largest and DROPS the rest without
+ * renormalising. The remaining weights then sum to less than 1 and the
+ * skinning shader pulls those vertices toward the skeleton origin — the mesh
+ * looks exploded. normalizeSkinWeights() is three's own fix; it is a no-op on
+ * files whose weights already sum to 1.
+ * @param {THREE.Object3D} object the parsed scene
+ */
+function normalizeSkinning(object) {
+  object.traverse((node) => {
+    if (node.isSkinnedMesh) node.normalizeSkinWeights();
+  });
+}
+
+/**
+ * Convert legacy Phong/Lambert/Basic-lit materials to MeshStandardMaterial.
+ *
+ * FBX has no PBR material in its base spec, so the loader falls back to
+ * MeshPhongMaterial — which GLTFExporter cannot express ("Use
+ * MeshStandardMaterial or MeshBasicMaterial for best results") and therefore
+ * writes with default PBR values, losing the shading the viewport showed.
+ * Converting here keeps what the formats share (colour, maps, emissive,
+ * transparency) and maps Phong shininess onto roughness, so preview and
+ * export agree.
+ * @param {THREE.Object3D} object the parsed scene
+ */
+function toStandardMaterials(object) {
+  const converted = new Map();
+
+  /**
+   * @param {THREE.Material} material
+   * @returns {THREE.Material} the standard equivalent, or the input untouched
+   */
+  const convert = (material) => {
+    if (!material || !material.isMeshPhongMaterial) return material;
+    if (converted.has(material)) return converted.get(material);
+    // Phong shininess (0..1000, log-ish) onto roughness (1..0).
+    const shininess = typeof material.shininess === 'number' ? material.shininess : 30;
+    const roughness = Math.min(1, Math.max(0, 1 - Math.log2(1 + shininess) / 10));
+    const standard = new THREE.MeshStandardMaterial({
+      name: material.name,
+      color: material.color,
+      map: material.map,
+      normalMap: material.normalMap,
+      normalScale: material.normalScale,
+      bumpMap: material.bumpMap,
+      bumpScale: material.bumpScale,
+      alphaMap: material.alphaMap,
+      aoMap: material.aoMap,
+      emissive: material.emissive,
+      emissiveMap: material.emissiveMap,
+      emissiveIntensity: material.emissiveIntensity,
+      transparent: material.transparent,
+      opacity: material.opacity,
+      alphaTest: material.alphaTest,
+      side: material.side,
+      vertexColors: material.vertexColors,
+      flatShading: material.flatShading,
+      roughness,
+      metalness: 0,
+    });
+    converted.set(material, standard);
+    return standard;
+  };
+
+  object.traverse((node) => {
+    if (!node.isMesh) return;
+    node.material = Array.isArray(node.material)
+      ? node.material.map(convert)
+      : convert(node.material);
+  });
+}
+
+/**
  * Parse a non-glTF model file into a three.js object.
  * @param {string} ext lower-case extension without the dot
  * @param {ArrayBuffer} buffer file contents
@@ -92,8 +168,12 @@ function parseToObject(ext, buffer) {
       return meshFromGeometry(new STLLoader().parse(buffer));
     case 'ply':
       return meshFromGeometry(new PLYLoader().parse(buffer));
-    case 'fbx':
-      return withBatchedWarnings(() => new FBXLoader().parse(buffer, ''));
+    case 'fbx': {
+      const object = withBatchedWarnings(() => new FBXLoader().parse(buffer, ''));
+      normalizeSkinning(object);
+      toStandardMaterials(object);
+      return object;
+    }
     default:
       throw new Error('unsupported format: .' + ext);
   }

@@ -14,7 +14,8 @@ import { initLoader } from './loader.js';
 import { initMaterialControls } from './materials.js';
 import { initLighting } from './lighting.js';
 import { initMenus } from './menus.js';
-import { initSidePanel } from './panels.js';
+import { initSidePanel, syncAnimTime } from './panels.js';
+import { initHud, tickFps } from './hud.js';
 import { initViews } from './views.js';
 import { initAnnotations, updateAnnotationLayer } from './annotate.js';
 import { initExport } from './exporter.js';
@@ -52,10 +53,11 @@ initDecimatePreview();
 initCompare(stage);
 initCompressionSettings();
 initGuide();
+initHud();
 
 // Licensing is not live yet: say so plainly rather than leaving a dead button.
 $('signin').addEventListener('click', () =>
-  setStatus('Accounts are not live yet — every feature is free and exported files carry a watermark.', 'info'));
+  setStatus('Accounts are not live yet. Every feature is free, and exported files carry a watermark.', 'info'));
 
 // Render loop: advance any playing animation, keep the scrub bar in sync, and
 // draw. OrbitControls needs update() every frame for damping.
@@ -65,10 +67,12 @@ stage.renderer.setAnimationLoop(() => {
     state.mixer.update(state.clock.getDelta());
     const active = state.activeAction;
     $('anim-scrub').value = String((active.action.time % active.clip.duration) / active.clip.duration);
+    syncAnimTime();
   } else {
     state.clock.getDelta(); // keep the clock current even while paused
   }
   updateAnnotationLayer();
   stage.update();
   stage.render();
+  tickFps();
 });

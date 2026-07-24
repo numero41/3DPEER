@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { collectMorphs } from '../viewer/morphs.js';
 import { refreshAnnotations, syncAnnotationVisibility } from './annotate.js';
+import { refreshPolyCount } from './hud.js';
 import { state } from './state.js';
 import { $, clearChildren, el } from './dom.js';
 
@@ -17,16 +18,30 @@ export function playClip(i) {
   a.action.reset().play();
   a.action.paused = false;
   state.activeAction = a;
-  $('anim-toggle').textContent = 'Pause';
+  syncAnimToggle(true);
 }
 
-/** node -> its visibility checkbox, so a group toggle can cascade. */
+/**
+ * Reflect the playing state on the play/pause button (sprite icon + ARIA),
+ * mirroring the artifact's own control (src/viewer/anim.js).
+ * @param {boolean} playing whether a clip is currently advancing
+ */
+function syncAnimToggle(playing) {
+  const button = $('anim-toggle');
+  button.setAttribute('aria-pressed', String(playing));
+  button.querySelector('use').setAttribute('href', playing ? '#i-pause' : '#i-play');
+}
+
+/** node -> { set, isOn } for its outliner row, so a group toggle can cascade. */
 const partBoxes = new Map();
+
+/** outliner row -> its DIRECT child rows, for collapse/expand. */
+const rowChildren = new Map();
 
 /** Show the side panel + edge toggle iff at least one section is visible, and
  *  tag the first visible section so section dividers land between the rest. */
 function refreshSideVisibility() {
-  const ids = ['panel-notes', 'panel-anims', 'panel-morphs', 'panel-parts'];
+  const ids = ['panel-notes', 'panel-morphs', 'panel-parts'];
   let first = true;
   for (const id of ids) {
     const section = $(id);
@@ -162,32 +177,94 @@ function appendPartRow(group, list, depth, index) {
   const kind = nodes.every((n) => n.isMesh) ? 'mesh' : 'group';
   const label = (single ? collapsed.label : group.label) || kind + ' ' + index;
 
-  const row = el('label', {
-    cls: 'part-row depth-' + Math.min(depth, MAX_INDENT_DEPTH),
-    attrs: { title: 'Show / hide ' + label },
+  const row = el('div', { cls: 'part-row depth-' + Math.min(depth, MAX_INDENT_DEPTH) });
+
+  // Disclosure triangle: present on every row so names stay aligned, but
+  // inert (and invisible) when the row has nothing under it.
+  const twisty = el('button', {
+    cls: 'part-twisty',
+    attrs: { title: 'Collapse or expand ' + label, 'aria-expanded': 'true' },
   });
-  const box = el('input', { attrs: { type: 'checkbox' } });
-  box.checked = nodes.every((n) => n.visible);
-  for (const node of nodes) partBoxes.set(node, box);
-  box.addEventListener('change', () => {
+  twisty.insertAdjacentHTML('afterbegin', '<svg class="ico" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg>');
+
+  // Visibility: an eye that closes when the part is hidden.
+  const eye = el('button', {
+    cls: 'part-eye',
+    attrs: { title: 'Show or hide ' + label, 'aria-pressed': 'true' },
+  });
+  eye.insertAdjacentHTML('afterbegin', '<svg class="ico" viewBox="0 0 24 24"><use href="#i-eye"></use></svg>');
+
+  const name = el('span', { cls: 'part-name part-' + kind, text: label });
+
+  /**
+   * Reflect one visibility state on this row (icon, ARIA, dimmed name).
+   * @param {boolean} visible
+   */
+  const paint = (visible) => {
+    eye.setAttribute('aria-pressed', String(visible));
+    eye.querySelector('use').setAttribute('href', visible ? '#i-eye' : '#i-eye-off');
+    row.classList.toggle('part-hidden', !visible);
+  };
+  paint(nodes.every((n) => n.visible));
+
+  for (const node of nodes) partBoxes.set(node, { set: paint, isOn: () => nodes.every((n) => n.visible) });
+
+  eye.addEventListener('click', () => {
+    const next = eye.getAttribute('aria-pressed') !== 'true';
     // Toggling a part cascades to every object under it (a hidden group hides
-    // everything below, checkboxes included).
+    // everything below, its rows included).
     for (const node of nodes) {
       node.traverse((child) => {
-        child.visible = box.checked;
-        const childBox = partBoxes.get(child);
-        if (childBox) childBox.checked = box.checked;
+        child.visible = next;
+        const entry = partBoxes.get(child);
+        if (entry) entry.set(next);
       });
     }
+    paint(next);
     syncAnnotationVisibility();
+    refreshPolyCount();
   });
-  row.append(box, el('span', { cls: 'part-name part-' + kind, text: label }));
+
+  row.append(twisty, eye, name);
   list.append(row);
 
   // Split pieces have no meaningful sub-structure to show.
-  if (!single) return;
+  if (!single) {
+    row.classList.add('part-leaf');
+    return;
+  }
   const children = groupSiblings(nodes[0].children.filter(hasGeometry));
+  if (!children.length) {
+    row.classList.add('part-leaf');
+    return;
+  }
+  const firstChildIndex = list.children.length;
   children.forEach((child, i) => appendPartRow(child, list, depth + 1, i));
+  // Direct children only — nested rows are reached through their own entry,
+  // so a subtree collapsed inside a subtree stays collapsed when the outer
+  // one re-opens.
+  rowChildren.set(row, [...list.children].slice(firstChildIndex)
+    .filter((child) => list.children[firstChildIndex] === child
+      || child.classList.contains('depth-' + Math.min(depth + 1, MAX_INDENT_DEPTH))));
+  twisty.addEventListener('click', () => {
+    const open = twisty.getAttribute('aria-expanded') !== 'true';
+    twisty.setAttribute('aria-expanded', String(open));
+    applyCollapse(row, open);
+  });
+}
+
+/**
+ * Show or hide one row's subtree, honouring rows collapsed further down.
+ * @param {HTMLElement} row the row whose children are toggled
+ * @param {boolean} open whether the row is expanding
+ */
+function applyCollapse(row, open) {
+  for (const child of rowChildren.get(row) || []) {
+    child.classList.toggle('row-collapsed', !open);
+    const twisty = child.querySelector('.part-twisty');
+    const childOpen = open && twisty && twisty.getAttribute('aria-expanded') === 'true';
+    applyCollapse(child, childOpen);
+  }
 }
 
 /** Build the parts section as the real scene hierarchy (visibility per node). */
@@ -205,14 +282,17 @@ function buildParts(scene) {
     .forEach((group, i) => appendPartRow(group, list, 0, i));
 }
 
-/** Build the animations section (clip picker + play/pause + scrub). */
+/** Build the transport bar across the bottom of the viewport (clip picker
+ *  when there is a choice, play/pause, scrub, time readout). */
 function buildAnimations() {
-  const box = $('panel-anims');
-  box.classList.toggle('hidden', state.actions.length === 0);
+  const bar = $('transport');
+  bar.classList.toggle('hidden', state.actions.length === 0);
   if (!state.actions.length) return;
 
   const sel = $('anim-select');
   clearChildren(sel);
+  // One clip needs no picker; the bar stays a play button and a timeline.
+  sel.classList.toggle('hidden', state.actions.length < 2);
   state.actions.forEach(({ clip }, i) => {
     sel.append(el('option', { text: clip.name || 'clip ' + i, attrs: { value: String(i) } }));
   });
@@ -221,7 +301,7 @@ function buildAnimations() {
   $('anim-toggle').onclick = () => {
     if (!state.activeAction) { playClip(parseInt(sel.value, 10)); return; }
     state.activeAction.action.paused = !state.activeAction.action.paused;
-    $('anim-toggle').textContent = state.activeAction.action.paused ? 'Play' : 'Pause';
+    syncAnimToggle(!state.activeAction.action.paused);
   };
 
   $('anim-scrub').oninput = (e) => {
@@ -230,8 +310,16 @@ function buildAnimations() {
     a.action.paused = true;
     a.action.time = parseFloat(e.target.value) * a.clip.duration;
     state.mixer.update(0);
-    $('anim-toggle').textContent = 'Play';
+    syncAnimToggle(false);
+    syncAnimTime();
   };
+  syncAnimTime();
+}
+
+/** Write the transport's time readout from the active clip. */
+export function syncAnimTime() {
+  const a = state.activeAction;
+  $('anim-time').textContent = a ? a.action.time.toFixed(2) + 's' : '0.00s';
 }
 
 /**
@@ -239,11 +327,13 @@ function buildAnimations() {
  * @param {{scene: THREE.Object3D}} gltf
  */
 export function buildPanels(gltf) {
+  rowChildren.clear();
   refreshAnnotations();
   buildMorphs(gltf.scene);
   buildParts(gltf.scene);
   buildAnimations();
   refreshSideVisibility();
+  refreshPolyCount();
 }
 
 /** Wire the toggle that opens/closes the docked side panel (icon flips). */
