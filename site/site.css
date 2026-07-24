@@ -1408,7 +1408,7 @@ body.loaded .hud {
   justify-content: center;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
-  border: var(--hairline) solid var(--overlay-line);
+  border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-md);
   background: var(--accent);
   color: var(--on-accent);

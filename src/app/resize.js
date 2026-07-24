@@ -19,9 +19,26 @@ import { $ } from './dom.js';
 /** Smallest a side panel may be dragged to, mirroring --panel-min. */
 const PANEL_MIN = 200;
 
-/** Bounds for the viewport height (px). */
+/** Smallest the viewport may be dragged to (px). */
 const STAGE_MIN_H = 320;
-const STAGE_MAX_H = 1400;
+
+/**
+ * Tallest the viewport may be dragged to right now: whatever is left in the
+ * window under the stage's top edge once the handle, the status cartouche and
+ * the page's bottom padding are accounted for. Dragging past the bottom of
+ * the screen would push the status line out of reach.
+ * @returns {number} pixels
+ */
+function maxStageHeight() {
+  const stage = $('stage').getBoundingClientRect();
+  const under = $('export-progress-wrap').closest('.under').getBoundingClientRect();
+  const handle = $('handle-bottom').getBoundingClientRect();
+  const styles = getComputedStyle(document.documentElement);
+  const gutter = parseFloat(styles.getPropertyValue('--gutter')) || 8;
+  const padding = parseFloat(styles.getPropertyValue('--sp-7')) || 40;
+  const room = innerHeight - stage.top - handle.height - under.height - gutter * 2 - padding;
+  return Math.max(STAGE_MIN_H, room);
+}
 
 /**
  * Write one layout dimension for the stylesheet to consume.
@@ -93,10 +110,11 @@ export function initResize() {
     setDimension('export-w', Math.max(PANEL_MIN, start.value - (event.clientX - start.x)));
   }, () => width('side-right'));
 
-  // Bottom handle: dragging down makes the viewport taller.
+  // Bottom handle: dragging down makes the viewport taller, but never past
+  // the bottom of the window minus the status cartouche.
   wireHandle('handle-bottom', (event, start) => {
     const next = start.value + (event.clientY - start.y);
-    setDimension('stage-h', Math.min(STAGE_MAX_H, Math.max(STAGE_MIN_H, next)));
+    setDimension('stage-h', Math.min(maxStageHeight(), Math.max(STAGE_MIN_H, next)));
     dispatchEvent(new Event('resize'));
   }, () => $('stage').getBoundingClientRect().height);
 

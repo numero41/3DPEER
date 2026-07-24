@@ -11,11 +11,10 @@
 // skinning and morph attributes untouched — the preview works on skinned
 // avatars as well as static meshes.
 //
-// This is a PREVIEW, not the export: it simplifies the display geometry as-is
-// (no weld pass), so it does not lock borders — locking every edge of an
-// unwelded mesh would block all reduction and show no change. The export path
-// welds first and keeps seams (lockBorder); the preview only illustrates the
-// triangle budget.
+// The preview mirrors the export's trade-off: weld on position AND uv, then
+// simplify with LockBorder. Seam vertices stay split, so every UV seam is a
+// border edge the simplifier will not collapse, and the texture does not tear
+// along the seams as the budget drops.
 // =============================================================================
 
 import * as THREE from 'three';
@@ -34,19 +33,25 @@ const weldCache = new Map();
 const MAX_WELD_VERTICES = 600000;
 
 /**
- * Merge vertices that share a position.
+ * Merge vertices that share a position AND a UV.
  *
  * Imported meshes (USDZ, OBJ, STL — anything that goes through GLTFExporter)
  * arrive fully split: every triangle owns its three vertices. The simplifier
  * then sees disconnected triangles and can collapse almost nothing, so the
- * preview appeared to do nothing. The export path avoids this by running
- * weld() before simplify(); this is the preview's equivalent.
+ * preview appeared to do nothing. Welding fixes that — but welding on
+ * POSITION ALONE fuses the two sides of a UV seam into one vertex, and the
+ * mapping back to real vertices then hands both sides the same UV, tearing
+ * the texture along every seam. Including the UV in the key keeps seam
+ * vertices distinct, which also turns each seam into a border edge that
+ * simplify() can be told to lock (see applyToMesh). Same trade-off the
+ * export path already makes with weld() + lockBorder.
  * @param {THREE.BufferAttribute} position
+ * @param {THREE.BufferAttribute|undefined} uv
  * @returns {{positions: Float32Array, remap: Uint32Array, first: Uint32Array}}
  *   welded positions, original-vertex -> welded-id, welded-id -> a
  *   representative original vertex
  */
-function weldMesh(position) {
+function weldMesh(position, uv) {
   const lookup = new Map();
   const remap = new Uint32Array(position.count);
   const firstOf = [];
@@ -55,7 +60,9 @@ function weldMesh(position) {
     const x = position.getX(i);
     const y = position.getY(i);
     const z = position.getZ(i);
-    const key = x + ',' + y + ',' + z;
+    const key = uv
+      ? x + ',' + y + ',' + z + ',' + uv.getX(i) + ',' + uv.getY(i)
+      : x + ',' + y + ',' + z;
     let id = lookup.get(key);
     if (id === undefined) {
       id = firstOf.length;
@@ -135,7 +142,9 @@ function applyToMesh(mesh, ratio) {
   // de-interleaved here: GLTFLoader stores them interleaved with normals
   // (stride 6) and meshopt needs a contiguous buffer at stride 3.
   if (!weldCache.has(mesh)) {
-    weldCache.set(mesh, position.count <= MAX_WELD_VERTICES ? weldMesh(position) : null);
+    weldCache.set(mesh, position.count <= MAX_WELD_VERTICES
+      ? weldMesh(position, geometry.getAttribute('uv'))
+      : null);
   }
   const weld = weldCache.get(mesh);
 
@@ -144,7 +153,10 @@ function applyToMesh(mesh, ratio) {
     const welded = new Uint32Array(sourceArray.length);
     for (let i = 0; i < sourceArray.length; i++) welded[i] = weld.remap[sourceArray[i]];
     // simplify(indices, positions, stride, targetIndexCount, error, flags)
-    const [simplified] = MeshoptSimplifier.simplify(welded, weld.positions, 3, target, 0.05, []);
+    // LockBorder keeps the UV seams (border edges after the uv-aware weld)
+    // and any open boundary exactly where they are.
+    const [simplified] = MeshoptSimplifier.simplify(
+      welded, weld.positions, 3, target, 0.05, ['LockBorder']);
     // Map welded ids back to real vertices so the other attributes still apply.
     indices = new Uint32Array(simplified.length);
     for (let i = 0; i < simplified.length; i++) indices[i] = weld.first[simplified[i]];
