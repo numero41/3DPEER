@@ -33,7 +33,7 @@ export const progress = {
   /** Reveal the bar and start the ETA clock. Call once at the top of a task. */
   start() {
     this._startedAt = performance.now();
-    $('export-progress').value = 0;
+    this._fill(0);
     $('export-pct').textContent = '0%';
     $('export-eta').textContent = 'estimating…';
     $('export-progress-wrap').removeAttribute('hidden');
@@ -46,7 +46,7 @@ export const progress = {
    */
   set(fraction, label) {
     const f = Math.max(0, Math.min(1, fraction));
-    $('export-progress').value = f;
+    this._fill(f);
     $('export-pct').textContent = Math.round(f * 100) + '%';
     const elapsed = performance.now() - this._startedAt;
     let eta = 'estimating…';
@@ -57,6 +57,17 @@ export const progress = {
       eta = 'done';
     }
     $('export-eta').textContent = label ? `${label} · ${eta}` : eta;
+  },
+
+  /**
+   * Scale the bar's fill to a fraction. The value is a layout dimension, not
+   * appearance: it goes through a custom property that site.css turns into a
+   * transform (see .progress-fill), so no appearance property is set here.
+   * @param {number} f 0..1
+   */
+  _fill(f) {
+    $('export-progress').style.setProperty('--progress', String(f));
+    $('export-progress-track').setAttribute('aria-valuenow', String(Math.round(f * 100)));
   },
 
   /** Hide the bar (e.g. a short delay after completion, or on error). */

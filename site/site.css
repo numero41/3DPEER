@@ -121,6 +121,16 @@
   --cube-w: 140px;
   --menu-w: 190px;
   --stage-max: 800px;
+  /* Layout dimensions the USER drags (resize.js writes these on :root, and
+     only these — never appearance properties). */
+  --scene-w: 300px;
+  --export-w: 300px;
+  --stage-h: 760px;
+  --panel-min: 200px;
+  --panel-collapsed: 30px;
+  --handle-w: 6px;
+  --progress: 0;
+  --tip-delay: 0.1s;
   --compare-split-w: 42%;
   --compare-handle-drop: 40px;
 
@@ -205,6 +215,9 @@ button:hover,
   text-align: center;
 }
 
+/* The topbar already carries the workbench's horizontal padding, so the nav
+   buttons line up with the outer edges of the two side panels on their own. */
+
 /* Right-aligned within the same centred column as the workbench panel, so
    the buttons line up with the panel's right edge. */
 /* Sign in sits at the far left; Guide and Contact pair up at the right. */
@@ -213,7 +226,7 @@ button:hover,
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  width: min(var(--stage-max), 100%);
+  width: 100%;
   margin: 0 auto var(--sp-5);
 }
 
@@ -321,6 +334,35 @@ button:hover,
   flex: 0 0 0;
 }
 
+/* ---- resize handles: three draggable edges around the viewport ---- */
+.resize-handle {
+  flex: none;
+  background: transparent;
+  transition: background var(--dur);
+}
+
+.resize-handle:hover,
+.resize-handle.dragging {
+  background: var(--line-strong);
+}
+
+.resize-handle-v {
+  width: var(--handle-w);
+  align-self: stretch;
+  border-radius: var(--r-pill);
+  cursor: col-resize;
+}
+
+.resize-handle-h {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--handle-w) * -1);
+  left: 0;
+  height: var(--handle-w);
+  border-radius: var(--r-pill);
+  cursor: row-resize;
+}
+
 /* ===================================================================== stage */
 /* No overflow clipping here: control tooltips have to be able to leave the
    viewport box. The canvas carries the rounded corners itself. */
@@ -329,8 +371,9 @@ button:hover,
   flex: 1 1 auto;
   width: auto;
   min-width: 0;
-  max-width: var(--stage-max);
-  aspect-ratio: 1 / 1;
+  /* Height is the dragged dimension; the width just follows the window, so
+     resizing the browser must not squash the viewport into a letterbox. */
+  height: var(--stage-h);
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-lg);
   background: var(--stage-bg);
@@ -594,8 +637,16 @@ body.loaded .stage-toggle {
   pointer-events: none;
 }
 
+/* A short delay keeps tips from flashing as the pointer crosses a bar. */
 [data-tip]:hover::after {
   display: block;
+  animation: tip-in var(--tip-delay) step-end;
+}
+
+@keyframes tip-in {
+  from {
+    visibility: hidden;
+  }
 }
 
 /* A trigger's tooltip must vanish the instant its menu opens (otherwise it
@@ -850,23 +901,86 @@ body.loaded .hud {
   transition: width var(--dur) ease;
 }
 
+#side-left.open {
+  flex-basis: var(--scene-w);
+  width: var(--scene-w);
+}
+
+#side-right.open {
+  flex-basis: var(--export-w);
+  width: var(--export-w);
+}
+
 .side-panel.open {
-  flex-basis: min(var(--panel-w), 84vw);
-  width: min(var(--panel-w), 84vw);
-  max-width: min(var(--panel-w), 84vw);
-  max-height: min(var(--stage-max), 82vh);
+  max-height: var(--stage-h);
   border: var(--hairline) solid var(--line-strong);
-  background: var(--surface);
+  background: var(--btn-dark);
+}
+
+/* Collapsed: a narrow strip that still shows its label and chevron. */
+.side-panel.collapsed {
+  flex-basis: var(--panel-collapsed);
+  width: var(--panel-collapsed);
+  max-height: var(--stage-h);
+  border: var(--hairline) solid var(--line-strong);
+  background: var(--btn-dark);
+}
+
+.side-panel.collapsed .panel-body,
+.side-panel.collapsed .action-col,
+.side-panel.collapsed .comp-est {
+  display: none;
+}
+
+.side-panel.collapsed .panel-head {
+  flex-direction: column;
+  gap: var(--sp-3);
+  height: 100%;
+  padding: var(--sp-3) 0;
+  border-bottom: 0;
+}
+
+.side-panel.collapsed .panel-head h2 {
+  writing-mode: vertical-rl;
+}
+
+.side-panel.collapsed .panel-chevron {
+  transform: rotate(180deg);
 }
 
 /* The panel title stays put while the body scrolls under it. */
 .panel-head {
+  --btn-bg: var(--btn-dark);
+  --btn-fg: var(--ink);
   position: sticky;
   top: 0;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  width: 100%;
   padding: var(--sp-4);
+  border: 0;
   border-bottom: var(--hairline) solid var(--line-strong);
-  background: var(--surface);
+  background: var(--btn-dark);
+  cursor: pointer;
+}
+
+/* The chevron points at the edge the panel folds toward. */
+.panel-chevron {
+  flex: none;
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+  color: var(--faint);
+}
+
+#side-left .panel-chevron {
+  transform: rotate(180deg);
+}
+
+#side-left.collapsed .panel-chevron {
+  transform: none;
 }
 
 .panel-head h2 {
@@ -934,6 +1048,10 @@ body.loaded .hud {
 }
 
 .comp-foot button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
   width: 100%;
 }
 
@@ -942,7 +1060,6 @@ body.loaded .hud {
   padding: 0 var(--sp-4) var(--sp-3);
   color: var(--muted);
   font-size: var(--fs-sm);
-  text-align: right;
 }
 
 .comp-est b {
@@ -1086,11 +1203,13 @@ body.loaded .hud {
 /* ======================================================= below-viewer block */
 /* One cartouche under the whole row: what happened, and how far along. */
 .under {
+  position: sticky;
+  bottom: var(--sp-4);
+  z-index: var(--z-overlay);
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
   width: 100%;
-  max-width: var(--under-max);
   padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-md);
@@ -1222,13 +1341,13 @@ body.loaded .hud {
   align-items: center;
   justify-content: center;
   gap: var(--sp-3);
-  padding: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
   border: var(--hairline) solid var(--overlay-line);
   border-radius: var(--r-md);
   background: var(--accent);
   color: var(--on-accent);
   font-size: var(--fs-md);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -1248,31 +1367,23 @@ body.loaded .hud {
   display: none;
 }
 
-progress#export-progress {
-  -webkit-appearance: none;
-  appearance: none;
+/* The fill is scaled by --progress (0..1), written by ui.js. A <progress>
+   element's value pseudo-element would not paint over the track background
+   here, which is why the bar never moved. */
+.progress-track {
   width: 100%;
   height: var(--progress-h);
   overflow: hidden;
-  border: 0;
   border-radius: var(--r-pill);
   background: var(--line);
 }
 
-progress#export-progress::-webkit-progress-bar {
-  border-radius: var(--r-pill);
-  background: var(--line);
-}
-
-progress#export-progress::-webkit-progress-value {
+.progress-fill {
+  width: calc(var(--progress) * 100%);
+  height: 100%;
   border-radius: var(--r-pill);
   background: var(--ink);
   transition: width var(--dur);
-}
-
-progress#export-progress::-moz-progress-bar {
-  border-radius: var(--r-pill);
-  background: var(--ink);
 }
 
 .progress-eta {
@@ -1657,18 +1768,49 @@ footer .legal-mark {
 }
 
 /* ==================================================================== narrow */
-/* Not enough room for panels beside the stage: stack them instead of
-   squeezing the viewport into a sliver. */
+/* Not enough room for panels beside the stage: stack them, viewport first,
+   and drop the drag handles (there is no side to drag). */
 @media (max-width: 1100px) {
   .stage-row {
     flex-wrap: wrap;
   }
 
+  .stage {
+    order: -1;
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  #side-left.open,
+  #side-right.open,
   .side-panel.open {
     flex-basis: 100%;
     width: 100%;
     max-width: 100%;
     max-height: none;
+  }
+
+  /* Collapsed on mobile is a horizontal bar, not a vertical strip. */
+  #side-left.collapsed,
+  #side-right.collapsed,
+  .side-panel.collapsed {
+    flex-basis: 100%;
+    width: 100%;
+    max-height: none;
+  }
+
+  .side-panel.collapsed .panel-head {
+    flex-direction: row;
+    height: auto;
+    padding: var(--sp-4);
+  }
+
+  .side-panel.collapsed .panel-head h2 {
+    writing-mode: horizontal-tb;
+  }
+
+  .resize-handle {
+    display: none;
   }
 }
 

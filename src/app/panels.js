@@ -43,6 +43,13 @@ const rowChildren = new Map();
  *  other eye it slides over (DCC-style drag-to-toggle); null when idle. */
 let eyePaint = null;
 
+/** Every eye in outliner order, with the setter for its row — shift-click
+ *  needs the run between the last plain click and the shifted one. */
+const eyeOrder = [];
+
+/** Index of the last eye toggled without shift (the range anchor). */
+let eyeAnchor = -1;
+
 // One release ends any paint stroke, wherever it happens.
 addEventListener('pointerup', () => { eyePaint = null; });
 addEventListener('pointercancel', () => { eyePaint = null; });
@@ -235,12 +242,24 @@ function appendPartRow(group, list, depth, index) {
     refreshPolyCount();
   };
 
+  const eyeIndex = eyeOrder.length;
+  eyeOrder.push({ eye, apply: applyVisibility });
+
   // Press starts a stroke and flips this row; sliding over other eyes paints
   // the same state onto them, so a whole run of parts hides in one gesture.
+  // Shift extends from the last plain toggle instead, like a file list.
   eye.addEventListener('pointerdown', (event) => {
     event.preventDefault();
-    eyePaint = eye.getAttribute('aria-pressed') !== 'true';
-    applyVisibility(eyePaint);
+    const next = eye.getAttribute('aria-pressed') !== 'true';
+    if (event.shiftKey && eyeAnchor >= 0 && eyeAnchor !== eyeIndex) {
+      const from = Math.min(eyeAnchor, eyeIndex);
+      const to = Math.max(eyeAnchor, eyeIndex);
+      for (let i = from; i <= to; i++) eyeOrder[i].apply(next);
+      return;
+    }
+    eyeAnchor = eyeIndex;
+    eyePaint = next;
+    applyVisibility(next);
   });
   eye.addEventListener('pointerenter', () => {
     if (eyePaint !== null) applyVisibility(eyePaint);
@@ -353,6 +372,8 @@ export function syncAnimTime() {
  */
 export function buildPanels(gltf) {
   rowChildren.clear();
+  eyeOrder.length = 0;
+  eyeAnchor = -1;
   refreshAnnotations();
   buildMorphs(gltf.scene);
   buildParts(gltf.scene);

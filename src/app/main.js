@@ -23,6 +23,7 @@ import { initDecimatePreview } from './decimate-preview.js';
 import { initCompare } from './compare.js';
 import { initCompressionSettings } from './comp-settings.js';
 import { initGuide } from './guide.js';
+import { initResize } from './resize.js';
 import { SPRITE } from './sprite.js';
 import { setStatus } from './ui.js';
 import { $ } from './dom.js';
@@ -53,6 +54,7 @@ initCompare(stage);
 initCompressionSettings();
 initGuide();
 initHud();
+initResize();
 
 // Licensing is not live yet: say so plainly rather than leaving a dead button.
 $('signin').addEventListener('click', () =>

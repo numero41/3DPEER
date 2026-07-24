@@ -30,7 +30,10 @@
   <div class="stage-row">
     <!-- left panel: everything about the scene you loaded -->
     <aside id="side-left" class="side-panel open">
-      <header class="panel-head"><h2>Scene</h2></header>
+      <button class="panel-head" id="side-left-head" title="Collapse or expand the scene panel" aria-expanded="true" aria-controls="side-left">
+        <h2>Scene</h2>
+        <svg class="ico panel-chevron" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg>
+      </button>
       <div class="panel-body">
         <section class="side-sec hidden" id="panel-notes">
           <h3>Notes <span id="note-count"></span></h3>
@@ -50,6 +53,8 @@
         </section>
       </div>
     </aside>
+
+    <div class="resize-handle resize-handle-v" id="handle-left" title="Drag to resize the scene panel" role="separator" aria-orientation="vertical"></div>
 
     <section id="stage" class="stage">
       <canvas id="viewport"></canvas>
@@ -125,7 +130,6 @@
               <label class="menu-item"><input type="checkbox" id="wire-toggle"><span>Wireframe overlay</span></label>
             </div>
           </div>
-          <button id="compare" class="icon-btn" title="Compare original and compressed side by side" aria-label="Compare compression" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-compare"></use></svg></button>
           <div class="menu-group">
             <button class="icon-btn" data-menu="light" aria-haspopup="true" aria-expanded="false" title="Lighting"><svg class="ico" viewBox="0 0 24 24"><use href="#i-light"></use></svg></button>
             <div class="menu-pop menu-pop-up" id="menu-light" role="menu">
@@ -135,6 +139,7 @@
               <label class="menu-slider"><span>Orientation</span><input id="light-orientation" type="range" min="0" max="360" step="1"></label>
             </div>
           </div>
+          <button id="compare" class="icon-btn" title="Compare original and compressed side by side" aria-label="Compare compression" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-compare"></use></svg></button>
         </div>
 
         <div class="tool-group">
@@ -142,6 +147,9 @@
           <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
         </div>
       </div>
+
+      <!-- bottom edge: drag to set the viewport height -->
+      <div class="resize-handle resize-handle-h" id="handle-bottom" title="Drag to resize the viewport height" role="separator" aria-orientation="horizontal"></div>
 
       <!-- compare split view chrome (visible while .stage.comparing) -->
       <div class="compare-ui">
@@ -152,8 +160,13 @@
     </section>
 
     <!-- right panel: how the file is built, and the actions that build it -->
+    <div class="resize-handle resize-handle-v" id="handle-right" title="Drag to resize the export panel" role="separator" aria-orientation="vertical"></div>
+
     <aside id="side-right" class="side-panel open">
-      <header class="panel-head"><h2>Export</h2></header>
+      <button class="panel-head" id="side-right-head" title="Collapse or expand the export panel" aria-expanded="true" aria-controls="side-right">
+        <h2>Export</h2>
+        <svg class="ico panel-chevron" viewBox="0 0 24 24"><use href="#i-chevron"></use></svg>
+      </button>
       <div class="panel-body">
         <section class="side-sec first-visible">
           <h3>Settings</h3>
@@ -182,7 +195,7 @@
             <span>Ship viewer controls</span>
           </label>
           <div class="comp-foot">
-            <button id="c-reset" title="Reset all sliders to the default quality">Reset</button>
+            <button id="c-reset" title="Reset all sliders to the default quality"><svg class="ico" viewBox="0 0 24 24"><use href="#i-reset"></use></svg>Reset</button>
           </div>
         </section>
       </div>
@@ -201,7 +214,9 @@
   <div class="under">
     <p id="status" class="under-status info">No file loaded</p>
     <div class="progress-wrap" id="export-progress-wrap" hidden>
-      <progress id="export-progress" max="1" value="0"></progress>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="export-progress-track">
+        <div class="progress-fill" id="export-progress"></div>
+      </div>
       <p class="progress-eta"><span id="export-pct">0%</span> · <span id="export-eta">estimating…</span></p>
     </div>
   </div>
