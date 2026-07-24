@@ -74,6 +74,11 @@ export function initViews(stage) {
     document.addEventListener(ev, () => {
       const on = !!(document.fullscreenElement || document.webkitFullscreenElement);
       fsUse.setAttribute('href', on ? '#i-fullscreen-exit' : '#i-fullscreen');
-      requestAnimationFrame(resize);
+      // The layout is driven by this class, not by :fullscreen — one selector
+      // instead of three vendor-prefixed ones, and it can be tested.
+      fsTarget.classList.toggle('fullscreen', on);
+      // The row only reflows on the next frame; the canvas is refitted after
+      // that, then once more in case the fullscreen transition is animated.
+      requestAnimationFrame(() => { resize(); requestAnimationFrame(resize); });
     }));
 }

@@ -89,8 +89,52 @@ export function initViewerControls(stage, root) {
       transparent: true, opacity: 0.22, depthWrite: false,
     }),
     matcap: new THREE.MeshMatcapMaterial({ matcap: makeMatcapTexture() }),
-    wire: new THREE.MeshBasicMaterial({ wireframe: true, color: 0xefece3 }),
   };
+
+  // Wire is an OVERLAY, not a preset: it lays edges over whatever material is
+  // showing, and a SkinnedMesh overlay bound to the same skeleton follows the
+  // animation (replacing the material lost the deformation on skinned FBX).
+  const wireMaterial = new THREE.MeshBasicMaterial({
+    wireframe: true,
+    color: 0x111111,
+    transparent: true,
+    opacity: 0.4,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+
+  /** Live overlay meshes, so the toggle can remove exactly what it added. */
+  let wireOverlays = [];
+
+  /**
+   * Show or hide the wireframe overlay across every mesh.
+   * @param {boolean} on
+   */
+  function setWireframe(on) {
+    for (const overlay of wireOverlays) {
+      if (overlay.parent) overlay.parent.remove(overlay);
+    }
+    wireOverlays = [];
+    if (!on) return;
+    for (const mesh of originals.keys()) {
+      let overlay;
+      if (mesh.isSkinnedMesh) {
+        overlay = new THREE.SkinnedMesh(mesh.geometry, wireMaterial);
+        overlay.bindMode = mesh.bindMode;
+        overlay.bind(mesh.skeleton, mesh.bindMatrix);
+      } else {
+        overlay = new THREE.Mesh(mesh.geometry, wireMaterial);
+      }
+      overlay.position.copy(mesh.position);
+      overlay.quaternion.copy(mesh.quaternion);
+      overlay.scale.copy(mesh.scale);
+      overlay.renderOrder = 1;
+      overlay.frustumCulled = false;
+      (mesh.parent || mesh).add(overlay);
+      wireOverlays.push(overlay);
+    }
+  }
 
   /**
    * Swap every mesh onto a preset, or back to its original material.
@@ -159,7 +203,13 @@ export function initViewerControls(stage, root) {
    * @param {{min: string, max: string, step: string, value: string}} attrs
    * @param {(value: number) => void} onInput
    */
-  function addRange(title, attrs, onInput) {
+  function addRange(title, icon, attrs, onInput) {
+    const glyph = document.createElement('span');
+    glyph.className = 'vicon';
+    glyph.title = title;
+    glyph.insertAdjacentHTML('afterbegin',
+      '<svg class="ico" viewBox="0 0 24 24"><use href="#i-' + icon + '"/></svg>');
+    bar.appendChild(glyph);
     const range = document.createElement('input');
     range.type = 'range';
     range.title = title;
@@ -168,11 +218,24 @@ export function initViewerControls(stage, root) {
     bar.appendChild(range);
   }
 
-  addRange('brightness', { min: '0', max: '2', step: '0.05', value: '0' }, (v) => {
+  // Wireframe overlay toggle, next to the material picker it layers over.
+  const wireToggle = document.createElement('button');
+  wireToggle.title = 'Wireframe overlay';
+  wireToggle.setAttribute('aria-pressed', 'false');
+  wireToggle.insertAdjacentHTML('afterbegin',
+    '<svg class="ico" viewBox="0 0 24 24"><use href="#i-quad"/></svg>');
+  wireToggle.addEventListener('click', () => {
+    const on = wireToggle.getAttribute('aria-pressed') !== 'true';
+    wireToggle.setAttribute('aria-pressed', String(on));
+    setWireframe(on);
+  });
+  bar.appendChild(wireToggle);
+
+  addRange('Brightness', 'light', { min: '0', max: '2', step: '0.05', value: '0' }, (v) => {
     brightness = v;
     applyLighting();
   });
-  addRange('light angle', { min: '0', max: '360', step: '1', value: '35' }, (v) => {
+  addRange('Light angle', 'loop', { min: '0', max: '360', step: '1', value: '35' }, (v) => {
     angleDeg = v;
     applyLighting();
   });

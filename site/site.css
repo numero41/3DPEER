@@ -15,15 +15,15 @@
      low saturation) — never blue-grey, never brown. ---- */
   --white: #ffffff;
   --black: #000000;
-  --bg: #1e1b15;
-  --surface: #29251d;
-  --elevated: #35312a;
+  --bg: #1e1c19;
+  --surface: #2a2723;
+  --elevated: #37332e;
   --inset: #232019;
-  --ink: #f6f3ec;
-  --muted: #c9c3b4;
-  --faint: #9c9587;
-  --line: #2b2820;
-  --line-strong: #3e3a30;
+  --ink: #f6f4f0;
+  --muted: #cac5bd;
+  --faint: #9d978e;
+  --line: #2c2925;
+  --line-strong: #403c36;
   --stage-bg: var(--inset);
   --btn-dark: var(--elevated);
 
@@ -74,7 +74,7 @@
   --swatch: 18px;
 
   /* ---- brand ---- */
-  --logo-size: 26px;
+  --logo-size: 32px;
   --nav-btn-w: 96px;
 
   /* ---- hover contrast formula ---- */
@@ -138,7 +138,8 @@
   --handle-w: 6px;
   --progress: 0;
   --tip-delay: 0.1s;
-  --op-handle: 0.35;
+  --op-handle: 0.9;
+  --handle-bg: #131210;
   --compare-split-w: 42%;
   --compare-handle-drop: 40px;
 
@@ -367,7 +368,7 @@ button:hover,
 /* ---- resize handles: three draggable edges around the viewport ---- */
 .resize-handle {
   flex: none;
-  background: var(--line-strong);
+  background: var(--handle-bg);
   opacity: var(--op-handle);
   transition: background var(--dur), opacity var(--dur);
 }
@@ -499,24 +500,42 @@ button:hover,
   transform: translateY(calc(-50% + var(--compare-handle-drop)));
 }
 
-.workbench:fullscreen {
+.workbench.fullscreen {
   max-width: none;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: var(--gutter);
+  overflow: hidden;
   background: var(--bg);
 }
 
-.workbench:fullscreen .stage {
+.workbench.fullscreen .stage {
   height: auto;
+  min-height: 0;
   flex: 1 1 auto;
 }
 
-.workbench:fullscreen .stage-row {
+.workbench.fullscreen .stage-row {
   flex: 1 1 auto;
   min-height: 0;
+  align-items: stretch;
 }
 
-.workbench:fullscreen .side-panel.open,
-.workbench:fullscreen .side-panel.collapsed {
+/* The viewport is sized by the screen here, so its handle has nothing left
+   to drag. */
+.workbench.fullscreen .resize-handle-h {
+  display: none;
+}
+
+/* Nothing scrolls in fullscreen, so the status line does not need to stick —
+   and sticking would lift it into the viewport's bottom edge. */
+.workbench.fullscreen .under {
+  position: static;
+}
+
+.workbench.fullscreen .side-panel.open,
+.workbench.fullscreen .side-panel.collapsed {
   max-height: none;
   align-self: stretch;
 }

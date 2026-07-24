@@ -227,10 +227,7 @@ body.noting #c {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-2);
-  background: var(--bar-bg);
-  border: var(--hairline) solid var(--line);
-  border-radius: var(--r-md);
+  padding: 0 var(--sp-2);
   z-index: var(--z-bar);
 }
 
@@ -262,6 +259,20 @@ body.noting #c {
 #anbar button {
   display: inline-flex;
   align-items: center;
+}
+
+/* Icon that labels a bar slider. */
+.vicon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink);
+  opacity: var(--op-soft);
+}
+
+/* A pressed toggle inverts, like the workbench's icon buttons. */
+#vbar button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
 }
 
 #vbar button:hover,
@@ -380,13 +391,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ---- annotation notes (always shipped) ---- */
-/* Notes docks against the control bar's right edge, on the same baseline —
-   not floating loose in the page corner. */
+/* Notes is the last control in the bar. */
 #abtn {
-  position: fixed;
-  right: max(var(--sp-6), calc((100vw - min(var(--bar-w), calc(100vw - var(--sp-8) * 2))) / 2));
-  bottom: var(--abtn-offset);
-  z-index: var(--z-bar);
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: var(--sp-2);

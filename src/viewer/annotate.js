@@ -96,7 +96,11 @@ export function initAnnotations(stage, root, pristine) {
   button.title = 'Notes: read, edit and add annotations';
   button.insertAdjacentHTML('afterbegin', icon('pin') + '<span></span>');
   const buttonLabel = button.querySelector('span');
-  document.body.appendChild(button);
+  // When the control bar ships, Notes is one of its controls rather than a
+  // button floating on its own in the page corner.
+  const controlBar = document.getElementById('vbar');
+  if (controlBar) controlBar.appendChild(button);
+  else document.body.appendChild(button);
 
   const panel = document.createElement('div');
   panel.id = 'apanel';
