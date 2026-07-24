@@ -15,7 +15,12 @@ import { toGLB } from './importers.js';
 import { scheduleEstimate } from './exporter.js';
 import { resetDecimatePreview } from './decimate-preview.js';
 import { resetCompare } from './compare.js';
-import { setStatus } from './ui.js';
+import { setStatus, progress } from './ui.js';
+
+/** Files above this size get an honest heads-up before conversion starts:
+ *  browser tabs have a hard memory ceiling and a source this large can hit
+ *  it while the format's own loader unpacks it. */
+const LARGE_FILE_BYTES = 150e6;
 
 /** Remove the current model from the scene and free its GPU resources. */
 function disposeCurrent(stage) {
@@ -35,31 +40,43 @@ function disposeCurrent(stage) {
  */
 async function loadFile(stage, file) {
   // Convert whatever was dropped to GLB (a pass-through for .glb/.gltf).
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (file.size > LARGE_FILE_BYTES && ext !== 'glb' && ext !== 'gltf') {
+    setStatus(`Large ${ext} file (${(file.size / 1e6).toFixed(0)} MB) — conversion can take a while and may exceed the browser's memory; a .glb export from your DCC handles this size best`, 'warn');
+  } else {
+    setStatus(ext !== 'glb' && ext !== 'gltf' ? 'Converting…' : 'Loading…');
+  }
+  progress.start();
   let bytes;
   try {
-    const ext = (file.name.split('.').pop() || '').toLowerCase();
-    if (ext !== 'glb' && ext !== 'gltf') setStatus('Converting…');
-    bytes = await toGLB(file);
+    // Conversion occupies 0..0.85 of the bar (read fractions are real bytes).
+    bytes = await toGLB(file, (f, label) => progress.set(f * 0.85, label));
   } catch (e) {
+    progress.hide();
     setStatus('Import failed: ' + (e.message || e), 'error');
     return;
   }
 
+  progress.set(0.9, 'opening');
   const loader = new GLTFLoader();
   loader.setMeshoptDecoder(MeshoptDecoder);
   let gltf;
   try {
     gltf = await new Promise((ok, ko) => loader.parse(bytes.buffer.slice(0), '', ok, ko));
   } catch (e) {
+    progress.hide();
     setStatus('Parse error: ' + (e.message || e), 'error');
     return;
   }
+  progress.set(1);
+  setTimeout(() => progress.hide(), 800);
 
   // Some importers (notably USDZ variants three cannot fully read) return an
   // empty scene: refuse it clearly instead of showing a blank viewport.
   let meshCount = 0;
   gltf.scene.traverse((o) => { if (o.isMesh) meshCount++; });
   if (!meshCount) {
+    progress.hide();
     setStatus(`No geometry found in ${file.name} — this file variant is not supported yet`, 'error');
     return;
   }

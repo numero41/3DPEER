@@ -40,6 +40,32 @@ function meshFromGeometry(geometry) {
 }
 
 /**
+ * Run a parser with console.warn batched: loaders such as FBXLoader emit one
+ * warning PER VERTEX ("more than 4 skinning weights…"), and tens of thousands
+ * of console lines both stall the tab and bury real messages. Each distinct
+ * message is kept once with a count and replayed at the end.
+ * @template T
+ * @param {() => T} parse the parsing work
+ * @returns {T}
+ */
+function withBatchedWarnings(parse) {
+  const original = console.warn;
+  const counts = new Map();
+  console.warn = (...args) => {
+    const key = args.join(' ');
+    counts.set(key, (counts.get(key) || 0) + 1);
+  };
+  try {
+    return parse();
+  } finally {
+    console.warn = original;
+    for (const [message, count] of counts) {
+      console.warn(count > 1 ? message + ' (×' + count + ')' : message);
+    }
+  }
+}
+
+/**
  * Parse a non-glTF model file into a three.js object.
  * @param {string} ext lower-case extension without the dot
  * @param {ArrayBuffer} buffer file contents
@@ -54,28 +80,57 @@ function parseToObject(ext, buffer) {
     case 'ply':
       return meshFromGeometry(new PLYLoader().parse(buffer));
     case 'fbx':
-      return new FBXLoader().parse(buffer, '');
+      return withBatchedWarnings(() => new FBXLoader().parse(buffer, ''));
     default:
       throw new Error('unsupported format: .' + ext);
   }
 }
 
 /**
+ * Read a File into an ArrayBuffer with real byte progress.
+ * @param {File} file the dropped/chosen file
+ * @param {(fraction: number) => void} onProgress fraction of bytes read
+ * @returns {Promise<ArrayBuffer>}
+ */
+async function readWithProgress(file, onProgress) {
+  const reader = file.stream().getReader();
+  const bytes = new Uint8Array(file.size);
+  let offset = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes.set(value, offset);
+    offset += value.length;
+    onProgress(file.size ? offset / file.size : 1);
+  }
+  return bytes.buffer;
+}
+
+/**
  * Convert any accepted file to GLB bytes.
  * glTF inputs pass through untouched; everything else goes loader -> GLTFExporter.
  * @param {File} file the dropped/chosen file
+ * @param {(fraction: number, label: string) => void} [onProgress] 0..1 within
+ *   the conversion, with a short stage label
  * @returns {Promise<Uint8Array>} GLB bytes ready for the standard pipeline
  */
-export async function toGLB(file) {
-  const buffer = await file.arrayBuffer();
+export async function toGLB(file, onProgress = () => {}) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
-  if (ext === 'glb' || ext === 'gltf') return new Uint8Array(buffer);
+  // Reading occupies the first stretch of the bar (real byte fractions).
+  const buffer = await readWithProgress(file, (f) => onProgress(f * 0.4, 'reading'));
+  if (ext === 'glb' || ext === 'gltf') {
+    onProgress(1, 'read');
+    return new Uint8Array(buffer);
+  }
 
+  onProgress(0.45, 'parsing');
   // usdz goes through the multi-layer walker (nested packages, usdc diagnosis).
   const object = ext === 'usdz' ? await parseMultiLayerUSDZ(buffer) : parseToObject(ext, buffer);
+  onProgress(0.7, 'converting');
   const result = await new GLTFExporter().parseAsync(object, {
     binary: true,
     animations: object.animations || [],
   });
+  onProgress(1, 'converted');
   return new Uint8Array(result);
 }
