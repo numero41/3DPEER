@@ -26,6 +26,51 @@ import { $ } from './dom.js';
 /** mesh -> its original index attribute (null when the mesh was non-indexed). */
 const originalIndex = new Map();
 
+/** mesh -> cached weld data (see weldMesh). */
+const weldCache = new Map();
+
+/** Meshes bigger than this are previewed unwelded (welding would stall). */
+const MAX_WELD_VERTICES = 600000;
+
+/**
+ * Merge vertices that share a position.
+ *
+ * Imported meshes (USDZ, OBJ, STL — anything that goes through GLTFExporter)
+ * arrive fully split: every triangle owns its three vertices. The simplifier
+ * then sees disconnected triangles and can collapse almost nothing, so the
+ * preview appeared to do nothing. The export path avoids this by running
+ * weld() before simplify(); this is the preview's equivalent.
+ * @param {THREE.BufferAttribute} position
+ * @returns {{positions: Float32Array, remap: Uint32Array, first: Uint32Array}}
+ *   welded positions, original-vertex -> welded-id, welded-id -> a
+ *   representative original vertex
+ */
+function weldMesh(position) {
+  const lookup = new Map();
+  const remap = new Uint32Array(position.count);
+  const firstOf = [];
+  const coords = [];
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i);
+    const y = position.getY(i);
+    const z = position.getZ(i);
+    const key = x + ',' + y + ',' + z;
+    let id = lookup.get(key);
+    if (id === undefined) {
+      id = firstOf.length;
+      lookup.set(key, id);
+      firstOf.push(i);
+      coords.push(x, y, z);
+    }
+    remap[i] = id;
+  }
+  return {
+    positions: new Float32Array(coords),
+    remap,
+    first: Uint32Array.from(firstOf),
+  };
+}
+
 /** Ever-increasing index version. three caches the wireframe edge buffer per
  *  geometry and only rebuilds it when `index.version` EXCEEDS the cached one,
  *  so a fresh attribute (version 0) would leave the wireframe overlay showing
@@ -72,20 +117,36 @@ function applyToMesh(mesh, ratio) {
   }
 
   const target = Math.max(3, Math.floor((sourceArray.length * ratio) / 3) * 3);
-  // De-interleave to a tight XYZ Float32Array: GLTFLoader often stores
-  // positions interleaved with normals (stride 6), and meshopt's simplify
-  // needs a contiguous position buffer at stride 3.
-  const positions = new Float32Array(position.count * 3);
-  for (let i = 0; i < position.count; i++) {
-    positions[i * 3] = position.getX(i);
-    positions[i * 3 + 1] = position.getY(i);
-    positions[i * 3 + 2] = position.getZ(i);
+
+  // Weld so the simplifier sees a connected surface. Positions are also
+  // de-interleaved here: GLTFLoader stores them interleaved with normals
+  // (stride 6) and meshopt needs a contiguous buffer at stride 3.
+  if (!weldCache.has(mesh)) {
+    weldCache.set(mesh, position.count <= MAX_WELD_VERTICES ? weldMesh(position) : null);
   }
-  // simplify(indices, positions, positionsStride, targetIndexCount, error, flags)
-  const [indices] = MeshoptSimplifier.simplify(
-    sourceArray instanceof Uint32Array ? sourceArray : new Uint32Array(sourceArray),
-    positions, 3, target, 0.05, [],
-  );
+  const weld = weldCache.get(mesh);
+
+  let indices;
+  if (weld) {
+    const welded = new Uint32Array(sourceArray.length);
+    for (let i = 0; i < sourceArray.length; i++) welded[i] = weld.remap[sourceArray[i]];
+    // simplify(indices, positions, stride, targetIndexCount, error, flags)
+    const [simplified] = MeshoptSimplifier.simplify(welded, weld.positions, 3, target, 0.05, []);
+    // Map welded ids back to real vertices so the other attributes still apply.
+    indices = new Uint32Array(simplified.length);
+    for (let i = 0; i < simplified.length; i++) indices[i] = weld.first[simplified[i]];
+  } else {
+    const positions = new Float32Array(position.count * 3);
+    for (let i = 0; i < position.count; i++) {
+      positions[i * 3] = position.getX(i);
+      positions[i * 3 + 1] = position.getY(i);
+      positions[i * 3 + 2] = position.getZ(i);
+    }
+    [indices] = MeshoptSimplifier.simplify(
+      sourceArray instanceof Uint32Array ? sourceArray : new Uint32Array(sourceArray),
+      positions, 3, target, 0.05, [],
+    );
+  }
   setIndexAndInvalidate(geometry, new THREE.BufferAttribute(indices, 1));
 }
 
@@ -123,6 +184,7 @@ export function scheduleDecimatePreview() {
 /** Forget cached indices (call on model load, before the new meshes arrive). */
 export function resetDecimatePreview() {
   originalIndex.clear();
+  weldCache.clear();
 }
 
 /** Wire the decimate slider to the live preview. */

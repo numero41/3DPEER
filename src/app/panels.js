@@ -73,18 +73,50 @@ function hasGeometry(node) {
   return node.children.some(hasGeometry);
 }
 
+/** Names an exporter invents; they carry no information for the reader. */
+const GENERIC_NAME_RE = /^(group|geo|mesh|components|node|object)[\s_-]*\d*$/i;
+
+/**
+ * Walk down a chain of single-child pass-through groups, returning the node to
+ * actually show and the best label for it. Importers wrap meshes in several
+ * anonymous levels (wearables › hair › geo_7 › Mesh), which buries real parts
+ * so deep they read as missing.
+ * @param {THREE.Object3D} node
+ * @returns {{node: THREE.Object3D, label: string}}
+ */
+function collapseChain(node) {
+  let current = node;
+  /** Every informative name met on the way down, outermost first. */
+  const names = [];
+  const keep = (name) => {
+    if (name && !GENERIC_NAME_RE.test(name) && names[names.length - 1] !== name) names.push(name);
+  };
+  keep(current.name);
+  while (!current.isMesh) {
+    const children = current.children.filter(hasGeometry);
+    if (children.length !== 1) break;
+    current = children[0];
+    keep(current.name);
+  }
+  // Show the most specific names — the deepest one is what the user looks for
+  // (a chain like wearables › hair › geo_7 › Mesh must still read as "hair").
+  return { node: current, label: names.slice(-2).join(' / ') };
+}
+
 /**
  * Append one hierarchy row (indented) and recurse into geometry-bearing
  * children. Each row's checkbox drives that node's visibility; a group node
  * hides its whole subtree (three inherits visibility at render).
- * @param {THREE.Object3D} node
+ * @param {THREE.Object3D} input
  * @param {HTMLElement} list the container
  * @param {number} depth nesting level (for indentation)
  * @param {number} index sibling index (fallback label)
  */
-function appendPartRow(node, list, depth, index) {
+function appendPartRow(input, list, depth, index) {
+  const collapsed = collapseChain(input);
+  const node = collapsed.node;
   const kind = node.isMesh ? 'mesh' : 'group';
-  const label = node.name || kind + ' ' + index;
+  const label = collapsed.label || node.name || kind + ' ' + index;
   const row = el('label', {
     cls: 'part-row depth-' + Math.min(depth, 6),
     attrs: { title: 'Show / hide ' + label },
