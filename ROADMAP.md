@@ -77,6 +77,39 @@ and working conventions are in CLAUDE.md — read them before any change.
   (budget 650). Known GENIES import gaps (not viewer bugs): SkelAnimation
   clips and USD BlendShapes are not composed into the GLB yet.
 
+## Phase 1.5 — single-file LOD ladder
+
+Goal: one artifact carries several detail levels of the same mesh and shows
+the coarsest in under a second — heavy scans open instantly, then refine in
+place. Node/CLI side; the export-panel control ships WIRED with the
+in-browser geo packer port (no inert UI before that).
+
+- Container v2, magic 0x33445002; parseHeader accepts v1 AND v2. Levels
+  SHARE the vertex streams (the meshopt simplifier creates no vertices);
+  only index streams differ. Header: lodCount, then per level: index-stream
+  length, triangle count, simplification error (absolute, model units, via
+  err × getScale — world units thanks to matrix dequantization).
+- Packer (geo mode): simplification BEFORE quantization (float positions),
+  every level simplified from the original, MeshoptSimplifier 0.20 (already
+  a dependency). Default ratios 1 / 0.25 / 0.06 / 0.015; --lods 1|2|4 with
+  2 = [1, 0.06] (the coarse level must stay light for the < 1 s boot);
+  --preset review = [0.06, 0.015] for client rounds. reorderMesh keyed on
+  the finest shipped level, the same remap applied to every index set; one
+  vertex-stream set + N meshopt index streams, coarsest first in the file.
+- Viewer (boot-geo): streaming decode; first pixel from the coarsest level
+  (< 1 s), then switching by projected screen error (error / distance ×
+  focal, ~1 px threshold, hysteresis 1 px up / 0.6 px down). Per-level
+  index BufferAttributes are created once when their bytes land (one GPU
+  upload each); switching is geometry.setIndex on a cached attribute,
+  never a re-creation.
+- The format stays extensible through the versioned magic + per-level
+  table; no virtual-geometry work starts here.
+
+Done when: the spike heightfield (2.88 M tris) ships the full ladder in one
+file ≤ 12.5 MB and the review preset ≤ 1.6 MB (scripts/spike-lod.mjs is the
+measured baseline, reproduced ±10 %), every self-test green, first coarse
+pixel < 1 s.
+
 ## M2 — Turntable video (the email-body answer)
 
 Goal: mail bodies cannot run scripts, so ship motion as media: offscreen
