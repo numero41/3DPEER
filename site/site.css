@@ -39,6 +39,12 @@
   --on-accent: var(--ink);
   --warn: #d9a76a;
 
+  /* ---- status line (always coloured, soft) ---- */
+  --status-info: #d9cf8a;
+  --status-ok: #9fce9a;
+  --status-warn: #e3a0bb;
+  --status-error: #e08585;
+
   /* ---- checkboxes / radios (custom-drawn, rounded) ---- */
   --check-size: 16px;
   --check-bg: #3d3d45;
@@ -55,7 +61,12 @@
   --pin-c2: #7fb069;
   --pin-c3: #6f9fd8;
   --pin-c4: #d76a6a;
-  --swatch: 14px;
+  --pin-c5: #6fc7c0;
+  --pin-c6: #a58fd8;
+  --pin-c7: #d8c46f;
+  --pin-c8: #b08968;
+  --pin-c9: #8a8a8f;
+  --swatch: 18px;
 
   /* ---- brand ---- */
   --logo-size: 26px;
@@ -165,15 +176,21 @@ button:hover,
 }
 
 .nav a {
-  color: var(--muted);
+  --btn-bg: var(--surface);
+  --btn-fg: var(--ink);
+  padding: var(--sp-2) var(--sp-4);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink);
   font: var(--fs-sm)/1 var(--sans);
   letter-spacing: var(--track-tight);
   text-decoration: none;
-  transition: color var(--dur);
+  transition: background var(--dur), color var(--dur);
 }
 
 .nav a:hover {
-  color: var(--ink);
+  background: color-mix(in srgb, var(--btn-bg), var(--btn-fg) var(--hover-amount));
 }
 
 .brand {
@@ -366,7 +383,7 @@ body.loaded .stage-tools {
   top: var(--sp-4);
   right: var(--sp-4);
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-6);
   z-index: var(--z-overlay);
 }
 
@@ -619,18 +636,18 @@ body.loaded .stage-tools {
 .note-row .pin-c2 { --btn-bg: var(--pin-c2); --btn-fg: var(--bg); background: var(--pin-c2); }
 .note-row .pin-c3 { --btn-bg: var(--pin-c3); --btn-fg: var(--bg); background: var(--pin-c3); }
 .note-row .pin-c4 { --btn-bg: var(--pin-c4); --btn-fg: var(--bg); background: var(--pin-c4); }
+.note-row .pin-c5 { --btn-bg: var(--pin-c5); --btn-fg: var(--bg); background: var(--pin-c5); }
+.note-row .pin-c6 { --btn-bg: var(--pin-c6); --btn-fg: var(--bg); background: var(--pin-c6); }
+.note-row .pin-c7 { --btn-bg: var(--pin-c7); --btn-fg: var(--bg); background: var(--pin-c7); }
+.note-row .pin-c8 { --btn-bg: var(--pin-c8); --btn-fg: var(--bg); background: var(--pin-c8); }
+.note-row .pin-c9 { --btn-bg: var(--pin-c9); --btn-fg: var(--bg); background: var(--pin-c9); }
 
 /* One row: [n]|[field] as one continuous shape; the badge is a button that
-   opens the colour popover (menu-group pattern). */
+   opens the colour palette. */
 .note-row {
   display: flex;
   align-items: stretch;
   margin: var(--sp-3) 0;
-}
-
-.note-color-group {
-  display: flex;
-  align-items: stretch;
 }
 
 .note-row .note-num {
@@ -687,21 +704,19 @@ body.loaded .stage-tools {
   cursor: pointer;
 }
 
-/* Colour picker: an overlay popover on the badge (same pattern as the
-   scene menus), never inline below the row. It drops UNDER the badge so it
-   stays inside the side panel's scroll box (overflow would clip a leftward
-   popover). */
-.menu-pop.note-colors {
-  top: calc(100% + var(--sp-1));
-  right: auto;
-  left: 0;
-  width: max-content;
-  padding: var(--sp-2);
-}
-
-.menu-group.open .note-colors {
-  display: flex;
-  gap: var(--sp-2);
+/* Colour palette: a NATIVE popover — rendered in the top layer, above every
+   panel and scroll box, centred by the UA styles. Only the open state sets
+   display (the UA hides closed popovers). */
+.note-colors:popover-open {
+  display: grid;
+  grid-template-columns: repeat(5, var(--swatch));
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-md);
+  background: var(--panel-bg);
+  color: var(--overlay-ink);
+  box-shadow: var(--shadow-pop);
 }
 
 .note-swatch {
@@ -718,37 +733,10 @@ body.loaded .stage-tools {
   outline: var(--hairline) solid var(--overlay-ink);
 }
 
-/* ---- small header icon (show/hide all notes) ---- */
 .side-sec h2 {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-}
-
-.side-sec h2 .icon-btn-sm {
-  margin-left: auto;
-}
-
-.icon-btn-sm {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  border-radius: var(--r-sm);
-}
-
-.icon-btn-sm .ico {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
-}
-
-#note-vis[aria-pressed="true"] {
-  --btn-bg: var(--overlay);
-  --btn-fg: var(--overlay-ink);
-  background: var(--overlay);
-  color: var(--overlay-ink);
-}
-
-#note-vis[aria-pressed="false"] {
-  color: var(--faint);
 }
 
 /* ======================================================= below-viewer block */
@@ -765,15 +753,19 @@ body.loaded .stage-tools {
 }
 
 .under-status.info {
-  color: var(--muted);
+  color: var(--status-info);
 }
 
 .under-status.ok {
-  color: var(--ink);
+  color: var(--status-ok);
 }
 
 .under-status.warn {
-  color: var(--warn);
+  color: var(--status-warn);
+}
+
+.under-status.error {
+  color: var(--status-error);
 }
 
 .under-note {
@@ -831,20 +823,17 @@ body.loaded .stage-tools {
 .comp-auto {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4) var(--sp-4);
   color: var(--muted);
   font-size: var(--fs-sm);
 }
 
-.comp-auto input[type="number"] {
-  width: 72px;
-  padding: var(--sp-2) var(--sp-3);
-  border: var(--hairline) solid var(--line-strong);
-  border-radius: var(--r-sm);
-  background: var(--btn-dark);
+.comp-auto b {
   color: var(--ink);
-  font: var(--fs-sm) var(--mono);
+  font-family: var(--mono);
+  font-weight: 600;
 }
 
 .comp-opt {
@@ -936,6 +925,23 @@ progress#export-progress::-moz-progress-bar {
 }
 
 /* ========================================================= shared controls */
+/* No stock blue focus ring: focused fields brighten their border instead. */
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+summary:focus-visible,
+a:focus-visible {
+  outline: none;
+}
+
+textarea:focus,
+select:focus,
+input[type="number"]:focus,
+input[type="text"]:focus {
+  border-color: var(--faint);
+}
+
 button,
 .btn {
   --btn-bg: var(--btn-dark);

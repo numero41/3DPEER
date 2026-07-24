@@ -24,7 +24,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { b85encode, b85decode } from '../codec/base85.js';
 import { wrapAnnotations, extractAnnotations, injectAnnotations } from '../codec/annotations.js';
-import { compressGLB, AUTO_LADDER } from './compress.js';
+import { compressGLB, DEFAULT_SETTINGS } from './compress.js';
 import { readSettings, writeSettings } from './comp-settings.js';
 import { state } from './state.js';
 import { $ } from './dom.js';
@@ -278,6 +278,59 @@ function locatePayload(html) {
   return { from, to: html.indexOf('"', from) };
 }
 
+// -----------------------------------------------------------------------------
+// Live output estimate
+// -----------------------------------------------------------------------------
+
+/** Debounce timer for slider-driven estimates. */
+let estimateTimer = 0;
+
+/** Serialize estimate runs (the pipeline is heavy; never run two at once). */
+let estimateBusy = false;
+let estimateQueued = false;
+
+/**
+ * Run the real pipeline on the current settings and show the projected
+ * artifact size next to the sliders. Runs are serialized; a change made
+ * while one is in flight queues exactly one re-run.
+ */
+async function refreshEstimate() {
+  if (!state.glbBytes) return;
+  if (estimateBusy) {
+    estimateQueued = true;
+    return;
+  }
+  estimateBusy = true;
+  const readout = $('v-est');
+  try {
+    do {
+      estimateQueued = false;
+      readout.textContent = '…';
+      try {
+        const glb = await optimizedGLB(readSettings(), () => {}, false);
+        const gz = await gzipBytes(glb);
+        // base85 adds 25 %; viewer + template + poster margin are fixed costs.
+        const overhead = window.__EXPORT.viewer.length + window.__EXPORT.tpl.length + 100000;
+        readout.textContent = ((gz.length * 1.25 + overhead) / 1e6).toFixed(2) + ' MB';
+      } catch (e) {
+        readout.textContent = 'n/a';
+      }
+    } while (estimateQueued);
+  } finally {
+    estimateBusy = false;
+  }
+}
+
+/**
+ * Schedule a (debounced) estimate refresh — called on every slider move and
+ * once per model load.
+ * @param {number} [delay=600] debounce in ms (0 = as soon as possible)
+ */
+export function scheduleEstimate(delay = 600) {
+  clearTimeout(estimateTimer);
+  estimateTimer = setTimeout(refreshEstimate, delay);
+}
+
 /**
  * Human size summary for the status line: original -> artifact with the
  * percentage saved (or added, for tiny models where the viewer dominates).
@@ -311,7 +364,7 @@ async function runAction(deliver) {
     progress.set(1);
     setTimeout(() => progress.hide(), 1500);
   } catch (e) {
-    setStatus('failed: ' + (e.message || e), 'warn');
+    setStatus('failed: ' + (e.message || e), 'error');
     progress.hide();
   } finally {
     buttons.forEach((b) => { b.disabled = false; });
@@ -340,53 +393,12 @@ export function initExport(stage) {
   const canShareFiles = !!(navigator.canShare && navigator.canShare({ files: [probe] }));
   if (!canShareFiles) $('share').classList.add('hidden');
 
-  // ---- auto (target size) solver ----
-  // Walks the quality ladder best-first, measuring the real pipeline output,
-  // and stops at the first preset whose estimated artifact fits the target.
-  $('c-auto').addEventListener('click', async () => {
-    if (!state.glbBytes) return;
-    const targetBytes = parseFloat($('c-target').value) * 1e6;
-    if (!targetBytes) return;
-    const buttons = [$('export'), $('share'), $('c-auto')];
-    buttons.forEach((b) => { b.disabled = true; });
-    progress.start();
-    try {
-      // Fixed per-artifact overhead: viewer bundle + template + poster margin.
-      const overhead = window.__EXPORT.viewer.length + window.__EXPORT.tpl.length + 100000;
-      let best = null; // smallest estimate seen, in case no preset fits
-      for (let i = 0; i < AUTO_LADDER.length; i++) {
-        const preset = AUTO_LADDER[i];
-        const base = i / AUTO_LADDER.length;
-        setStatus(`auto: trying quality level ${i + 1}/${AUTO_LADDER.length}…`);
-        let glb;
-        try {
-          glb = await optimizedGLB(preset, (f, label) =>
-            progress.set(base + (f * 0.9) / AUTO_LADDER.length, label), false);
-        } catch (e) {
-          console.warn('auto: preset skipped:', e);
-          continue;
-        }
-        const gz = await gzipBytes(glb);
-        const estimate = gz.length * 1.25 + overhead; // base85 adds 25 %
-        if (!best || estimate < best.estimate) best = { estimate, preset };
-        if (estimate <= targetBytes) break;
-      }
-      if (!best) throw new Error('no preset could process this file');
-      writeSettings(best.preset);
-      const estMB = (best.estimate / 1e6).toFixed(2);
-      setStatus(
-        best.estimate <= targetBytes
-          ? `auto: ~${estMB} MB with these settings — press export`
-          : `auto: target unreachable, best is ~${estMB} MB — press export`,
-        best.estimate <= targetBytes ? 'ok' : 'warn');
-      progress.set(1);
-      setTimeout(() => progress.hide(), 1200);
-    } catch (e) {
-      setStatus('auto failed: ' + (e.message || e), 'warn');
-      progress.hide();
-    } finally {
-      buttons.forEach((b) => { b.disabled = false; });
-    }
+  // ---- live output estimate + reset ----
+  ['c-pos', 'c-nrm', 'c-tex', 'c-q', 'c-dec'].forEach((id) =>
+    $(id).addEventListener('input', () => scheduleEstimate()));
+  $('c-reset').addEventListener('click', () => {
+    writeSettings(DEFAULT_SETTINGS);
+    scheduleEstimate(0);
   });
 
   $('share').addEventListener('click', () =>

@@ -1,6 +1,6 @@
 <!-- @license lucide-static v1.26.0 - ISC -->
 <svg
-  class="lucide lucide-minimize-2"
+  class="lucide lucide-layout-grid"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"
@@ -11,8 +11,8 @@
   stroke-linecap="round"
   stroke-linejoin="round"
 >
-  <path d="M4 14h6v6" />
-  <path d="M20 10h-6V4" />
-  <path d="M14 10l7-7" />
-  <path d="M3 21l7-7" />
+  <rect width="7" height="7" x="3" y="3" rx="1" />
+  <rect width="7" height="7" x="14" y="3" rx="1" />
+  <rect width="7" height="7" x="14" y="14" rx="1" />
+  <rect width="7" height="7" x="3" y="14" rx="1" />
 </svg>

@@ -60,7 +60,8 @@
             </div>
           </div>
         </div>
-        <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
+        <button id="fit" class="icon-btn" title="Fit model to view (1:1)" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
+        <button id="quad" class="icon-btn" title="Quad view — top / front / right / perspective" aria-label="Quad view" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-quad"></use></svg></button>
         <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
         </div>
 
@@ -71,7 +72,7 @@
             <label class="menu-item" title="The model's own materials"><input type="radio" name="material" value="original" checked><span>Original</span></label>
             <label class="menu-item" title="Uniform matte grey"><input type="radio" name="material" value="clay"><span>Clay</span></label>
             <label class="menu-item" title="Polished chrome"><input type="radio" name="material" value="metallic"><span>Metallic</span></label>
-            <label class="menu-item" title="See-through glass"><input type="radio" name="material" value="glass"><span>Glass</span></label>
+            <label class="menu-item" title="See-through x-ray shading"><input type="radio" name="material" value="xray"><span>X-ray</span></label>
             <label class="menu-item" title="Sculpt-style baked lighting"><input type="radio" name="material" value="matcap"><span>Matcap (baked light)</span></label>
             <label class="menu-item" title="Overlay a wireframe on top of the current material"><input type="checkbox" id="wire-toggle"><span>Wireframe overlay</span></label>
           </div>
@@ -89,6 +90,13 @@
         </div>
 
         <div class="tool-group">
+          <div class="menu-group">
+            <button class="icon-btn" data-menu="visibility" aria-haspopup="true" aria-expanded="false" title="Show / hide scene elements"><svg class="ico" viewBox="0 0 24 24"><use href="#i-eye"></use></svg></button>
+            <div class="menu-pop" id="menu-visibility" role="menu">
+              <label class="menu-item" title="Show or hide every annotation pin"><input type="checkbox" id="vis-notes" checked><span>Annotations</span></label>
+              <label class="menu-item" title="Show or hide every mesh"><input type="checkbox" id="vis-meshes" checked><span>Meshes</span></label>
+            </div>
+          </div>
           <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
         </div>
       </div>
@@ -97,7 +105,7 @@
     <!-- docked panel, opens to the right of the view -->
     <aside id="side" class="side">
       <section class="side-sec hidden" id="panel-notes">
-        <h2>annotations <span id="note-count"></span><button id="note-vis" class="icon-btn icon-btn-sm" title="Show / hide all notes on the model" aria-label="Show or hide all notes" aria-pressed="true"><svg class="ico" viewBox="0 0 24 24"><use href="#i-eye"></use></svg></button></h2>
+        <h2>annotations <span id="note-count"></span></h2>
         <p id="note-hint" class="note-hint">enable the pin tool (top right), then click the model to add a note — pins ship inside the exported file</p>
         <div id="note-list" class="scroll"></div>
       </section>
@@ -153,10 +161,8 @@
         </label>
       </div>
       <div class="comp-auto">
-        <span>target</span>
-        <input id="c-target" type="number" min="1" max="500" step="1" value="10" title="Target artifact size in MB">
-        <span>MB</span>
-        <button id="c-auto" title="Find the best quality that fits the target size">auto</button>
+        <span>estimated output · <b id="v-est">—</b></span>
+        <button id="c-reset" title="Reset all sliders to the default quality">reset</button>
       </div>
       <label class="opt-row comp-opt" title="Include camera views, material override and lighting sliders in the exported file">
         <input id="opt-ui" type="checkbox" checked>

@@ -26,11 +26,11 @@ const clayMat = new THREE.MeshStandardMaterial({ color: 0xb4b4b4, roughness: 0.9
 /** Polished chrome — driven entirely by the studio environment map. */
 const metalMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d4, roughness: 0.16, metalness: 1 });
 
-/** See-through glass. Alpha-based, not physical transmission: transmission
+/** See-through x-ray. Alpha-based, not physical transmission: transmission
  *  samples a re-render of the backdrop, which reads as frosted-opaque over a
- *  flat studio background — plain transparency is what actually looks like
- *  glass here, and it behaves identically inside the artifact viewer. */
-const glassMat = new THREE.MeshPhysicalMaterial({
+ *  flat studio background — plain transparency is what actually reads as
+ *  x-ray here, and it behaves identically inside the artifact viewer. */
+const xrayMat = new THREE.MeshPhysicalMaterial({
   color: 0xffffff,
   metalness: 0,
   roughness: 0.05,
@@ -67,7 +67,7 @@ const PRESETS = {
   original: null,
   clay: clayMat,
   metallic: metalMat,
-  glass: glassMat,
+  xray: xrayMat,
   matcap: matcapMat,
 };
 
@@ -98,7 +98,7 @@ const realMeshes = () => [...state.originals.keys()];
 /**
  * Apply a base material preset to every real mesh. Leaves the wireframe overlay
  * untouched (it lives as separate child meshes).
- * @param {'original'|'clay'|'metallic'|'glass'|'matcap'} name preset key
+ * @param {'original'|'clay'|'metallic'|'xray'|'matcap'} name preset key
  */
 export function applyMaterial(name) {
   const preset = PRESETS[name];

@@ -40,9 +40,16 @@ export function initViews(stage) {
     state.dist = framed.dist;
   });
 
-  // --- snapshot (PNG of the current frame) ----------------------------------
+  // --- quad view ------------------------------------------------------------
+  $('quad').addEventListener('click', () => {
+    const on = $('quad').getAttribute('aria-pressed') !== 'true';
+    $('quad').setAttribute('aria-pressed', String(on));
+    stage.setQuad(on);
+  });
+
+  // --- snapshot (PNG of the current frame, quad included) -------------------
   $('snapshot').addEventListener('click', () => {
-    renderer.render(scene, camera);
+    stage.render();
     canvas.toBlob((blob) => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);

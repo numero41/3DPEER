@@ -10,3 +10,6 @@ site/assets/
 src/app/sprite.js
 src/viewer/sprite.js
 site/export-assets.js
+
+# local trial models (never committed — invariant #9)
+test/

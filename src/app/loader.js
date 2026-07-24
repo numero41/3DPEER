@@ -12,6 +12,7 @@ import { state, resetState } from './state.js';
 import { buildPanels } from './panels.js';
 import { reapplyMaterial } from './materials.js';
 import { toGLB } from './importers.js';
+import { scheduleEstimate } from './exporter.js';
 import { setStatus } from './ui.js';
 
 /** Remove the current model from the scene and free its GPU resources. */
@@ -38,7 +39,7 @@ async function loadFile(stage, file) {
     if (ext !== 'glb' && ext !== 'gltf') setStatus(`converting .${ext} → glb…`);
     bytes = await toGLB(file);
   } catch (e) {
-    setStatus('import failed: ' + (e.message || e), 'warn');
+    setStatus('import failed: ' + (e.message || e), 'error');
     return;
   }
 
@@ -48,7 +49,7 @@ async function loadFile(stage, file) {
   try {
     gltf = await new Promise((ok, ko) => loader.parse(bytes.buffer.slice(0), '', ok, ko));
   } catch (e) {
-    setStatus('parse error: ' + (e.message || e), 'warn');
+    setStatus('parse error: ' + (e.message || e), 'error');
     return;
   }
 
@@ -57,7 +58,7 @@ async function loadFile(stage, file) {
   let meshCount = 0;
   gltf.scene.traverse((o) => { if (o.isMesh) meshCount++; });
   if (!meshCount) {
-    setStatus(`no geometry found in ${file.name} — this file variant is not supported yet`, 'warn');
+    setStatus(`no geometry found in ${file.name} — this file variant is not supported yet`, 'error');
     return;
   }
 
@@ -84,6 +85,7 @@ async function loadFile(stage, file) {
   document.body.classList.add('loaded');
   setStatus(`${state.name} — ${(file.size / 1e6).toFixed(2)} MB loaded, processed locally`, 'ok');
   reapplyMaterial();
+  scheduleEstimate(0);
 }
 
 /**

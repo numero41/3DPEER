@@ -39,6 +39,30 @@ let layer = null;
 let notesVisible = true;
 
 // -----------------------------------------------------------------------------
+// Undo (Ctrl/Cmd+Z outside text fields; typing keeps the native text undo)
+// -----------------------------------------------------------------------------
+
+/** Undo history: JSON snapshots of the pin list, taken BEFORE each mutation.
+ *  Text edits coalesce per focus session (snapshot on textarea focus). */
+const history = [];
+
+/** Record the current pin list (bounded). */
+function snapshot() {
+  history.push(JSON.stringify(state.annotations));
+  if (history.length > 50) history.shift();
+}
+
+/** Restore the most recent snapshot. */
+function undo() {
+  if (!history.length) return;
+  const previous = JSON.parse(history.pop());
+  state.annotations.length = 0;
+  previous.forEach((pin) => state.annotations.push(pin));
+  syncPins();
+  buildRows();
+}
+
+// -----------------------------------------------------------------------------
 // Pin mode + click handling
 // -----------------------------------------------------------------------------
 
@@ -73,6 +97,9 @@ function focusRow(index) {
  */
 function handleClick(event) {
   if (!state.root || !layer) return;
+  // Quad view renders four cameras into one canvas; single-camera picking
+  // would land on the wrong pane — annotations are edited in single view.
+  if (stageRef.isQuad && stageRef.isQuad()) return;
   const { camera, canvas } = stageRef;
   const picked = layer.pickPin(event, camera, canvas);
   if (picked >= 0) {
@@ -82,6 +109,7 @@ function handleClick(event) {
   if (!modeOn()) return;
   const hit = layer.pickSurface(event, camera, canvas);
   if (!hit) return;
+  snapshot();
   state.annotations.push({ p: hit.p, n: hit.n, m: hit.m, text: '', c: 0 });
   syncPins();
   buildRows();
@@ -107,8 +135,9 @@ export function syncAnnotationVisibility() {
 
 /**
  * Build one row: [badge (colour popover)]|[field + delete inside]. The badge
- * is a button opening a colour-preset popover, the same overlay pattern as
- * the scene menus (menus.js handles open/close by delegation).
+ * opens a NATIVE popover with the colour presets — top layer, so it can never
+ * be clipped by the panel's scroll boxes (popovertarget needs no JS at all;
+ * light dismiss comes free with popover="auto"-style behaviour).
  * @param {{p: number[], n: number[], m?: number, text: string, c?: number}} pin
  * @param {number} i pin index
  * @returns {HTMLElement}
@@ -116,33 +145,37 @@ export function syncAnnotationVisibility() {
 function buildRow(pin, i) {
   const row = el('div', { cls: 'note-row' });
 
-  const colorGroup = el('div', { cls: 'menu-group note-color-group' });
   const badge = el('button', {
     cls: 'note-num pin-c' + (pin.c || 0),
     text: String(i + 1),
-    attrs: { 'data-menu': 'note-colors', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Pick a pin colour' },
+    attrs: { popovertarget: 'note-colors-' + i, title: 'Pick a pin colour' },
   });
-  const colors = el('div', { cls: 'menu-pop note-colors', attrs: { role: 'menu' } });
+  const colors = el('div', {
+    cls: 'note-colors',
+    attrs: { id: 'note-colors-' + i, popover: '', role: 'menu' },
+  });
   PIN_COLORS.forEach((hex, ci) => {
     const swatch = el('button', {
       cls: 'note-swatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : ''),
       attrs: { title: 'Pin colour ' + (ci + 1) },
     });
     swatch.addEventListener('click', () => {
+      colors.hidePopover();
+      snapshot();
       pin.c = ci;
       syncPins();
       buildRows();
     });
     colors.append(swatch);
   });
-  colorGroup.append(badge, colors);
-  row.append(colorGroup);
+  row.append(badge, colors);
 
   const field = el('div', { cls: 'note-field' });
   const text = el('textarea', {
     attrs: { rows: '1', placeholder: 'note…', title: 'Annotation text' },
   });
   text.value = pin.text;
+  text.addEventListener('focus', snapshot); // one undo step per edit session
   text.addEventListener('input', () => {
     pin.text = text.value;
     syncPins();
@@ -150,6 +183,7 @@ function buildRow(pin, i) {
   const remove = el('button', { cls: 'note-del', attrs: { title: 'Delete this annotation' } });
   remove.insertAdjacentHTML('afterbegin', '<svg class="ico" viewBox="0 0 24 24"><use href="#i-close"></use></svg>');
   remove.addEventListener('click', () => {
+    snapshot();
     state.annotations.splice(i, 1);
     syncPins();
     buildRows();
@@ -177,6 +211,7 @@ export function refreshAnnotations() {
     layer.dispose();
     layer = null;
   }
+  history.length = 0; // undo never crosses a model load
   const hasModel = !!state.root;
   $('panel-notes').classList.toggle('hidden', !hasModel);
   if (!hasModel) return;
@@ -199,14 +234,28 @@ export function initAnnotations(stage) {
   $('note-mode').addEventListener('click', () => setMode(!modeOn()));
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') setMode(false);
+    if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
+      const target = event.target;
+      // Inside a text field the browser's own text undo applies.
+      if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')) return;
+      event.preventDefault();
+      undo();
+    }
   });
 
-  // Show / hide every note on the model (the eye button in the panel header).
-  $('note-vis').addEventListener('click', () => {
-    notesVisible = !notesVisible;
-    $('note-vis').setAttribute('aria-pressed', String(notesVisible));
-    $('note-vis').querySelector('use').setAttribute('href', notesVisible ? '#i-eye' : '#i-eye-off');
+  // Visibility menu (eye icon in the tool column).
+  $('vis-notes').addEventListener('change', () => {
+    notesVisible = $('vis-notes').checked;
     if (layer) layer.setVisible(notesVisible);
+  });
+  $('vis-meshes').addEventListener('change', () => {
+    const on = $('vis-meshes').checked;
+    for (const mesh of state.originals.keys()) mesh.visible = on;
+    // Keep the per-part checkboxes coherent with the bulk toggle.
+    document.querySelectorAll('#part-list input[type="checkbox"]').forEach((box) => {
+      box.checked = on;
+    });
+    syncPins();
   });
 
   // Click vs orbit: a press that barely moves between down and up is a click.

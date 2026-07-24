@@ -40,17 +40,6 @@ export const DEFAULT_SETTINGS = {
   decimate: 0,
 };
 
-/** Quality ladder used by the auto (target size) solver, best first.
- *  All bit values stay within quantize()'s accepted 8..16 range. */
-export const AUTO_LADDER = [
-  { posBits: 14, nrmBits: 10, texSize: 2048, texQuality: 90, decimate: 0 },
-  { posBits: 12, nrmBits: 8, texSize: 2048, texQuality: 85, decimate: 0 },
-  { posBits: 12, nrmBits: 8, texSize: 1024, texQuality: 80, decimate: 0 },
-  { posBits: 12, nrmBits: 8, texSize: 512, texQuality: 70, decimate: 0 },
-  { posBits: 11, nrmBits: 8, texSize: 512, texQuality: 60, decimate: 30 },
-  { posBits: 10, nrmBits: 8, texSize: 256, texQuality: 50, decimate: 50 },
-];
-
 // -----------------------------------------------------------------------------
 // Texture recompression (browser canvas -> WebP)
 // -----------------------------------------------------------------------------

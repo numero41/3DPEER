@@ -1,7 +1,8 @@
 // stage.js — the workbench 3D stage: renderer, studio environment, camera and
-// orbit controls, plus framing/resize helpers. This is the site-side twin of
-// src/viewer/scene.js (the artifact's stage); kept separate because the
-// workbench has no auto-rotate and drives its own animation loop.
+// orbit controls, plus framing/resize helpers and the quad-view render path
+// (top / front / right / perspective in one scissored canvas). This is the
+// site-side twin of src/viewer/scene.js (the artifact's stage); kept separate
+// because the workbench has no auto-rotate and drives its own animation loop.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -39,6 +40,80 @@ export function createStage() {
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
 
+  // ---------------------------------------------------------------------------
+  // Quad view: three fixed axis cameras + the orbiting perspective camera,
+  // rendered into the four quadrants with scissor testing. The orbit camera
+  // keeps working (bottom-right pane).
+  // ---------------------------------------------------------------------------
+  let quad = false;
+
+  /** Fixed axis panes: name -> unit view direction from the model centre. */
+  const AXIS_PANES = [
+    { label: 'top', direction: [0, 1, 0] },
+    { label: 'front', direction: [0, 0, 1] },
+    { label: 'right', direction: [1, 0, 0] },
+  ];
+  const axisCameras = AXIS_PANES.map(() => new THREE.PerspectiveCamera(45, 1, 0.1, 100));
+
+  /**
+   * Point the axis cameras at the framed model (called by frameObject).
+   * @param {THREE.Vector3} center model centre
+   * @param {number} dist framing distance
+   */
+  function updateAxisCameras(center, dist) {
+    axisCameras.forEach((axisCamera, i) => {
+      const direction = new THREE.Vector3(...AXIS_PANES[i].direction);
+      axisCamera.near = dist / 100;
+      axisCamera.far = dist * 100;
+      axisCamera.up.set(0, 1, 0);
+      if (AXIS_PANES[i].label === 'top') axisCamera.up.set(0, 0, -1);
+      axisCamera.position.copy(center).add(direction.multiplyScalar(dist));
+      axisCamera.lookAt(center);
+      axisCamera.aspect = camera.aspect;
+      axisCamera.updateProjectionMatrix();
+    });
+  }
+
+  /**
+   * Turn quad view on or off.
+   * @param {boolean} on
+   */
+  function setQuad(on) {
+    quad = on;
+  }
+
+  /** @returns {boolean} whether quad view is active */
+  function isQuad() {
+    return quad;
+  }
+
+  /**
+   * Draw the current frame: one full-canvas perspective view, or the four
+   * scissored panes (TL top, TR front, BL right, BR perspective).
+   */
+  function render() {
+    if (!quad) {
+      renderer.render(scene, camera);
+      return;
+    }
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const halfW = w / 2, halfH = h / 2;
+    const panes = [
+      { cam: axisCameras[0], x: 0, y: halfH },      // top-left: top view
+      { cam: axisCameras[1], x: halfW, y: halfH },  // top-right: front view
+      { cam: axisCameras[2], x: 0, y: 0 },          // bottom-left: right view
+      { cam: camera, x: halfW, y: 0 },              // bottom-right: orbit
+    ];
+    renderer.setScissorTest(true);
+    for (const pane of panes) {
+      renderer.setViewport(pane.x, pane.y, halfW, halfH);
+      renderer.setScissor(pane.x, pane.y, halfW, halfH);
+      renderer.render(scene, pane.cam);
+    }
+    renderer.setScissorTest(false);
+    renderer.setViewport(0, 0, w, h);
+  }
+
   /** Match the drawing buffer + camera aspect to the canvas's CSS box. */
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -46,6 +121,10 @@ export function createStage() {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    axisCameras.forEach((axisCamera) => {
+      axisCamera.aspect = camera.aspect;
+      axisCamera.updateProjectionMatrix();
+    });
   }
   addEventListener('resize', resize);
 
@@ -68,8 +147,9 @@ export function createStage() {
     controls.minDistance = dist * 0.1;
     controls.maxDistance = dist * 8;
     controls.update();
+    updateAxisCameras(center, dist);
     return { center, dist };
   }
 
-  return { canvas, renderer, scene, camera, controls, resize, frameObject };
+  return { canvas, renderer, scene, camera, controls, resize, frameObject, render, setQuad, isQuad };
 }

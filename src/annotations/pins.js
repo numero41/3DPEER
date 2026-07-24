@@ -28,9 +28,13 @@ import * as THREE from 'three';
 // Shared constants
 // ---------------------------------------------------------------------------
 
-/** The five per-pin colour presets (identical on site and artifact — they are
- *  content, not chrome). Index 0 is the default. */
-export const PIN_COLORS = ['#e8e6e3', '#d98b52', '#7fb069', '#6f9fd8', '#d76a6a'];
+/** The per-pin colour presets (identical on site and artifact — they are
+ *  content, not chrome; mirrored as --pin-cN CSS tokens on both surfaces).
+ *  Index 0 is the default. */
+export const PIN_COLORS = [
+  '#e8e6e3', '#d98b52', '#7fb069', '#6f9fd8', '#d76a6a',
+  '#6fc7c0', '#a58fd8', '#d8c46f', '#b08968', '#8a8a8f',
+];
 
 /** Sprite scale (height) of the tag (NDC-relative, fov 45): ~28 px at 800 px. */
 const TAG_SCALE = 0.029;

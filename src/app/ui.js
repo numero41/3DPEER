@@ -9,15 +9,16 @@
 import { $ } from './dom.js';
 
 /**
- * Write a short message to the status line above the export button.
+ * Write a short message to the status line under the 3D view.
  * @param {string} msg
- * @param {'info'|'ok'|'warn'} [kind='info'] tone of the message — 'ok' for
- *   successes (bright), 'warn' for problems (amber), 'info' for progress.
+ * @param {'info'|'ok'|'warn'|'error'} [kind='info'] tone of the message —
+ *   every kind has its own soft colour: info yellow, ok green, warn pink,
+ *   error red (tokens in site.css).
  */
 export function setStatus(msg, kind = 'info') {
   const status = $('status');
   status.textContent = msg;
-  status.classList.remove('info', 'ok', 'warn');
+  status.classList.remove('info', 'ok', 'warn', 'error');
   status.classList.add(kind);
 }
 

@@ -54,5 +54,5 @@ stage.renderer.setAnimationLoop(() => {
     state.clock.getDelta(); // keep the clock current even while paused
   }
   stage.controls.update();
-  stage.renderer.render(stage.scene, stage.camera);
+  stage.render();
 });

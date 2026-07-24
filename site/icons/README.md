@@ -17,11 +17,12 @@ via `currentColor`, so leave no hard-coded colours in the files.
 
 | filename            | Lucide name          | used for                         |
 |---------------------|----------------------|----------------------------------|
-| `pin.svg`           | `sticky-note`        | annotation mode toggle           |
-| `fit.svg`           | `scan`               | fit / recenter the camera        |
+| `pin.svg`           | `message-square-text`| annotation mode toggle           |
+| `fit.svg`           | *(bespoke "1:1")*    | fit / recenter the camera        |
 | `snapshot.svg`      | `camera`             | save a PNG snapshot              |
-| `fullscreen.svg`    | `maximize`           | enter fullscreen                 |
-| `fullscreen-exit.svg` | `minimize`         | exit fullscreen                  |
+| `fullscreen.svg`    | `maximize-2`         | enter fullscreen                 |
+| `fullscreen-exit.svg` | `minimize-2`       | exit fullscreen                  |
+| `quad.svg`          | `layout-grid`        | quad-view toggle                 |
 | `panel-open.svg`    | `panel-right-open`   | open the right-side panel        |
 | `panel-close.svg`   | `panel-right-close`  | close the right-side panel       |
 

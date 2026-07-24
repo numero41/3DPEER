@@ -82,9 +82,9 @@ export function initViewerControls(stage, root) {
     original: null,
     clay: new THREE.MeshStandardMaterial({ color: 0xb4b4b4, roughness: 0.9, metalness: 0 }),
     metallic: new THREE.MeshStandardMaterial({ color: 0xd4d4d4, roughness: 0.16, metalness: 1 }),
-    // Alpha-based glass (not transmission): reads as actually transparent
+    // Alpha-based x-ray (not transmission): reads as actually transparent
     // over the flat artifact backdrop — same preset as the site.
-    glass: new THREE.MeshPhysicalMaterial({
+    'x-ray': new THREE.MeshPhysicalMaterial({
       color: 0xffffff, metalness: 0, roughness: 0.05,
       transparent: true, opacity: 0.22, depthWrite: false,
     }),

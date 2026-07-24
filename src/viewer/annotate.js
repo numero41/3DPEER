@@ -127,19 +127,6 @@ export function initAnnotations(stage, root, pristine) {
     layer.setVisible(notesVisible);
   });
 
-  // Colour popovers on the row badges: one delegated handler (rows rebuild).
-  document.addEventListener('pointerdown', (event) => {
-    const badge = event.target.closest('.anum');
-    if (badge) {
-      const group = badge.closest('.agroup');
-      const wasOpen = group.classList.contains('open');
-      document.querySelectorAll('.agroup.open').forEach((g) => g.classList.remove('open'));
-      if (!wasOpen) group.classList.add('open');
-      return;
-    }
-    if (event.target.closest('.apop')) return;
-    document.querySelectorAll('.agroup.open').forEach((g) => g.classList.remove('open'));
-  });
 
   /** @param {string} message status line under the panel buttons */
   function setStatus(message) {
@@ -189,19 +176,23 @@ export function initAnnotations(stage, root, pristine) {
       const row = document.createElement('div');
       row.className = 'arow';
 
-      const group = document.createElement('div');
-      group.className = 'agroup';
+      // The badge opens a NATIVE popover with the palette: top layer, never
+      // clipped by the panel scroll box, light-dismissed by the browser.
       const number = document.createElement('button');
       number.className = 'anum pin-c' + (pin.c || 0);
       number.textContent = String(i + 1);
       number.title = 'Pick a pin colour';
+      number.setAttribute('popovertarget', 'acolors-' + i);
       const colors = document.createElement('div');
-      colors.className = 'apop';
+      colors.className = 'acolors';
+      colors.id = 'acolors-' + i;
+      colors.setAttribute('popover', '');
       PIN_COLORS.forEach((hex, ci) => {
         const swatch = document.createElement('button');
         swatch.className = 'aswatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : '');
         swatch.title = 'Pin colour ' + (ci + 1);
         swatch.addEventListener('click', () => {
+          colors.hidePopover();
           pin.c = ci;
           syncPins();
           buildRows();
@@ -209,7 +200,6 @@ export function initAnnotations(stage, root, pristine) {
         });
         colors.append(swatch);
       });
-      group.append(number, colors);
 
       const field = document.createElement('div');
       field.className = 'afield';
@@ -235,7 +225,7 @@ export function initAnnotations(stage, root, pristine) {
       });
       field.append(text, remove);
 
-      row.append(group, field);
+      row.append(number, colors, field);
       list.appendChild(row);
     });
   }

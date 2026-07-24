@@ -51,7 +51,7 @@
   --range-thumb: 10px;
   --range-h: 18px;
   --badge: 18px;
-  --swatch: 14px;
+  --swatch: 18px;
 
   /* ---- annotation pin colour presets (mirrored in annotations/pins.js) ---- */
   --pin-c0: #e8e6e3;
@@ -59,6 +59,11 @@
   --pin-c2: #7fb069;
   --pin-c3: #6f9fd8;
   --pin-c4: #d76a6a;
+  --pin-c5: #6fc7c0;
+  --pin-c6: #a58fd8;
+  --pin-c7: #d8c46f;
+  --pin-c8: #b08968;
+  --pin-c9: #8a8a8f;
 
   /* ---- radii ---- */
   --r-sm: 6px;
@@ -72,7 +77,6 @@
   --z-panel: 2;
   --z-bar: 3;
   --z-notes: 4;
-  --z-pop: 5;
 
   /* ---- icons (inline sprite shipped in the bundle) ---- */
   --icon: 14px;
@@ -367,6 +371,11 @@ input[type="range"]::-moz-range-thumb {
 .pin-c2 { background: var(--pin-c2); }
 .pin-c3 { background: var(--pin-c3); }
 .pin-c4 { background: var(--pin-c4); }
+.pin-c5 { background: var(--pin-c5); }
+.pin-c6 { background: var(--pin-c6); }
+.pin-c7 { background: var(--pin-c7); }
+.pin-c8 { background: var(--pin-c8); }
+.pin-c9 { background: var(--pin-c9); }
 
 /* One row: [n]|[field] as one continuous shape, swatches on demand below. */
 .arow {
@@ -376,18 +385,11 @@ input[type="range"]::-moz-range-thumb {
   margin: var(--sp-4) 0;
 }
 
-.agroup {
-  position: relative;
-  display: flex;
-  align-items: stretch;
-}
-
 .anum {
   flex: none;
   display: grid;
   place-items: center;
   width: var(--badge);
-  height: 100%;
   padding: 0;
   border: 0;
   border-radius: var(--r-sm) 0 0 var(--r-sm);
@@ -396,28 +398,28 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
-/* Colour popover: drops under the badge (stays inside the scrolling panel). */
-.apop {
-  position: absolute;
-  top: calc(100% + var(--sp-1));
-  left: 0;
-  z-index: var(--z-pop);
-  display: none;
-  gap: var(--sp-2);
-  padding: var(--sp-2);
+/* Colour palette: a NATIVE popover — top layer, never clipped, centred by
+   the UA styles. Only the open state sets display. */
+.acolors:popover-open {
+  display: grid;
+  grid-template-columns: repeat(5, var(--swatch));
+  gap: var(--sp-3);
+  padding: var(--sp-4);
   border: var(--hairline) solid var(--line);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-md);
   background: var(--panel-bg);
-}
-
-.agroup.open .apop {
-  display: flex;
+  color: var(--ink);
 }
 
 .afield {
   position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.afield textarea:focus {
+  outline: none;
+  border-color: var(--ink);
 }
 
 .afield textarea {
