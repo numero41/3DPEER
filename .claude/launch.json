@@ -12,6 +12,12 @@
       "runtimeExecutable": "env",
       "runtimeArgs": ["PORT=8237", "node", "scripts/dev.mjs"],
       "port": 8237
+    },
+    {
+      "name": "3dpeer-dev-auto",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/dev.mjs"],
+      "autoPort": true
     }
   ]
 }
