@@ -15,7 +15,9 @@ import * as THREE from 'three';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+// Vendored r160 copy with LOCAL PATCH guards: an empty animation curve node
+// must skip its track, not abort the whole import (see src/vendor/fbx).
+import { FBXLoader } from '../vendor/fbx/FBXLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { parseMultiLayerUSDZ } from './usdz.js';
 
@@ -51,8 +53,19 @@ function meshFromGeometry(geometry) {
 function withBatchedWarnings(parse) {
   const original = console.warn;
   const counts = new Map();
+  // console-style %s/%d/%i/%f substitution, so batched messages read the way
+  // the console would have printed them.
+  const format = (args) => {
+    if (typeof args[0] === 'string' && /%[sdif]/.test(args[0])) {
+      let next = 1;
+      const head = args[0].replace(/%[sdif]/g, () =>
+        (next < args.length ? String(args[next++]) : ''));
+      return [head, ...args.slice(next)].join(' ').trim();
+    }
+    return args.join(' ');
+  };
   console.warn = (...args) => {
-    const key = args.join(' ');
+    const key = format(args);
     counts.set(key, (counts.get(key) || 0) + 1);
   };
   try {

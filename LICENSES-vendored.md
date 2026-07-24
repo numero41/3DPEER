@@ -48,6 +48,21 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 IN THE SOFTWARE.
 ```
 
+## src/vendor/fbx/ — three.js FBXLoader
+
+- **Files**: `FBXLoader.js`
+- **Upstream**: [three.js](https://github.com/mrdoob/three.js) r160 (the
+  pinned runtime version), `examples/jsm/loaders/FBXLoader.js`
+- **License**: MIT (same text as above)
+- **Why vendored**: exporters in the wild write animation curve nodes with
+  declared-but-empty curves; upstream aborts the entire import when the
+  KeyframeTrack constructor throws. The guards live inside module-private
+  code, so a copy is the only patch point.
+- **Local modifications**: marked with `LOCAL PATCH (3dpeer)` — per-track
+  guards in `generateTracks`, trackless-clip filtering in
+  `AnimationParser.parse`, package-path imports for the two example-relative
+  modules.
+
 ## site/icons/ — Lucide icons
 
 - **Files**: `site/icons/*.svg` (mapping table in `site/icons/README.md`)
