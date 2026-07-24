@@ -492,8 +492,8 @@ button:hover,
 #compare-split {
   position: absolute;
   top: 50%;
-  right: var(--sp-4);
-  left: var(--sp-4);
+  right: 0;
+  left: 0;
   z-index: 1;
   width: auto;
   transform: translateY(calc(-50% + var(--compare-handle-drop)));
@@ -714,7 +714,9 @@ body.loaded .stage-toggle {
   right: auto;
   bottom: auto;
   left: 0;
-  max-width: 100%;
+  /* A hair under the control's width: at exactly 100% the border and the
+     panel's own scrollbar gutter pushed the box 6px past the content edge. */
+  max-width: calc(100% - var(--sp-3));
   transform: none;
 }
 
@@ -1062,6 +1064,9 @@ body.loaded .hud {
   min-height: 0;
   padding: var(--sp-4);
   overflow-y: auto;
+  /* clip, not auto: a tooltip that reaches the panel edge must never turn
+     the panel into a horizontally scrolling box. */
+  overflow-x: clip;
 }
 
 /* Sections are divided by a hairline; the first visible one has no rule
@@ -1104,6 +1109,24 @@ body.loaded .hud {
 
 .action-col .btn-primary {
   width: 100%;
+}
+
+.panel-action {
+  --btn-bg: var(--btn-dark);
+  --btn-fg: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  width: 100%;
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3);
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--btn-dark);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  cursor: pointer;
 }
 
 /* Reset spans the settings column; the estimate is a panel-level line that
@@ -1744,6 +1767,7 @@ input[type="radio"]:checked::before {
 .guide-modal {
   width: min(var(--modal-w), 92vw);
   max-height: var(--modal-max-h);
+  overflow: hidden;
   padding: 0;
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-lg);

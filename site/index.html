@@ -37,7 +37,7 @@
       <div class="panel-body">
         <section class="side-sec hidden" id="panel-notes">
           <h3>Notes <span id="note-count"></span></h3>
-          <p id="note-hint" class="note-hint">Turn on the pin tool, then click the model to add a note. Pins ship inside the exported file.</p>
+          <button id="note-add" class="panel-action"><svg class="ico" viewBox="0 0 24 24"><use href="#i-pin"></use></svg>Add note</button>
           <div id="note-list"></div>
         </section>
 
@@ -48,7 +48,7 @@
 
         <section class="side-sec hidden" id="panel-morphs">
           <h3>Blend shapes <span id="morph-count"></span></h3>
-          <button id="morph-reset" title="Reset all blend-shape sliders to zero"><svg class="ico" viewBox="0 0 24 24"><use href="#i-reset"></use></svg>Reset</button>
+          <button id="morph-reset"><svg class="ico" viewBox="0 0 24 24"><use href="#i-reset"></use></svg>Reset</button>
           <div id="morph-list"></div>
         </section>
       </div>
@@ -192,7 +192,7 @@
             <span>Ship viewer controls</span>
           </label>
           <div class="comp-foot">
-            <button id="c-reset" title="Reset all sliders to the default quality"><svg class="ico" viewBox="0 0 24 24"><use href="#i-reset"></use></svg>Reset</button>
+            <button id="c-reset"><svg class="ico" viewBox="0 0 24 24"><use href="#i-reset"></use></svg>Reset</button>
           </div>
         </section>
       </div>
@@ -231,7 +231,7 @@
 <dialog id="guide-modal" class="guide-modal">
   <div class="guide-modal-head">
     <span class="guide-modal-title">Guide</span>
-    <button id="guide-close" class="icon-btn" title="Close the guide" aria-label="Close the guide"><svg class="ico" viewBox="0 0 24 24"><use href="#i-close"></use></svg></button>
+    <button id="guide-close" class="icon-btn" aria-label="Close the guide"><svg class="ico" viewBox="0 0 24 24"><use href="#i-close"></use></svg></button>
   </div>
   <div class="guide guide-modal-body">
     <section>
@@ -245,11 +245,11 @@
 
     <section>
       <h2>Compress up to 100×</h2>
-      <p>The built-in pipeline compresses geometry and textures on your
-      machine. Heavy production files routinely come out 10 to 100× smaller.
-      The defaults are visually safe, the estimated output updates live, and
-      the <b>compare</b> view shows original and compressed side by side in
-      the viewport:</p>
+      <p>Geometry and textures are compressed on your own machine. Production
+      files typically reduce by a factor of 10 to 100. The defaults are chosen
+      to be visually safe, the estimated output size updates as you work, and
+      the <b>compare</b> view shows the original and the compressed result
+      side by side in the viewport:</p>
       <ul>
         <li><b>geometry precision</b>: how finely the shape is kept. Lower is
         smaller, and very low can look faceted.</li>
@@ -263,36 +263,36 @@
 
     <section>
       <h2>Annotate and collaborate</h2>
-      <p>Pin numbered notes directly on the model before exporting. The
-      recipient sees them, can answer with their own pins, and saves an
-      annotated copy that travels back to you like any file. A full review
-      round happens with no platform in between.</p>
+      <p>Place numbered notes directly on the model before exporting. The
+      recipient sees them, can add their own, and saves an annotated copy that
+      is returned like any other file. A full review round requires no shared
+      platform and no accounts.</p>
     </section>
 
     <section>
       <h2>Present your work</h2>
-      <p>Files can ship camera views, material presets, lighting controls and
-      animation playback, so a portfolio piece or a client delivery is
-      explorable, not just visible. Script-blocked previews (webmail, phone
-      mail apps) still show a built-in four-view snapshot of the model.</p>
+      <p>Exported files can carry camera views, material presets, lighting
+      controls and animation playback, so a portfolio piece or a client
+      delivery can be explored rather than only viewed. Where scripts are
+      blocked, such as webmail previews, the file falls back to a built-in
+      four-view snapshot.</p>
     </section>
 
     <section>
       <h2>Asset validation for teams</h2>
-      <p>Because one file holds the whole review, validation stays simple:
-      send the compressed artifact, collect annotated copies, compare rounds.
-      The same file embeds cleanly in an intranet or portfolio page for
-      showcasing approved assets. Enterprise options such as batch tooling,
-      shared note threads and self-hosted bundles are on the roadmap. Write
-      to us if you need them.</p>
+      <p>A single file carries the asset and its review: send it out, collect
+      the annotated copies that come back, and compare rounds without a shared
+      platform. The same file embeds in an intranet or portfolio page for
+      publishing approved assets. Batch tooling, shared note threads and
+      self-hosted deployments are available on request.</p>
     </section>
 
     <section>
       <h2>Nothing is stored on this site</h2>
-      <p>The site has no upload endpoint, so there is nowhere to store your
-      model even by accident. Import, compression, annotation and export all
-      run inside your browser, and the files you generate make no network
-      requests. Close the tab and nothing remains.</p>
+      <p>Your models are never transmitted. Import, compression, annotation
+      and export all run inside your browser, and the files you produce make
+      no network requests of their own. Closing the tab leaves nothing
+      behind.</p>
     </section>
 
     <section>
@@ -328,24 +328,20 @@
     </section>
 
     <section>
-      <h2>Licences and the watermark</h2>
-      <p>Every feature is free: all formats, all compression settings, no size
-      limit, no account required. Files you generate carry a small visible
-      watermark and a "made with 3DPEER" footer, and buying a licence is the
-      one thing that removes them. A licence is a signed key you paste into
-      the app. It is checked on your machine, offline. No account lookup, no
-      phone-home, and nothing about your models or your licence leaves the
-      browser.</p>
-      <p>The watermark is a <b>deterrent, not a lock</b>. An exported file is
-      an ordinary HTML document that has to run in any browser, ten years from
-      now, with no server to check anything, so anyone determined enough can
-      edit it. We would rather say that plainly than pretend otherwise. In
-      practice the watermark makes casual reuse obviously unlicensed, and
-      licence terms cover the rest: automated or bulk processing, and
-      redistribution of unwatermarked files, require a commercial licence.
-      For work that genuinely needs traceability, ask us about the review
-      tier, which marks each recipient's copy so a leaked file can be
-      identified.</p>
+      <h2>Licensing and the watermark</h2>
+      <p>Every feature is available without a licence: all formats, all
+      compression settings, no size limit and no account. Files produced
+      without a licence carry a corner watermark and a "made with 3DPEER"
+      footer. A licence removes both.</p>
+      <p>Licences are verified on your own machine and require no account and
+      no connection, so nothing about your models or your licence reaches us.
+      They are issued per organisation and cover commercial delivery,
+      automated or bulk processing, and distribution of unwatermarked
+      files.</p>
+      <p>The watermark identifies provenance: it shows where a file came from
+      and whether it was produced under licence. For deliveries that must be
+      traceable to a named recipient, the review tier issues individually
+      identified copies. Contact us for terms.</p>
     </section>
   </div>
 </dialog>

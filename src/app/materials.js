@@ -13,6 +13,7 @@
 // =============================================================================
 
 import * as THREE from 'three';
+import { getCompareRoot } from './compare.js';
 import { state } from './state.js';
 import { $ } from './dom.js';
 
@@ -92,8 +93,39 @@ const wireOverlayMat = new THREE.MeshBasicMaterial({
 // Application
 // -----------------------------------------------------------------------------
 
-/** @returns {THREE.Mesh[]} the model's real meshes (excludes wire overlays). */
-const realMeshes = () => [...state.originals.keys()];
+/** Meshes of the compressed side, when the compare split view is up. Their
+ *  original materials are kept here so "original" can restore them. */
+const compareOriginals = new Map();
+
+/**
+ * Every mesh a display setting must reach: the loaded model, plus the
+ * compressed model when the comparison is up — otherwise the two halves of
+ * the split would be shaded differently and the comparison would be lying.
+ * @returns {THREE.Mesh[]}
+ */
+function realMeshes() {
+  const meshes = [...state.originals.keys()];
+  const compare = getCompareRoot();
+  if (!compare) {
+    compareOriginals.clear();
+    return meshes;
+  }
+  compare.traverse((node) => {
+    if (!node.isMesh) return;
+    if (!compareOriginals.has(node)) compareOriginals.set(node, node.material);
+    meshes.push(node);
+  });
+  return meshes;
+}
+
+/**
+ * The material a mesh had before any preset was applied.
+ * @param {THREE.Mesh} mesh
+ * @returns {THREE.Material | undefined}
+ */
+function originalOf(mesh) {
+  return state.originals.get(mesh) || compareOriginals.get(mesh);
+}
 
 /**
  * Apply a base material preset to every real mesh. Leaves the wireframe overlay
@@ -103,7 +135,7 @@ const realMeshes = () => [...state.originals.keys()];
 export function applyMaterial(name) {
   const preset = PRESETS[name];
   for (const mesh of realMeshes()) {
-    const original = state.originals.get(mesh);
+    const original = originalOf(mesh);
     if (!preset) {
       mesh.material = original;
       continue;

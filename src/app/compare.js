@@ -24,6 +24,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { getOptimizedGLB } from './exporter.js';
 import { readSettings } from './comp-settings.js';
 import { setDecimateSuspended } from './decimate-preview.js';
+import { reapplyMaterial } from './materials.js';
 import { state } from './state.js';
 import { $ } from './dom.js';
 import { setStatus } from './ui.js';
@@ -73,6 +74,29 @@ function disposeTree(root) {
 }
 
 /**
+ * Where the divider belongs, in canvas pixels.
+ *
+ * A range input's thumb centre does NOT travel the full track: it starts half
+ * a thumb in and ends half a thumb before the end. Using value/100 * width
+ * therefore drifts from the visible handle, and the wider the viewport the
+ * more obvious the gap. This reproduces the browser's own thumb geometry so
+ * the drawn line sits under the handle at every position.
+ * @param {number} w canvas width in CSS pixels
+ * @returns {number} pixel offset of the divider
+ */
+function splitPixel(w) {
+  const input = $('compare-split');
+  const min = parseFloat(input.min);
+  const max = parseFloat(input.max);
+  const fraction = (parseFloat(input.value) - min) / (max - min);
+  const styles = getComputedStyle(document.documentElement);
+  const thumb = parseFloat(styles.getPropertyValue('--range-thumb')) || 10;
+  const track = input.getBoundingClientRect().width - thumb;
+  const offset = input.getBoundingClientRect().left - $('viewport').getBoundingClientRect().left;
+  return offset + thumb / 2 + fraction * track;
+}
+
+/**
  * Render both halves with the shared camera: original left of the split,
  * compressed right of it, then the divider band.
  */
@@ -84,7 +108,7 @@ function renderCompare() {
     renderer.render(scene, camera);
     return;
   }
-  const split = Math.round((parseFloat($('compare-split').value) / 100) * w);
+  const split = Math.round(splitPixel(w));
 
   renderer.setScissorTest(true);
   renderer.setViewport(0, 0, w, h);
@@ -130,7 +154,7 @@ async function buildCompareModel() {
   try {
     do {
       buildQueued = false;
-      setStatus('Building comparison…');
+      setStatus('Preparing the comparison…');
       const settings = readSettings();
       const bytes = await getOptimizedGLB(settings);
       if (!active) return; // toggled off while compressing
@@ -148,13 +172,15 @@ async function buildCompareModel() {
       compareRoot = gltf.scene;
       compareRoot.visible = false;
       stageRef.scene.add(compareRoot);
+      // Match whatever the left side is wearing right now.
+      reapplyMaterial();
       const inMB = (state.glbBytes.length / 1e6).toFixed(2);
       const outMB = (bytes.length / 1e6).toFixed(2);
       const pct = Math.round((1 - bytes.length / state.glbBytes.length) * 100);
-      setStatus(`Comparing: original ${inMB} MB | compressed ${outMB} MB (${pct}% smaller). Drag the handle to move the split`, 'ok');
+      setStatus(`Comparison ready. Original ${inMB} MB, compressed ${outMB} MB, ${pct}% smaller`, 'ok');
     } while (buildQueued);
   } catch (e) {
-    setStatus('Comparison failed: ' + (e.message || e), 'error');
+    setStatus('The comparison could not be prepared', 'error');
     setCompare(false);
   } finally {
     building = false;
@@ -169,7 +195,7 @@ async function buildCompareModel() {
 function setCompare(on) {
   if (on === active) return;
   if (on && !state.glbBytes) {
-    setStatus('Load a model before comparing', 'warn');
+    setStatus('Load a model to compare', 'warn');
     return;
   }
   active = on;
@@ -202,6 +228,16 @@ function scheduleRebuild() {
   if (!active) return;
   clearTimeout(rebuildTimer);
   rebuildTimer = setTimeout(buildCompareModel, REBUILD_DEBOUNCE_MS);
+}
+
+/**
+ * The compressed model currently on the right of the split, or null.
+ * Display settings (material preset, wireframe) must reach BOTH sides, or
+ * the comparison stops comparing like for like.
+ * @returns {THREE.Object3D | null}
+ */
+export function getCompareRoot() {
+  return compareRoot;
 }
 
 /** Compare must not survive a model swap: the loader resets the scene. */

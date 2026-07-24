@@ -205,7 +205,6 @@ function buildRows() {
   const list = $('note-list');
   clearChildren(list);
   $('note-count').textContent = state.annotations.length ? String(state.annotations.length) : '';
-  $('note-hint').classList.toggle('hidden', state.annotations.length > 0);
   state.annotations.forEach((pin, i) => list.append(buildRow(pin, i)));
 }
 
@@ -239,6 +238,8 @@ export function refreshAnnotations() {
 export function initAnnotations(stage) {
   stageRef = stage;
   $('note-mode').addEventListener('click', () => setMode(!modeOn()));
+  // The panel's own action arms the same pin mode as the viewport button.
+  $('note-add').addEventListener('click', () => setMode(true));
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') setMode(false);
     if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {

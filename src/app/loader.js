@@ -42,7 +42,7 @@ async function loadFile(stage, file) {
   // Convert whatever was dropped to GLB (a pass-through for .glb/.gltf).
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   if (file.size > LARGE_FILE_BYTES && ext !== 'glb' && ext !== 'gltf') {
-    setStatus(`Large ${ext} file (${(file.size / 1e6).toFixed(0)} MB). Conversion can take a while and may exceed the browser's memory. A .glb export from your DCC handles this size best`, 'warn');
+    setStatus(`Large ${ext} file (${(file.size / 1e6).toFixed(0)} MB). Conversion may take some time, and files this size can exceed what a browser tab can hold. A .glb export is the most reliable route at this scale`, 'warn');
   } else {
     setStatus(ext !== 'glb' && ext !== 'gltf' ? 'Converting…' : 'Loading…');
   }
@@ -53,7 +53,7 @@ async function loadFile(stage, file) {
     bytes = await toGLB(file, (f, label) => progress.set(f * 0.85, label));
   } catch (e) {
     progress.hide();
-    setStatus('Import failed: ' + (e.message || e), 'error');
+    setStatus('This file could not be imported', 'error');
     return;
   }
 
@@ -65,7 +65,7 @@ async function loadFile(stage, file) {
     gltf = await new Promise((ok, ko) => loader.parse(bytes.buffer.slice(0), '', ok, ko));
   } catch (e) {
     progress.hide();
-    setStatus('Parse error: ' + (e.message || e), 'error');
+    setStatus('This file could not be read', 'error');
     return;
   }
   progress.set(1);
@@ -77,7 +77,7 @@ async function loadFile(stage, file) {
   gltf.scene.traverse((o) => { if (o.isMesh) meshCount++; });
   if (!meshCount) {
     progress.hide();
-    setStatus(`No geometry found in ${file.name}. This file variant is not supported yet`, 'error');
+    setStatus(`No geometry was found in ${file.name}. This variant of the format is not supported yet`, 'error');
     return;
   }
 

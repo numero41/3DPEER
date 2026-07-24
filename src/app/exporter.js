@@ -162,7 +162,7 @@ async function optimizedGLB(settings, onProgress, fallbackToRaw = true) {
   } catch (e) {
     if (!fallbackToRaw) throw e;
     console.warn('compression failed, exporting raw bytes:', e);
-    setStatus('Compression failed (' + (e.message || e) + '), generating uncompressed', 'warn');
+    setStatus('Compression could not be applied to this model. Exporting at full quality', 'warn');
     bytes = state.glbBytes;
   }
   glbCache.key = key;
@@ -324,7 +324,10 @@ async function refreshEstimate() {
         const gz = await gzipBytes(glb);
         // base85 adds 25 %; viewer + template + poster margin are fixed costs.
         const overhead = window.__EXPORT.viewer.length + window.__EXPORT.tpl.length + 100000;
-        readout.textContent = ((gz.length * 1.25 + overhead) / 1e6).toFixed(2) + ' MB';
+        const projected = gz.length * 1.25 + overhead;
+        const saved = Math.round((1 - projected / state.glbBytes.length) * 100);
+        readout.textContent = (projected / 1e6).toFixed(2) + ' MB · '
+          + (saved >= 0 ? saved + '% smaller' : -saved + '% larger');
       } catch (e) {
         readout.textContent = 'n/a';
       }
@@ -377,7 +380,7 @@ async function runAction(deliver) {
     progress.set(1);
     setTimeout(() => progress.hide(), 1500);
   } catch (e) {
-    setStatus('Failed: ' + (e.message || e), 'error');
+    setStatus('The file could not be generated', 'error');
     progress.hide();
   } finally {
     buttons.forEach((b) => { b.disabled = false; });
@@ -409,7 +412,7 @@ export function initExport(stage) {
       const win = window.open(url, '_blank');
       setTimeout(() => URL.revokeObjectURL(url), 60000);
       if (win) setStatus(`Opened ${state.name}.3dpeer.html in a new tab`, 'ok');
-      else setStatus('Allow pop-ups to view the file in a new tab', 'warn');
+      else setStatus('Allow pop-ups to open the file in a new tab', 'warn');
     }));
 
   // Hide the share button where the browser cannot share files at all.
@@ -437,7 +440,7 @@ export function initExport(stage) {
         } else if (e.name === 'NotAllowedError') {
           // The user gesture expired during a long build; the artifact is now
           // cached, so the next press shares instantly.
-          setStatus('Ready to share. Press Share HTML again', 'warn');
+          setStatus('Ready to share. Press Share HTML once more', 'warn');
         } else {
           throw e;
         }

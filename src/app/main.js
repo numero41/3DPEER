@@ -64,7 +64,7 @@ syncScrolled();
 
 // Licensing is not live yet: say so plainly rather than leaving a dead button.
 $('signin').addEventListener('click', () =>
-  setStatus('Accounts are not live yet. Every feature is free, and exported files carry a watermark.', 'info'));
+  setStatus('Accounts are not available yet. Every feature works without one, and files produced without a licence carry a watermark.', 'info'));
 
 // Render loop: advance any playing animation, keep the scrub bar in sync, and
 // draw. OrbitControls needs update() every frame for damping.
