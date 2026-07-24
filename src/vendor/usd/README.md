@@ -17,9 +17,18 @@ Local patches (keep when refreshing):
 - `USDLoader.js`: fflate import re-pointed to
   `three/examples/jsm/libs/fflate.module.js` (r160's copy), `./usd/*` imports
   flattened to `./*`.
-- `USDComposer.js`: `applyTransform()` honours USD `visibility` (invisible)
-  and `purpose` (proxy/guide) by setting `obj.visible = false`, so a loaded
-  package shows what QuickLook shows. Grep for "LOCAL PATCH (3dpeer)".
+- `USDComposer.js` — grep for "LOCAL PATCH (3dpeer)":
+  - `applyTransform()` honours USD `visibility` (invisible) and `purpose`
+    (proxy/guide) by setting `obj.visible = false`, so a loaded package shows
+    what QuickLook shows.
+  - Texture lookup resolves package-relative paths (`a.usdz[b.usdz[f.png]]`)
+    and falls back to a pool of every image in the package tree, published by
+    `setSharedUSDAssets()` from `src/app/usdz.js`.
+  - Image blobs are tagged with a MIME type sniffed from magic bytes —
+    untyped blob URLs never decode for WebP/AVIF.
+  - A normal map's standard unpack scale (2,2,2,1) is no longer copied into
+    `material.normalScale`; three unpacks normal maps itself, and doubling
+    them baked dark blotches into the shading.
 - Nested usdz-inside-usdz packages are handled OUTSIDE the loader by
   `src/app/usdz.js` (the multi-layer walker feeds each package separately).
 

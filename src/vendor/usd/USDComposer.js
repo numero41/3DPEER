@@ -3197,12 +3197,23 @@ class USDComposer {
 		// Normal map
 		applyTexture( 'inputs:normal', 'normalMap', NoColorSpace, null );
 
-		// Apply normal map scale from UsdUVTexture scale input
+		// Apply normal map scale from UsdUVTexture scale input.
+		//
+		// LOCAL PATCH (3dpeer): a normal-map reader almost always carries the
+		// standard UNPACK transform scale (2,2,2,1) / bias (-1,-1,-1,0), which
+		// remaps the stored 0..1 texel to a -1..1 vector. three does that
+		// unpacking itself, so copying the 2 into normalScale doubles every
+		// normal and bakes heavy dark blotches into the shading (very visible
+		// on skin). Only a genuine, non-unpack scale is worth forwarding; the
+		// sign is kept so a flipped green channel still works.
 		if ( material.normalMap && material.normalMap.userData.scale ) {
 
 			const scale = material.normalMap.userData.scale;
-			// UsdUVTexture scale is float4 (r,g,b,a), use first two components for normalScale
-			material.normalScale = new Vector2( scale[ 0 ], scale[ 1 ] );
+			const isUnpackTransform = Math.abs( Math.abs( scale[ 0 ] ) - 2 ) < 0.01
+				&& Math.abs( Math.abs( scale[ 1 ] ) - 2 ) < 0.01;
+			const x = isUnpackTransform ? Math.sign( scale[ 0 ] ) || 1 : scale[ 0 ];
+			const y = isUnpackTransform ? Math.sign( scale[ 1 ] ) || 1 : scale[ 1 ];
+			material.normalScale = new Vector2( x, y );
 
 		}
 

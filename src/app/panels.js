@@ -76,6 +76,49 @@ function hasGeometry(node) {
 /** Names an exporter invents; they carry no information for the reader. */
 const GENERIC_NAME_RE = /^(group|geo|mesh|components|node|object)[\s_-]*\d*$/i;
 
+/** Deepest indent step available in site.css (rows below it stop stepping). */
+const MAX_INDENT_DEPTH = 9;
+
+/**
+ * Strip a trailing `_12`-style suffix. A USD mesh bound to several materials
+ * is imported as one three.js mesh PER material, named `x`, `x_1`, `x_2`… —
+ * one model part, many objects.
+ * @param {string} name
+ * @returns {string}
+ */
+function nameStem(name) {
+  return (name || '').replace(/_\d+$/, '');
+}
+
+/**
+ * Bundle sibling meshes that are the material-split pieces of one model part
+ * (`x`, `x_1`, `x_2`…) so the outliner shows one row for one part. Anything
+ * else is passed through as its own single-node group, in order.
+ * @param {THREE.Object3D[]} nodes geometry-bearing siblings
+ * @returns {Array<{nodes: THREE.Object3D[], label: string}>}
+ */
+function groupSiblings(nodes) {
+  /** @type {Array<{nodes: THREE.Object3D[], label: string}>} */
+  const groups = [];
+  const byStem = new Map();
+  for (const node of nodes) {
+    const stem = node.isMesh ? nameStem(node.name) : null;
+    if (!stem) {
+      groups.push({ nodes: [node], label: node.name });
+      continue;
+    }
+    const existing = byStem.get(stem);
+    if (existing) {
+      existing.nodes.push(node);
+    } else {
+      const group = { nodes: [node], label: stem };
+      byStem.set(stem, group);
+      groups.push(group);
+    }
+  }
+  return groups;
+}
+
 /**
  * Walk down a chain of single-child pass-through groups, returning the node to
  * actually show and the best label for it. Importers wrap meshes in several
@@ -104,40 +147,46 @@ function collapseChain(node) {
 }
 
 /**
- * Append one hierarchy row (indented) and recurse into geometry-bearing
- * children. Each row's checkbox drives that node's visibility; a group node
- * hides its whole subtree (three inherits visibility at render).
- * @param {THREE.Object3D} input
+ * Append one outliner row and recurse into its children. A row stands for one
+ * model part, which may be several three.js objects (a USD mesh bound to
+ * several materials imports as one object per material).
+ * @param {{nodes: THREE.Object3D[], label: string}} group the part
  * @param {HTMLElement} list the container
  * @param {number} depth nesting level (for indentation)
  * @param {number} index sibling index (fallback label)
  */
-function appendPartRow(input, list, depth, index) {
-  const collapsed = collapseChain(input);
-  const node = collapsed.node;
-  const kind = node.isMesh ? 'mesh' : 'group';
-  const label = collapsed.label || node.name || kind + ' ' + index;
+function appendPartRow(group, list, depth, index) {
+  const single = group.nodes.length === 1;
+  const collapsed = single ? collapseChain(group.nodes[0]) : null;
+  const nodes = single ? [collapsed.node] : group.nodes;
+  const kind = nodes.every((n) => n.isMesh) ? 'mesh' : 'group';
+  const label = (single ? collapsed.label : group.label) || kind + ' ' + index;
+
   const row = el('label', {
-    cls: 'part-row depth-' + Math.min(depth, 6),
+    cls: 'part-row depth-' + Math.min(depth, MAX_INDENT_DEPTH),
     attrs: { title: 'Show / hide ' + label },
   });
   const box = el('input', { attrs: { type: 'checkbox' } });
-  box.checked = node.visible;
-  partBoxes.set(node, box);
+  box.checked = nodes.every((n) => n.visible);
+  for (const node of nodes) partBoxes.set(node, box);
   box.addEventListener('change', () => {
-    // Toggling a node cascades to its whole subtree (a hidden group hides
-    // everything under it, checkboxes included).
-    node.traverse((child) => {
-      child.visible = box.checked;
-      const childBox = partBoxes.get(child);
-      if (childBox) childBox.checked = box.checked;
-    });
+    // Toggling a part cascades to every object under it (a hidden group hides
+    // everything below, checkboxes included).
+    for (const node of nodes) {
+      node.traverse((child) => {
+        child.visible = box.checked;
+        const childBox = partBoxes.get(child);
+        if (childBox) childBox.checked = box.checked;
+      });
+    }
     syncAnnotationVisibility();
   });
   row.append(box, el('span', { cls: 'part-name part-' + kind, text: label }));
   list.append(row);
 
-  const children = node.children.filter(hasGeometry);
+  // Split pieces have no meaningful sub-structure to show.
+  if (!single) return;
+  const children = groupSiblings(nodes[0].children.filter(hasGeometry));
   children.forEach((child, i) => appendPartRow(child, list, depth + 1, i));
 }
 
@@ -152,7 +201,8 @@ function buildParts(scene) {
   box.classList.toggle('hidden', meshCount < 1);
   if (meshCount < 1) return;
   // The GLTF scene root is a wrapper; show its geometry-bearing children.
-  scene.children.filter(hasGeometry).forEach((child, i) => appendPartRow(child, list, 0, i));
+  groupSiblings(scene.children.filter(hasGeometry))
+    .forEach((group, i) => appendPartRow(group, list, 0, i));
 }
 
 /** Build the animations section (clip picker + play/pause + scrub). */
