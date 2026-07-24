@@ -38,9 +38,9 @@ function group(n) {
  */
 export function refreshPolyCount() {
   if (!state.root) {
-    $('hud-verts').textContent = 'Verts: —';
-    $('hud-faces').textContent = 'Faces: —';
-    $('hud-edges').textContent = 'Edges: —';
+    $('hud-verts').textContent = 'Verts: 0';
+    $('hud-faces').textContent = 'Faces: 0';
+    $('hud-edges').textContent = 'Edges: 0';
     return;
   }
   let vertices = 0;

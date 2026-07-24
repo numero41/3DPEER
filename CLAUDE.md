@@ -77,15 +77,25 @@ each one encodes a real bug or a product decision. Do not break them.
 
 ## Aesthetics
 
-Site: monochrome dark — page #161618, light-grey text #ececf0, dark-grey
-buttons #2c2c31 (one shade for every button, export included), neutral-grey
-viewport #262626; system-sans UI with mono only for the wordmark and
-technical readouts; zero marketing gradient. The viewer is a centered
-~800×800 card (fullscreen on demand); camera/material/light live in three
-icon menus at the bottom of the view, export + progress beneath the card.
+ONE register for both surfaces (decided 2026-07-24): warm dark, every
+neutral carrying a little yellow (hue ~45°, low saturation). Never
+blue-grey, never brown. Page #1c1a16, text #f6f3ec, muted #c9c3b4,
+viewport #2b2822, buttons #322e26 (one shade for every button, export
+included). The artifact mirrors these tokens in src/template/page.css:
+a file you receive should look like the tool that made it. The older
+amber artifact register (#211a14 / #c9a978) is gone.
+
+System-sans UI, mono only for the wordmark and technical readouts; zero
+marketing gradient. Do NOT set `-webkit-font-smoothing: antialiased`: on
+macOS it renders light-on-dark text thin and crunchy.
+
+Layout: three columns — scene panel (notes, objects, blend shapes) left,
+square viewport centre, export panel (settings + stacked actions) right,
+both panels docked with sticky titles; one status cartouche underneath.
+In the viewport: HUD readouts centred at the top (unframed, one line per
+metric, `Label: value`), the transport across the bottom (unframed), and
+the tool bar below it with its groups spread across the full width.
 Status messages are colour-coded: info muted, ok bright, warn amber.
-Artifact: dark background #211a14, amber caption #c9a978. Two registers,
-one restrained palette.
 
 ## Working conventions (David's requirements — apply to every change)
 

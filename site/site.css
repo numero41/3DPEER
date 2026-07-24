@@ -750,12 +750,17 @@ body.loaded .stage-toggle {
   top: var(--sp-4);
   left: 50%;
   z-index: 1;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   gap: var(--sp-1);
   transform: translateX(-50%);
   pointer-events: none;
+}
+
+/* Nothing to count before a model is loaded. */
+body.loaded .hud {
+  display: flex;
 }
 
 .hud.hidden,
