@@ -15,8 +15,8 @@
      low saturation) — never blue-grey, never brown. ---- */
   --white: #ffffff;
   --black: #000000;
-  --bg: #191710;
-  --surface: #221f18;
+  --bg: #17150f;
+  --surface: #322e26;
   --elevated: #322e26;
   --inset: #131109;
   --ink: #f6f3ec;
@@ -25,7 +25,7 @@
   --line: #2b2820;
   --line-strong: #3e3a30;
   --stage-bg: var(--inset);
-  --btn-dark: var(--elevated);
+  --btn-dark: #3d3830;
 
   /* ---- overlays drawn over the dark viewport ---- */
   --overlay: rgba(28, 26, 22, 0.82);
@@ -120,20 +120,25 @@
   --ctrl: 34px;
   --icon: 18px;
   --icon-stroke: 2;
+  --icon-stroke-bold: 3;
   --cube-w: 140px;
   --menu-w: 190px;
-  --page-max: 1200px;
+  --page-max: 1440px;
   --stage-min-w: 250px;
+  /* One value for every gap around the viewport, so the space to the side
+     panels and the space to the status line read identically. */
+  --gutter: 8px;
   /* Layout dimensions the USER drags (resize.js writes these on :root, and
      only these — never appearance properties). */
-  --scene-w: 300px;
-  --export-w: 300px;
+  --scene-w: 280px;
+  --export-w: 280px;
   --stage-h: 760px;
   --panel-min: 200px;
   --panel-collapsed: 30px;
   --handle-w: 6px;
   --progress: 0;
   --tip-delay: 0.1s;
+  --op-handle: 0.35;
   --compare-split-w: 42%;
   --compare-handle-drop: 40px;
 
@@ -289,7 +294,7 @@ button:hover,
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--sp-4);
+  gap: var(--sp-2);
 }
 
 .logo {
@@ -299,6 +304,8 @@ button:hover,
 }
 
 .mark {
+  display: inline-flex;
+  gap: var(--track-wide);
   padding-left: var(--track-wide);
   font: 600 var(--fs-xl)/1 var(--mono);
   letter-spacing: var(--track-wide);
@@ -329,7 +336,7 @@ button:hover,
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp-5);
+  gap: var(--gutter);
   width: 100%;
   max-width: var(--page-max);
   margin: 0 auto;
@@ -344,7 +351,7 @@ button:hover,
   flex-wrap: nowrap;
   align-items: flex-start;
   justify-content: center;
-  gap: var(--sp-4);
+  gap: var(--gutter);
   width: 100%;
 }
 
@@ -360,13 +367,15 @@ button:hover,
 /* ---- resize handles: three draggable edges around the viewport ---- */
 .resize-handle {
   flex: none;
-  background: transparent;
-  transition: background var(--dur);
+  background: var(--line-strong);
+  opacity: var(--op-handle);
+  transition: background var(--dur), opacity var(--dur);
 }
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: var(--line-strong);
+  background: var(--faint);
+  opacity: 1;
 }
 
 .resize-handle-v {
@@ -397,7 +406,7 @@ button:hover,
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-lg);
   background: var(--stage-bg);
-  box-shadow: var(--shadow-inset);
+  box-shadow: var(--shadow), var(--shadow-inset);
 }
 
 #viewport {
@@ -1020,9 +1029,10 @@ body.loaded .hud {
 /* The chevron points at the edge the panel folds toward. */
 .panel-chevron {
   flex: none;
-  width: var(--icon-xs);
-  height: var(--icon-xs);
-  color: var(--faint);
+  width: var(--icon);
+  height: var(--icon);
+  color: var(--muted);
+  stroke-width: var(--icon-stroke-bold);
 }
 
 #side-left .panel-chevron {
@@ -1264,6 +1274,7 @@ body.loaded .hud {
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .under-status {
