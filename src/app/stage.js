@@ -161,11 +161,27 @@ export function createStage() {
     if (quad) axisControls.forEach((c) => c.update());
   }
 
+  /** Optional render delegate (the compare split view installs one). */
+  let renderOverride = null;
+
   /**
-   * Draw the current frame: one full-canvas perspective view, or the four
-   * scissored panes (TL top, TR front, BL right, BR perspective).
+   * Install or clear a render delegate that replaces the default draw.
+   * @param {(() => void) | null} fn
+   */
+  function setRenderOverride(fn) {
+    renderOverride = fn;
+  }
+
+  /**
+   * Draw the current frame: one full-canvas perspective view, the four
+   * scissored panes (TL top, TR front, BL right, BR perspective), or a
+   * delegate (compare split view).
    */
   function render() {
+    if (renderOverride) {
+      renderOverride();
+      return;
+    }
     if (!quad) {
       renderer.render(scene, camera);
       return;
@@ -226,5 +242,5 @@ export function createStage() {
     return { center, dist };
   }
 
-  return { canvas, renderer, scene, camera, controls, resize, frameObject, render, update, setQuad, isQuad };
+  return { canvas, renderer, scene, camera, controls, resize, frameObject, render, update, setQuad, isQuad, setRenderOverride };
 }

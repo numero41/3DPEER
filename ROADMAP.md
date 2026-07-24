@@ -150,7 +150,9 @@ construction. Consequences:
 
 ## M5 — Viewer tools (pick per demand)
 
-- Before/after compression wipe on the site (sells the compression).
+- ~~Before/after compression wipe on the site~~ DONE 2026-07-24: compare
+  split view (src/app/compare.js) — real pipeline output beside the
+  original, one camera, draggable divider, auto-rebuild on settings change.
 - Measurement: two clicks → world-space distance (pairs with STL users).
 - Section plane: draggable clipping plane.
 - Exploded view: parts drift apart on a slider (the parts list exists).

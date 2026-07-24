@@ -118,6 +118,8 @@
   --cube-w: 96px;
   --menu-w: 190px;
   --stage-max: 800px;
+  --compare-split-w: 42%;
+  --compare-label-b-right: 64px;
   --panel-w: 300px;
   --progress-h: 10px;
   --note-badge: 20px;
@@ -351,6 +353,48 @@ button:hover,
   top: 50%;
   height: var(--dash);
   transform: translateY(-50%);
+}
+
+/* Compare split view: corner labels + the split slider along the bottom.
+   The divider line itself is drawn by the renderer (scissored clear), so the
+   canvas needs no positioned DOM at the split. */
+.compare-ui {
+  display: none;
+}
+
+.stage.comparing .compare-ui {
+  display: block;
+}
+
+.compare-label {
+  position: absolute;
+  top: var(--sp-4);
+  z-index: 1;
+  padding: var(--sp-1) var(--sp-3);
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-sm);
+  background: var(--overlay);
+  color: var(--overlay-ink);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  pointer-events: none;
+}
+
+.compare-label-a {
+  left: var(--sp-4);
+}
+
+.compare-label-b {
+  right: var(--compare-label-b-right);
+}
+
+#compare-split {
+  position: absolute;
+  bottom: var(--sp-4);
+  left: 50%;
+  z-index: 1;
+  width: var(--compare-split-w);
+  transform: translateX(-50%);
 }
 
 .stage:fullscreen {

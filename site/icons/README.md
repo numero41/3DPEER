@@ -23,6 +23,7 @@ via `currentColor`, so leave no hard-coded colours in the files.
 | `fullscreen.svg`    | `maximize-2`         | enter fullscreen                 |
 | `fullscreen-exit.svg` | `minimize-2`       | exit fullscreen                  |
 | `quad.svg`          | `layout-grid`        | quad-view toggle                 |
+| `compare.svg`       | `columns-2`          | before/after compression split   |
 | `panel-open.svg`    | `panel-right-open`   | open the right-side panel        |
 | `panel-close.svg`   | `panel-right-close`  | close the right-side panel       |
 

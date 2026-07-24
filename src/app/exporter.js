@@ -171,6 +171,19 @@ async function optimizedGLB(settings, onProgress, fallbackToRaw = true) {
 }
 
 /**
+ * Run the real pipeline for the current model at the given settings and
+ * return the optimized GLB bytes (memoized with the exporter's cache, so a
+ * compare view and a subsequent export share the work). Throws on pipeline
+ * failure instead of falling back to raw bytes.
+ * @param {import('./compress.js').CompressSettings} settings
+ * @param {(f: number, label: string) => void} [onProgress]
+ * @returns {Promise<Uint8Array>}
+ */
+export function getOptimizedGLB(settings, onProgress = () => {}) {
+  return optimizedGLB(settings, onProgress, false);
+}
+
+/**
  * Build the artifact HTML for the current model + options, driving the
  * progress bar from 0 to ~0.95. Returns the cached blob when nothing changed.
  * @returns {Promise<Blob>}

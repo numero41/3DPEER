@@ -94,6 +94,11 @@ let timer = 0;
 let busy = false;
 let queued = null;
 
+/** While true the preview leaves the display geometry at the original
+ *  topology (the compare split view shows decimation on its compressed
+ *  side only, so the "original" side must stay pristine). */
+let suspended = false;
+
 /**
  * Simplify one geometry to a triangle ratio, swapping its index. Caches the
  * original index the first time so decimate 0 restores it exactly.
@@ -168,7 +173,7 @@ async function run() {
     await MeshoptSimplifier.ready;
     do {
       queued = false;
-      const ratio = 1 - (parseFloat($('c-dec').value) || 0) / 100;
+      const ratio = suspended ? 1 : 1 - (parseFloat($('c-dec').value) || 0) / 100;
       for (const mesh of state.originals.keys()) {
         try {
           applyToMesh(mesh, ratio);
@@ -180,6 +185,16 @@ async function run() {
   } finally {
     busy = false;
   }
+}
+
+/**
+ * Suspend (restore originals) or resume (re-apply the slider) the preview.
+ * @param {boolean} on
+ */
+export function setDecimateSuspended(on) {
+  suspended = on;
+  clearTimeout(timer);
+  run();
 }
 
 /** Schedule a debounced preview refresh (called on decimate-slider input). */

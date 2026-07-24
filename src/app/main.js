@@ -19,6 +19,7 @@ import { initViews } from './views.js';
 import { initAnnotations } from './annotate.js';
 import { initExport } from './exporter.js';
 import { initDecimatePreview } from './decimate-preview.js';
+import { initCompare } from './compare.js';
 import { initCompressionSettings } from './comp-settings.js';
 import { SPRITE } from './sprite.js';
 import { setStatus } from './ui.js';
@@ -47,6 +48,7 @@ initViews(stage);
 initAnnotations(stage);
 initExport(stage);
 initDecimatePreview();
+initCompare(stage);
 initCompressionSettings();
 
 // Licensing is not live yet: say so plainly rather than leaving a dead button.

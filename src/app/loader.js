@@ -14,6 +14,7 @@ import { reapplyMaterial } from './materials.js';
 import { toGLB } from './importers.js';
 import { scheduleEstimate } from './exporter.js';
 import { resetDecimatePreview } from './decimate-preview.js';
+import { resetCompare } from './compare.js';
 import { setStatus } from './ui.js';
 
 /** Remove the current model from the scene and free its GPU resources. */
@@ -63,6 +64,7 @@ async function loadFile(stage, file) {
     return;
   }
 
+  resetCompare();
   disposeCurrent(stage);
   resetDecimatePreview();
   state.root = gltf.scene;

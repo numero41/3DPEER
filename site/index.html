@@ -67,6 +67,7 @@
         </div>
         <button id="fit" class="icon-btn" title="Fit model to view (1:1)" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
         <button id="quad" class="icon-btn" title="Quad view — top / front / right / perspective" aria-label="Quad view" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-quad"></use></svg></button>
+        <button id="compare" class="icon-btn" title="Compare original and compressed side by side" aria-label="Compare compression" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-compare"></use></svg></button>
         <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
         </div>
 
@@ -104,6 +105,13 @@
           </div>
           <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
         </div>
+      </div>
+
+      <!-- compare split view chrome (visible while .stage.comparing) -->
+      <div class="compare-ui">
+        <span class="compare-label compare-label-a">original</span>
+        <span class="compare-label compare-label-b">compressed</span>
+        <input id="compare-split" type="range" min="5" max="95" step="1" value="50" title="Drag to move the split between original and compressed">
       </div>
     </section>
 
