@@ -56,6 +56,12 @@ initGuide();
 initHud();
 initResize();
 
+// The sticky header gains a shadow once content scrolls beneath it.
+const topbar = document.querySelector('.topbar');
+const syncScrolled = () => topbar.classList.toggle('is-scrolled', scrollY > 0);
+addEventListener('scroll', syncScrolled, { passive: true });
+syncScrolled();
+
 // Licensing is not live yet: say so plainly rather than leaving a dead button.
 $('signin').addEventListener('click', () =>
   setStatus('Accounts are not live yet. Every feature is free, and exported files carry a watermark.', 'info'));

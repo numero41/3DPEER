@@ -61,11 +61,13 @@ export function initViews(stage) {
   });
 
   // --- fullscreen -----------------------------------------------------------
-  const stageEl = $('stage');
+  // Fullscreen takes the WHOLE workbench, so the scene panel, the export
+  // panel and the status line stay available while the viewport grows.
+  const fsTarget = document.querySelector('.workbench');
   $('fullscreen').addEventListener('click', () => {
     const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
     if (fsEl) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-    else (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
+    else (fsTarget.requestFullscreen || fsTarget.webkitRequestFullscreen).call(fsTarget);
   });
   const fsUse = $('fullscreen').querySelector('use');
   ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) =>

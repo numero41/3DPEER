@@ -15,15 +15,17 @@
      low saturation) — never blue-grey, never brown. ---- */
   --white: #ffffff;
   --black: #000000;
-  --bg: #1c1a16;
-  --surface: #26241e;
+  --bg: #191710;
+  --surface: #221f18;
+  --elevated: #322e26;
+  --inset: #131109;
   --ink: #f6f3ec;
   --muted: #c9c3b4;
   --faint: #9c9587;
-  --line: #2e2b23;
+  --line: #2b2820;
   --line-strong: #3e3a30;
-  --stage-bg: #2b2822;
-  --btn-dark: #322e26;
+  --stage-bg: var(--inset);
+  --btn-dark: var(--elevated);
 
   /* ---- overlays drawn over the dark viewport ---- */
   --overlay: rgba(28, 26, 22, 0.82);
@@ -120,7 +122,8 @@
   --icon-stroke: 2;
   --cube-w: 140px;
   --menu-w: 190px;
-  --stage-max: 800px;
+  --page-max: 1200px;
+  --stage-min-w: 250px;
   /* Layout dimensions the USER drags (resize.js writes these on :root, and
      only these — never appearance properties). */
   --scene-w: 300px;
@@ -158,8 +161,11 @@
   --tip-max-w: 240px;
   --icon-sm: 22px;
   --icon-xs: 14px;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.08);
-  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 20px rgba(0, 0, 0, 0.22);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-down: 0 12px 24px -8px rgba(0, 0, 0, 0.7);
+  --shadow-inset: inset 0 1px 14px rgba(0, 0, 0, 0.55);
+  --shadow-btn: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -209,10 +215,23 @@ button:hover,
 }
 
 /* ==================================================================== topbar */
+/* Sticky header: it keeps the nav reachable and gains a shadow once the page
+   scrolls under it (the class is toggled in main.js). */
 .topbar {
-  position: relative;
-  padding: var(--sp-7) var(--sp-6) var(--sp-3);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-tip);
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-6) var(--sp-3);
+  background: var(--bg);
   text-align: center;
+  transition: box-shadow var(--dur);
+}
+
+.topbar.is-scrolled {
+  box-shadow: var(--shadow-down);
 }
 
 /* The topbar already carries the workbench's horizontal padding, so the nav
@@ -311,6 +330,9 @@ button:hover,
   flex-direction: column;
   align-items: center;
   gap: var(--sp-5);
+  width: 100%;
+  max-width: var(--page-max);
+  margin: 0 auto;
   padding: var(--sp-6) var(--sp-6) var(--sp-7);
 }
 
@@ -326,10 +348,11 @@ button:hover,
   width: 100%;
 }
 
-/* Panels keep their width; the stage gives up space for them. A flex item's
-   used width comes from its BASIS, so the basis is what has to carry the
+/* A flex item's used width comes from its BASIS, so the basis carries the
    open/closed size — setting `width` alone leaves the basis at auto and the
-   panel collapses. */
+   panel collapses. Panels may SHRINK as the window narrows, down to
+   --panel-min; only when the viewport itself would go under --stage-min-w
+   does the layout stack (see the media query at the end of this file). */
 .side-panel {
   flex: 0 0 0;
 }
@@ -354,10 +377,7 @@ button:hover,
 }
 
 .resize-handle-h {
-  position: absolute;
-  right: 0;
-  bottom: calc(var(--handle-w) * -1);
-  left: 0;
+  width: 100%;
   height: var(--handle-w);
   border-radius: var(--r-pill);
   cursor: row-resize;
@@ -370,14 +390,14 @@ button:hover,
   position: relative;
   flex: 1 1 auto;
   width: auto;
-  min-width: 0;
+  min-width: var(--stage-min-w);
   /* Height is the dragged dimension; the width just follows the window, so
      resizing the browser must not squash the viewport into a letterbox. */
   height: var(--stage-h);
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-lg);
   background: var(--stage-bg);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-inset);
 }
 
 #viewport {
@@ -463,17 +483,39 @@ button:hover,
 #compare-split {
   position: absolute;
   top: 50%;
-  left: 50%;
+  right: var(--sp-4);
+  left: var(--sp-4);
   z-index: 1;
-  width: var(--compare-split-w);
-  transform: translate(-50%, calc(-50% + var(--compare-handle-drop)));
+  width: auto;
+  transform: translateY(calc(-50% + var(--compare-handle-drop)));
+}
+
+.workbench:fullscreen {
+  max-width: none;
+  height: 100vh;
+  background: var(--bg);
+}
+
+.workbench:fullscreen .stage {
+  height: auto;
+  flex: 1 1 auto;
+}
+
+.workbench:fullscreen .stage-row {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.workbench:fullscreen .side-panel.open,
+.workbench:fullscreen .side-panel.collapsed {
+  max-height: none;
+  align-self: stretch;
 }
 
 .stage:fullscreen {
   width: 100vw;
   height: 100vh;
   max-width: none;
-  aspect-ratio: auto;
   border: 0;
   border-radius: 0;
 }
@@ -655,13 +697,16 @@ body.loaded .stage-toggle {
   display: none;
 }
 
-/* In the side panels, tips open leftward instead of upward. */
+/* The panels scroll, so a tip that leaves their box gets clipped: inside a
+   panel a tip opens DOWNWARD, pinned to the control's left edge and never
+   wider than the panel itself. */
 .side-panel [data-tip]::after {
-  top: 50%;
-  right: calc(100% + var(--sp-3));
+  top: calc(100% + var(--sp-2));
+  right: auto;
   bottom: auto;
-  left: auto;
-  transform: translateY(-50%);
+  left: 0;
+  max-width: 100%;
+  transform: none;
 }
 
 /* The bottom bar's outermost groups would push their tooltip past the stage
@@ -902,28 +947,33 @@ body.loaded .hud {
 }
 
 #side-left.open {
-  flex-basis: var(--scene-w);
+  flex: 0 1 var(--scene-w);
   width: var(--scene-w);
 }
 
 #side-right.open {
-  flex-basis: var(--export-w);
+  flex: 0 1 var(--export-w);
   width: var(--export-w);
 }
 
 .side-panel.open {
+  min-width: var(--panel-min);
   max-height: var(--stage-h);
   border: var(--hairline) solid var(--line-strong);
-  background: var(--btn-dark);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 /* Collapsed: a narrow strip that still shows its label and chevron. */
 .side-panel.collapsed {
-  flex-basis: var(--panel-collapsed);
+  flex: none;
   width: var(--panel-collapsed);
   max-height: var(--stage-h);
   border: var(--hairline) solid var(--line-strong);
-  background: var(--btn-dark);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .side-panel.collapsed .panel-body,
@@ -963,7 +1013,7 @@ body.loaded .hud {
   padding: var(--sp-4);
   border: 0;
   border-bottom: var(--hairline) solid var(--line-strong);
-  background: var(--btn-dark);
+  background: var(--surface);
   cursor: pointer;
 }
 
@@ -1770,7 +1820,7 @@ footer .legal-mark {
 /* ==================================================================== narrow */
 /* Not enough room for panels beside the stage: stack them, viewport first,
    and drop the drag handles (there is no side to drag). */
-@media (max-width: 1100px) {
+@media (max-width: 780px) {
   .stage-row {
     flex-wrap: wrap;
   }
