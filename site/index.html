@@ -33,13 +33,17 @@
         <input id="file-input" type="file" accept=".glb,.gltf,.obj,.stl,.ply,.fbx,.usdz">
       </div>
 
-      <!-- right-edge tool column: utilities, then the three scene menus -->
+      <!-- right-edge tool column: panel toggle on top, then grouped tools
+           (annotate / camera / shading / capture) -->
       <div class="stage-tools">
-        <button id="note-mode" class="icon-btn" title="Annotation mode — click the model to pin a note" aria-label="Annotation mode" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-pin"></use></svg></button>
-        <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
-        <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
-        <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
+        <button id="panel-toggle" class="icon-btn panel-toggle hidden" title="Show / hide panels" aria-label="Toggle panels"><svg class="ico" viewBox="0 0 24 24"><use href="#i-panel-open"></use></svg></button>
+        <span class="tool-sep" aria-hidden="true"></span>
 
+        <div class="tool-group">
+          <button id="note-mode" class="icon-btn" title="Annotation mode — click the model to pin a note" aria-label="Annotation mode" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-pin"></use></svg></button>
+        </div>
+
+        <div class="tool-group">
         <div class="menu-group">
           <button class="icon-btn" data-menu="view" aria-haspopup="true" aria-expanded="false" title="Camera views"><svg class="ico" viewBox="0 0 24 24"><use href="#i-view"></use></svg></button>
           <div class="menu-pop" id="menu-view" role="menu">
@@ -56,7 +60,11 @@
             </div>
           </div>
         </div>
+        <button id="fit" class="icon-btn" title="Fit model to view" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
+        <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
+        </div>
 
+        <div class="tool-group">
         <div class="menu-group">
           <button class="icon-btn" data-menu="material" aria-haspopup="true" aria-expanded="false" title="Material"><svg class="ico" viewBox="0 0 24 24"><use href="#i-material"></use></svg></button>
           <div class="menu-pop" id="menu-material" role="menu">
@@ -78,15 +86,18 @@
             <label class="menu-slider" title="Rotate the light rig around the model (degrees)"><span>orientation</span><input id="light-orientation" type="range" min="0" max="360" step="1"></label>
           </div>
         </div>
+        </div>
 
-        <button id="panel-toggle" class="icon-btn panel-toggle hidden" title="Show / hide panels" aria-label="Toggle panels"><svg class="ico" viewBox="0 0 24 24"><use href="#i-panel-open"></use></svg></button>
+        <div class="tool-group">
+          <button id="snapshot" class="icon-btn" title="Save a PNG snapshot" aria-label="Snapshot"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snapshot"></use></svg></button>
+        </div>
       </div>
     </section>
 
     <!-- docked panel, opens to the right of the view -->
     <aside id="side" class="side">
       <section class="side-sec hidden" id="panel-notes">
-        <h2>annotations <span id="note-count"></span></h2>
+        <h2>annotations <span id="note-count"></span><button id="note-vis" class="icon-btn icon-btn-sm" title="Show / hide all notes on the model" aria-label="Show or hide all notes" aria-pressed="true"><svg class="ico" viewBox="0 0 24 24"><use href="#i-eye"></use></svg></button></h2>
         <p id="note-hint" class="note-hint">enable the pin tool (top right), then click the model to add a note — pins ship inside the exported file</p>
         <div id="note-list" class="scroll"></div>
       </section>

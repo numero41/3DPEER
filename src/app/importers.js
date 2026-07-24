@@ -7,7 +7,8 @@
 // artifact) serves every input, and what you preview is exactly what exports.
 //
 // Fidelity notes: FBX materials are approximate on the web (assumed); USDZ
-// support covers the common Apple-generated files, not full USD.
+// goes through the multi-layer walker in usdz.js (nested packages are read,
+// ASCII .usda layers parse, binary .usdc crates do not — clear error).
 // =============================================================================
 
 import * as THREE from 'three';
@@ -15,8 +16,8 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
-import { USDZLoader } from 'three/examples/jsm/loaders/USDZLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import { parseMultiLayerUSDZ } from './usdz.js';
 
 /** Extensions the workbench accepts, in file-input "accept" form. */
 export const ACCEPT = '.glb,.gltf,.obj,.stl,.ply,.fbx,.usdz';
@@ -54,49 +55,9 @@ function parseToObject(ext, buffer) {
       return meshFromGeometry(new PLYLoader().parse(buffer));
     case 'fbx':
       return new FBXLoader().parse(buffer, '');
-    case 'usdz':
-      return parseUSDZ(buffer);
     default:
       throw new Error('unsupported format: .' + ext);
   }
-}
-
-/**
- * Parse a .usdz, with a diagnosis the generic "no geometry" check cannot give:
- * three's USDZLoader only reads ASCII .usda layers, but most DCC exports store
- * geometry as binary .usdc crates (magic "PXR-USDC") or nest further .usdz
- * packages — tell the user what their file is and what to export instead.
- * @param {ArrayBuffer} buffer file contents
- * @returns {THREE.Object3D}
- */
-function parseUSDZ(buffer) {
-  const object = new USDZLoader().parse(buffer);
-  let meshCount = 0;
-  object.traverse((o) => { if (o.isMesh) meshCount++; });
-  if (!meshCount && hasUsdcCrate(new Uint8Array(buffer))) {
-    throw new Error('this .usdz stores its geometry as a binary usdc crate, '
-      + 'which browsers cannot read yet — export a .glb (or a .usdz with ASCII .usda layers) instead');
-  }
-  return object;
-}
-
-/**
- * Scan a usdz (zip) for the "PXR-USDC" crate magic.
- * @param {Uint8Array} bytes file contents
- * @returns {boolean}
- */
-function hasUsdcCrate(bytes) {
-  const magic = [0x50, 0x58, 0x52, 0x2d, 0x55, 0x53, 0x44, 0x43]; // PXR-USDC
-  const limit = Math.min(bytes.length, 64 * 1024 * 1024) - magic.length;
-  for (let i = 0; i <= limit; i++) {
-    if (bytes[i] !== magic[0]) continue;
-    let hit = true;
-    for (let j = 1; j < magic.length; j++) {
-      if (bytes[i + j] !== magic[j]) { hit = false; break; }
-    }
-    if (hit) return true;
-  }
-  return false;
 }
 
 /**
@@ -110,7 +71,8 @@ export async function toGLB(file) {
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   if (ext === 'glb' || ext === 'gltf') return new Uint8Array(buffer);
 
-  const object = parseToObject(ext, buffer);
+  // usdz goes through the multi-layer walker (nested packages, usdc diagnosis).
+  const object = ext === 'usdz' ? await parseMultiLayerUSDZ(buffer) : parseToObject(ext, buffer);
   const result = await new GLTFExporter().parseAsync(object, {
     binary: true,
     animations: object.animations || [],

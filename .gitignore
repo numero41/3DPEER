@@ -8,4 +8,5 @@ node_modules/
 site/app.js
 site/assets/
 src/app/sprite.js
+src/viewer/sprite.js
 site/export-assets.js

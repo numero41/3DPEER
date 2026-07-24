@@ -113,6 +113,10 @@
   /* ---- effect ---- */
   --dur: 0.15s;
   --z-overlay: 4;
+  --z-tip: 6;
+  --tip-max-w: 240px;
+  --icon-sm: 22px;
+  --icon-xs: 14px;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 32px rgba(0, 0, 0, 0.08);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
@@ -356,14 +360,66 @@ body.loaded .stage-tools {
   cursor: pointer;
 }
 
-/* ---- right-edge tool column (utilities + scene menus) ---- */
+/* ---- right-edge tool column: panel toggle, then category groups ---- */
 .stage-tools {
   position: absolute;
   top: var(--sp-4);
   right: var(--sp-4);
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
   z-index: var(--z-overlay);
+}
+
+.tool-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.tool-sep {
+  height: var(--hairline);
+  margin: 0 var(--sp-1);
+  background: var(--overlay-line);
+}
+
+/* ---- instant tooltips (from data-tip, converted from title=) ---- */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + var(--sp-2));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-tip);
+  display: none;
+  width: max-content;
+  max-width: var(--tip-max-w);
+  padding: var(--sp-2) var(--sp-3);
+  border: var(--hairline) solid var(--overlay-line);
+  border-radius: var(--r-sm);
+  background: var(--panel-bg);
+  color: var(--overlay-ink);
+  font: var(--fs-xs)/1.4 var(--sans);
+  letter-spacing: var(--track-tight);
+  text-transform: none;
+  pointer-events: none;
+}
+
+[data-tip]:hover::after {
+  display: block;
+}
+
+/* In the tool column and the side panel, tips open leftward instead. */
+.stage-tools [data-tip]::after,
+.side [data-tip]::after {
+  top: 50%;
+  right: calc(100% + var(--sp-3));
+  bottom: auto;
+  left: auto;
+  transform: translateY(-50%);
 }
 
 /* ======================================================== popover menus */
@@ -555,30 +611,41 @@ body.loaded .stage-tools {
   display: none;
 }
 
-/* ---- pin colour presets (badge + swatches; values mirror pins.js) ---- */
-.pin-c0 { background: var(--pin-c0); }
-.pin-c1 { background: var(--pin-c1); }
-.pin-c2 { background: var(--pin-c2); }
-.pin-c3 { background: var(--pin-c3); }
-.pin-c4 { background: var(--pin-c4); }
+/* ---- pin colour presets (badge + swatches; values mirror pins.js) ----
+   Scoped under .note-row so they outrank the generic .side button skin, and
+   carrying --btn-bg/--btn-fg so the hover formula mixes from the pin colour. */
+.note-row .pin-c0 { --btn-bg: var(--pin-c0); --btn-fg: var(--bg); background: var(--pin-c0); }
+.note-row .pin-c1 { --btn-bg: var(--pin-c1); --btn-fg: var(--bg); background: var(--pin-c1); }
+.note-row .pin-c2 { --btn-bg: var(--pin-c2); --btn-fg: var(--bg); background: var(--pin-c2); }
+.note-row .pin-c3 { --btn-bg: var(--pin-c3); --btn-fg: var(--bg); background: var(--pin-c3); }
+.note-row .pin-c4 { --btn-bg: var(--pin-c4); --btn-fg: var(--bg); background: var(--pin-c4); }
 
-/* One row: [n]|[field] as one continuous shape, swatches on demand below. */
+/* One row: [n]|[field] as one continuous shape; the badge is a button that
+   opens the colour popover (menu-group pattern). */
 .note-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: stretch;
   margin: var(--sp-3) 0;
 }
 
-.note-num {
+.note-color-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.note-row .note-num {
   flex: none;
   display: grid;
   place-items: center;
   width: var(--note-badge);
+  height: 100%;
+  padding: 0;
+  border: 0;
   border-radius: var(--r-sm) 0 0 var(--r-sm);
   color: var(--bg);
   font-size: var(--fs-2xs);
   font-weight: 600;
+  cursor: pointer;
 }
 
 .note-field {
@@ -620,17 +687,21 @@ body.loaded .stage-tools {
   cursor: pointer;
 }
 
-/* Swatch strip: revealed while the row is being edited or hovered. */
-.note-colors {
-  display: none;
-  gap: var(--sp-2);
-  width: 100%;
-  padding: var(--sp-2) 0 0 var(--note-badge);
+/* Colour picker: an overlay popover on the badge (same pattern as the
+   scene menus), never inline below the row. It drops UNDER the badge so it
+   stays inside the side panel's scroll box (overflow would clip a leftward
+   popover). */
+.menu-pop.note-colors {
+  top: calc(100% + var(--sp-1));
+  right: auto;
+  left: 0;
+  width: max-content;
+  padding: var(--sp-2);
 }
 
-.note-row:hover .note-colors,
-.note-row:focus-within .note-colors {
+.menu-group.open .note-colors {
   display: flex;
+  gap: var(--sp-2);
 }
 
 .note-swatch {
@@ -645,6 +716,39 @@ body.loaded .stage-tools {
 .note-swatch.active {
   border-color: var(--overlay-ink);
   outline: var(--hairline) solid var(--overlay-ink);
+}
+
+/* ---- small header icon (show/hide all notes) ---- */
+.side-sec h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.side-sec h2 .icon-btn-sm {
+  margin-left: auto;
+}
+
+.icon-btn-sm {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  border-radius: var(--r-sm);
+}
+
+.icon-btn-sm .ico {
+  width: var(--icon-xs);
+  height: var(--icon-xs);
+}
+
+#note-vis[aria-pressed="true"] {
+  --btn-bg: var(--overlay);
+  --btn-fg: var(--overlay-ink);
+  background: var(--overlay);
+  color: var(--overlay-ink);
+}
+
+#note-vis[aria-pressed="false"] {
+  color: var(--faint);
 }
 
 /* ======================================================= below-viewer block */

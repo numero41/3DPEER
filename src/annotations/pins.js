@@ -126,6 +126,7 @@ function makeTagTexture(number, text, color, palette) {
  *             dom: HTMLElement) => number,
  *   pickSurface: (event: {clientX: number, clientY: number}, camera: THREE.Camera,
  *                 dom: HTMLElement) => {p: number[], n: number[], m: number} | null,
+ *   setVisible: (visible: boolean) => void,
  *   dispose: () => void,
  * }}
  */
@@ -143,9 +144,9 @@ export function createPinLayer(scene, root, palette) {
   const meshes = [];
   root.traverse((o) => { if (o.isMesh) meshes.push(o); });
 
-  /** Projected pin heads (world space), kept for screen-space picking; the
-   *  entry is null for pins hidden with their mesh. */
-  let heads = [];
+  /** Per-pin picking data ({head, aspect}, world space + tag proportions);
+   *  the entry is null for pins hidden with their mesh. */
+  let tags = [];
   /** Disposable GPU resources created by the last setPins call. */
   let resources = [];
   const raycaster = new THREE.Raycaster();
@@ -165,7 +166,7 @@ export function createPinLayer(scene, root, palette) {
     for (const child of [...group.children]) group.remove(child);
     for (const resource of resources) resource.dispose();
     resources = [];
-    heads = [];
+    tags = [];
   }
 
   /**
@@ -176,13 +177,12 @@ export function createPinLayer(scene, root, palette) {
     clear();
     list.forEach((pin, i) => {
       if (!pinVisible(pin)) {
-        heads.push(null);
+        tags.push(null);
         return;
       }
       const anchor = root.localToWorld(new THREE.Vector3(...pin.p));
       const normal = new THREE.Vector3(...pin.n).transformDirection(root.matrixWorld);
       const head = anchor.clone().add(normal.multiplyScalar(leader));
-      heads.push(head);
 
       const lineGeometry = new THREE.BufferGeometry().setFromPoints([anchor, head]);
       const lineMaterial = new THREE.LineBasicMaterial({
@@ -207,17 +207,20 @@ export function createPinLayer(scene, root, palette) {
       sprite.renderOrder = ORDER_TAG;
       resources.push(tag.texture, tagMaterial);
       group.add(sprite);
+      tags.push({ head, aspect: tag.aspect });
     });
   }
 
   /**
-   * Screen-space hit test against the pin heads (the tag's number cell).
+   * Screen-space hit test against the WHOLE tag (number cell + label), so a
+   * click on the label in 3D opens the note for editing.
    * @param {{clientX: number, clientY: number}} event a pointer event
    * @param {THREE.Camera} camera the stage camera
    * @param {HTMLElement} dom the render canvas (for rect + size)
-   * @returns {number} index of the closest pin within reach, or -1
+   * @returns {number} index of the hit pin, or -1
    */
   function pickPin(event, camera, dom) {
+    if (!group.visible) return -1;
     // Picking must not depend on a frame having rendered since the last
     // camera move (rAF is paused in background/preview tabs); Camera's
     // override also refreshes matrixWorldInverse for project().
@@ -225,25 +228,31 @@ export function createPinLayer(scene, root, palette) {
     const rect = dom.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    // Tag height in px for the current viewport, with a comfortable margin.
+    // On-screen tag height for the current viewport (sizeAttenuation false).
     const tagPx = (TAG_SCALE / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * rect.height * 0.5;
-    const reach = Math.max(14, tagPx * 0.8);
-    let best = -1;
-    let bestDistance = Infinity;
+    const margin = 4;
     const projected = new THREE.Vector3();
-    heads.forEach((head, i) => {
-      if (!head) return;
-      projected.copy(head).project(camera);
+    let best = -1;
+    tags.forEach((tag, i) => {
+      if (!tag) return;
+      projected.copy(tag.head).project(camera);
       if (projected.z > 1) return;
+      // The sprite anchors at its LEFT edge, vertically centred (center 0,0.5).
       const sx = (projected.x + 1) / 2 * rect.width;
       const sy = (1 - projected.y) / 2 * rect.height;
-      const distance = Math.hypot(sx - x, sy - y);
-      if (distance < reach && distance < bestDistance) {
-        best = i;
-        bestDistance = distance;
-      }
+      const inX = x >= sx - margin && x <= sx + tagPx * tag.aspect + margin;
+      const inY = y >= sy - tagPx / 2 - margin && y <= sy + tagPx / 2 + margin;
+      if (inX && inY) best = i; // later pins draw on top — prefer them
     });
     return best;
+  }
+
+  /**
+   * Show or hide the whole layer (picking is disabled while hidden).
+   * @param {boolean} visible
+   */
+  function setVisible(visible) {
+    group.visible = visible;
   }
 
   /**
@@ -289,5 +298,5 @@ export function createPinLayer(scene, root, palette) {
     scene.remove(group);
   }
 
-  return { setPins, pickPin, pickSurface, dispose };
+  return { setPins, pickPin, pickSurface, setVisible, dispose };
 }

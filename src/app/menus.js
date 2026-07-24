@@ -1,24 +1,23 @@
 // =============================================================================
 // menus.js
 //
-// The viewport toolbar: three icon buttons (camera / material / light), each
-// opening a popover that lists its options. Only one popover is open at a time.
+// Popover menus: any [data-menu] button inside a .menu-group toggles that
+// group's .menu-pop open; only one popover is open at a time.
 //
-// All open/close logic runs on pointerdown (not click) so a press anywhere
-// outside — e.g. grabbing the viewport to orbit — dismisses the menu the moment
-// the mouse goes down, without waiting for release. The popover contents are
-// wired by their own modules; this file only manages open/close state.
+// All logic is DELEGATED to one document-level pointerdown listener so that
+// popovers created after load (e.g. the per-annotation colour pickers) work
+// without re-wiring. Running on pointerdown (not click) means a press
+// anywhere outside — e.g. grabbing the viewport to orbit — dismisses the
+// menu the moment the mouse goes down, without waiting for release.
 // =============================================================================
-
-import { $ } from './dom.js';
 
 const OPEN_CLASS = 'open';
 
 /**
  * Close every popover and clear the expanded state on its button.
  */
-function closeAll() {
-  document.querySelectorAll('.menu-group').forEach((group) => {
+export function closeMenus() {
+  document.querySelectorAll('.menu-group.' + OPEN_CLASS).forEach((group) => {
     group.classList.remove(OPEN_CLASS);
     const button = group.querySelector('[data-menu]');
     if (button) button.setAttribute('aria-expanded', 'false');
@@ -31,7 +30,7 @@ function closeAll() {
  */
 function toggleGroup(group) {
   const isOpen = group.classList.contains(OPEN_CLASS);
-  closeAll();
+  closeMenus();
   if (isOpen) return;
   group.classList.add(OPEN_CLASS);
   const button = group.querySelector('[data-menu]');
@@ -39,24 +38,21 @@ function toggleGroup(group) {
 }
 
 /**
- * Wire the toolbar buttons and the global dismiss handlers (outside press, Esc).
+ * Wire the delegated open/close handling (works for dynamic menu groups too).
  */
 export function initMenus() {
-  // Toolbar buttons toggle their popover on press.
-  document.querySelectorAll('[data-menu]').forEach((button) => {
-    button.addEventListener('pointerdown', (event) => {
-      event.stopPropagation();
+  document.addEventListener('pointerdown', (event) => {
+    const button = event.target.closest('[data-menu]');
+    if (button) {
       toggleGroup(button.closest('.menu-group'));
-    });
+      return;
+    }
+    // Presses inside an open popover must not dismiss it; anywhere else does.
+    if (event.target.closest('.menu-pop')) return;
+    closeMenus();
   });
 
-  // Presses inside an open popover must not dismiss it.
-  document.querySelectorAll('.menu-pop').forEach((pop) =>
-    pop.addEventListener('pointerdown', (event) => event.stopPropagation()));
-
-  // A press anywhere else dismisses immediately; so does Escape.
-  document.addEventListener('pointerdown', closeAll);
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeAll();
+    if (event.key === 'Escape') closeMenus();
   });
 }

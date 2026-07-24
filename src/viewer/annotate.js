@@ -19,6 +19,7 @@
 
 import { createPinLayer, PIN_COLORS } from '../annotations/pins.js';
 import { injectAnnotations, extractAnnotations } from '../codec/annotations.js';
+import { SPRITE } from './sprite.js';
 
 /** Artifact register palette for the pin layer (mirrors page.css tokens). */
 const PALETTE = {
@@ -76,27 +77,69 @@ export function initAnnotations(stage, root, pristine) {
   // ---------------------------------------------------------------------------
   // DOM (classes only — all styling lives in page.css)
   // ---------------------------------------------------------------------------
+  // The bundle carries its own inline icon sprite (invariant #1 intact).
+  if (!document.querySelector('.icon-sprite')) {
+    document.body.insertAdjacentHTML('afterbegin', SPRITE);
+  }
+
+  /**
+   * Inline markup for one sprite icon.
+   * @param {string} name icon name (without the i- prefix)
+   * @returns {string}
+   */
+  const icon = (name) => '<svg class="ico" viewBox="0 0 24 24"><use href="#i-' + name + '"/></svg>';
+
   const button = document.createElement('button');
   button.id = 'abtn';
   button.title = 'Notes — read, edit and add annotations';
+  button.insertAdjacentHTML('afterbegin', icon('pin') + '<span></span>');
+  const buttonLabel = button.querySelector('span');
   document.body.appendChild(button);
 
   const panel = document.createElement('div');
   panel.id = 'apanel';
   const addToggle = document.createElement('button');
   addToggle.className = 'abtn';
-  addToggle.textContent = 'add pin — click the model';
   addToggle.title = 'Toggle pin mode, then click the model to add a note';
   addToggle.setAttribute('aria-pressed', 'false');
+  addToggle.insertAdjacentHTML('afterbegin', icon('pin') + '<span>add pin — click the model</span>');
+  const visToggle = document.createElement('button');
+  visToggle.className = 'abtn';
+  visToggle.title = 'Show / hide all notes on the model';
+  visToggle.setAttribute('aria-pressed', 'true');
+  visToggle.insertAdjacentHTML('afterbegin', icon('eye') + '<span>hide notes</span>');
   const save = document.createElement('button');
   save.className = 'abtn';
-  save.textContent = 'save annotated copy';
   save.title = 'Download this file with your notes baked in';
+  save.insertAdjacentHTML('afterbegin', icon('export') + '<span>save annotated copy</span>');
   const list = document.createElement('div');
   const status = document.createElement('p');
   status.id = 'astat';
-  panel.append(addToggle, save, list, status);
+  panel.append(addToggle, visToggle, save, list, status);
   document.body.appendChild(panel);
+
+  let notesVisible = true;
+  visToggle.addEventListener('click', () => {
+    notesVisible = !notesVisible;
+    visToggle.setAttribute('aria-pressed', String(notesVisible));
+    visToggle.querySelector('use').setAttribute('href', notesVisible ? '#i-eye' : '#i-eye-off');
+    visToggle.querySelector('span').textContent = notesVisible ? 'hide notes' : 'show notes';
+    layer.setVisible(notesVisible);
+  });
+
+  // Colour popovers on the row badges: one delegated handler (rows rebuild).
+  document.addEventListener('pointerdown', (event) => {
+    const badge = event.target.closest('.anum');
+    if (badge) {
+      const group = badge.closest('.agroup');
+      const wasOpen = group.classList.contains('open');
+      document.querySelectorAll('.agroup.open').forEach((g) => g.classList.remove('open'));
+      if (!wasOpen) group.classList.add('open');
+      return;
+    }
+    if (event.target.closest('.apop')) return;
+    document.querySelectorAll('.agroup.open').forEach((g) => g.classList.remove('open'));
+  });
 
   /** @param {string} message status line under the panel buttons */
   function setStatus(message) {
@@ -136,19 +179,37 @@ export function initAnnotations(stage, root, pristine) {
   /** Push the pin list into the WebGL layer and refresh the button label. */
   function syncPins() {
     layer.setPins(pins);
-    button.textContent = pins.length ? 'notes (' + pins.length + ')' : 'notes';
+    buttonLabel.textContent = pins.length ? 'notes (' + pins.length + ')' : 'notes';
   }
 
-  /** Rebuild the panel rows: [n]|[field + delete inside]|[colour swatches]. */
+  /** Rebuild the panel rows: [badge (colour popover)]|[field + delete inside]. */
   function buildRows() {
     while (list.firstChild) list.removeChild(list.firstChild);
     pins.forEach((pin, i) => {
       const row = document.createElement('div');
       row.className = 'arow';
-      const number = document.createElement('span');
+
+      const group = document.createElement('div');
+      group.className = 'agroup';
+      const number = document.createElement('button');
       number.className = 'anum pin-c' + (pin.c || 0);
       number.textContent = String(i + 1);
-      number.title = 'Annotation ' + (i + 1);
+      number.title = 'Pick a pin colour';
+      const colors = document.createElement('div');
+      colors.className = 'apop';
+      PIN_COLORS.forEach((hex, ci) => {
+        const swatch = document.createElement('button');
+        swatch.className = 'aswatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : '');
+        swatch.title = 'Pin colour ' + (ci + 1);
+        swatch.addEventListener('click', () => {
+          pin.c = ci;
+          syncPins();
+          buildRows();
+          markUnsaved();
+        });
+        colors.append(swatch);
+      });
+      group.append(number, colors);
 
       const field = document.createElement('div');
       field.className = 'afield';
@@ -164,8 +225,8 @@ export function initAnnotations(stage, root, pristine) {
       });
       const remove = document.createElement('button');
       remove.className = 'adel';
-      remove.textContent = '×';
       remove.title = 'Delete this annotation';
+      remove.insertAdjacentHTML('afterbegin', icon('close'));
       remove.addEventListener('click', () => {
         pins.splice(i, 1);
         syncPins();
@@ -174,22 +235,7 @@ export function initAnnotations(stage, root, pristine) {
       });
       field.append(text, remove);
 
-      const colors = document.createElement('div');
-      colors.className = 'acolors';
-      PIN_COLORS.forEach((hex, ci) => {
-        const swatch = document.createElement('button');
-        swatch.className = 'aswatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : '');
-        swatch.title = 'Pin colour ' + (ci + 1);
-        swatch.addEventListener('click', () => {
-          pin.c = ci;
-          syncPins();
-          buildRows();
-          markUnsaved();
-        });
-        colors.append(swatch);
-      });
-
-      row.append(number, field, colors);
+      row.append(group, field);
       list.appendChild(row);
     });
   }

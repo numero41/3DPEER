@@ -35,6 +35,9 @@ let stageRef = null;
 /** The live pin layer for the loaded model, or null. */
 let layer = null;
 
+/** Whether notes are shown on the model (UI preference, survives loads). */
+let notesVisible = true;
+
 // -----------------------------------------------------------------------------
 // Pin mode + click handling
 // -----------------------------------------------------------------------------
@@ -103,18 +106,37 @@ export function syncAnnotationVisibility() {
 }
 
 /**
- * Build one row: [n]|[field + delete inside]|[colour swatches strip].
+ * Build one row: [badge (colour popover)]|[field + delete inside]. The badge
+ * is a button opening a colour-preset popover, the same overlay pattern as
+ * the scene menus (menus.js handles open/close by delegation).
  * @param {{p: number[], n: number[], m?: number, text: string, c?: number}} pin
  * @param {number} i pin index
  * @returns {HTMLElement}
  */
 function buildRow(pin, i) {
   const row = el('div', { cls: 'note-row' });
-  row.append(el('span', {
+
+  const colorGroup = el('div', { cls: 'menu-group note-color-group' });
+  const badge = el('button', {
     cls: 'note-num pin-c' + (pin.c || 0),
     text: String(i + 1),
-    attrs: { title: 'Annotation ' + (i + 1) },
-  }));
+    attrs: { 'data-menu': 'note-colors', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Pick a pin colour' },
+  });
+  const colors = el('div', { cls: 'menu-pop note-colors', attrs: { role: 'menu' } });
+  PIN_COLORS.forEach((hex, ci) => {
+    const swatch = el('button', {
+      cls: 'note-swatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : ''),
+      attrs: { title: 'Pin colour ' + (ci + 1) },
+    });
+    swatch.addEventListener('click', () => {
+      pin.c = ci;
+      syncPins();
+      buildRows();
+    });
+    colors.append(swatch);
+  });
+  colorGroup.append(badge, colors);
+  row.append(colorGroup);
 
   const field = el('div', { cls: 'note-field' });
   const text = el('textarea', {
@@ -134,21 +156,6 @@ function buildRow(pin, i) {
   });
   field.append(text, remove);
   row.append(field);
-
-  const colors = el('div', { cls: 'note-colors' });
-  PIN_COLORS.forEach((hex, ci) => {
-    const swatch = el('button', {
-      cls: 'note-swatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : ''),
-      attrs: { title: 'Pin colour ' + (ci + 1) },
-    });
-    swatch.addEventListener('click', () => {
-      pin.c = ci;
-      syncPins();
-      buildRows();
-    });
-    colors.append(swatch);
-  });
-  row.append(colors);
   return row;
 }
 
@@ -174,6 +181,7 @@ export function refreshAnnotations() {
   $('panel-notes').classList.toggle('hidden', !hasModel);
   if (!hasModel) return;
   layer = createPinLayer(stageRef.scene, state.root, PALETTE);
+  layer.setVisible(notesVisible);
   syncPins();
   buildRows();
 }
@@ -191,6 +199,14 @@ export function initAnnotations(stage) {
   $('note-mode').addEventListener('click', () => setMode(!modeOn()));
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') setMode(false);
+  });
+
+  // Show / hide every note on the model (the eye button in the panel header).
+  $('note-vis').addEventListener('click', () => {
+    notesVisible = !notesVisible;
+    $('note-vis').setAttribute('aria-pressed', String(notesVisible));
+    $('note-vis').querySelector('use').setAttribute('href', notesVisible ? '#i-eye' : '#i-eye-off');
+    if (layer) layer.setVisible(notesVisible);
   });
 
   // Click vs orbit: a press that barely moves between down and up is a click.

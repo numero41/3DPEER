@@ -9,6 +9,7 @@
 
 import { state } from './state.js';
 import { createStage } from './stage.js';
+import { initTooltips } from './tooltips.js';
 import { initLoader } from './loader.js';
 import { initMaterialControls } from './materials.js';
 import { initLighting } from './lighting.js';
@@ -23,6 +24,10 @@ import { $ } from './dom.js';
 
 // Inject the inline icon sprite so <use href="#i-..."> resolves with no fetch.
 document.body.insertAdjacentHTML('afterbegin', SPRITE);
+
+// Static title= attributes become instant CSS tooltips before anything else
+// reads the DOM (dynamic elements get data-tip through the el() helper).
+initTooltips();
 
 const stage = createStage();
 

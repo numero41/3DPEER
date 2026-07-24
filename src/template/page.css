@@ -72,6 +72,30 @@
   --z-panel: 2;
   --z-bar: 3;
   --z-notes: 4;
+  --z-pop: 5;
+
+  /* ---- icons (inline sprite shipped in the bundle) ---- */
+  --icon: 14px;
+  --icon-stroke: 2;
+}
+
+/* The inline sprite itself never renders. */
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.ico {
+  display: block;
+  width: var(--icon);
+  height: var(--icon);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--icon-stroke);
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 html,
@@ -276,6 +300,9 @@ input[type="range"]::-moz-range-thumb {
   right: var(--sp-6);
   bottom: var(--sp-6);
   z-index: var(--z-bar);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   font: var(--fs-xs)/var(--lh-tight) var(--mono);
   color: var(--ink);
   background: var(--bar-bg);
@@ -309,7 +336,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .abtn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
   width: 100%;
   margin-bottom: var(--sp-2);
   font: var(--fs-xs)/var(--lh-tight) var(--mono);
@@ -346,14 +376,42 @@ input[type="range"]::-moz-range-thumb {
   margin: var(--sp-4) 0;
 }
 
+.agroup {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
 .anum {
   flex: none;
   display: grid;
   place-items: center;
   width: var(--badge);
+  height: 100%;
+  padding: 0;
+  border: 0;
   border-radius: var(--r-sm) 0 0 var(--r-sm);
   color: var(--bg);
   font: var(--fs-2xs)/var(--lh-tight) var(--mono);
+  cursor: pointer;
+}
+
+/* Colour popover: drops under the badge (stays inside the scrolling panel). */
+.apop {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  left: 0;
+  z-index: var(--z-pop);
+  display: none;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel-bg);
+}
+
+.agroup.open .apop {
+  display: flex;
 }
 
 .afield {
@@ -391,19 +449,6 @@ input[type="range"]::-moz-range-thumb {
   background: none;
   border: none;
   cursor: pointer;
-}
-
-/* Swatch strip: revealed while the row is being edited or hovered. */
-.acolors {
-  display: none;
-  gap: var(--sp-2);
-  width: 100%;
-  padding: var(--sp-2) 0 0 var(--badge);
-}
-
-.arow:hover .acolors,
-.arow:focus-within .acolors {
-  display: flex;
 }
 
 .aswatch {

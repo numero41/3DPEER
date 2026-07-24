@@ -33,9 +33,11 @@
     <h2>Supported formats</h2>
     <p><code>glb</code> and <code>gltf</code> are native. <code>obj</code>, <code>stl</code>,
     <code>ply</code>, <code>fbx</code> and <code>usdz</code> are converted on the fly.
-    FBX materials are approximated on the web; USDZ coverage depends on how the
-    file was produced (Apple-generated files work best). If a file yields no
-    geometry, you will get a clear warning instead of an empty viewport.</p>
+    FBX materials are approximated on the web. USDZ reads ASCII layers and
+    binary usdc crates, including packages nested inside packages; material
+    and texture fidelity on complex production files is still approximate.
+    If a file yields no geometry, you will get a clear warning instead of an
+    empty viewport.</p>
   </section>
 
   <section>

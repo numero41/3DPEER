@@ -40,6 +40,13 @@ and working conventions are in CLAUDE.md — read them before any change.
   <name>.annotated.3dpeer.html, localStorage crash net. Self-tests: CLI +
   site exports run a hostile rebuild probe (payload must stay byte-identical);
   the artifact re-checks before every save. page.css migrated to :root tokens.
+- **UX pass + USDZ (2026-07-24)** — grouped right tool column (panel toggle
+  on top), docked side panel, instant CSS tooltips (data-tip), thin sliders,
+  per-pin colour presets picked in overlay popovers, click the 3D tag to
+  edit, hide-all-notes toggle (site + artifact), artifact ships its own icon
+  sprite. USDZ: multi-layer package walker + vendored r185 pure-JS USDLoader
+  reads binary usdc crates and nested usdz — the 363 MB GENIES avatar test
+  file loads (untextured; cross-package material resolution still rough).
 
 ## M2 — Turntable video (the email-body answer)
 
@@ -76,6 +83,54 @@ Done when: a test purchase delivers a key that removes the watermark.
 
 Done when: a marked file is identifiable by the reader tool.
 
+## M-E — Enterprise tier (direction set 2026-07-24, research-verified)
+
+Threat model first, honestly: a fully client-side app cannot technically stop
+batch automation (headless Chromium drives any UI; the code ships to the
+user; Squoosh is the precedent — Google never fought scripts, it shipped a
+CLI). So "super secured batch" means: the WEBSITE never becomes the batch
+product, and the free tier's protections are the visible watermark plus
+clickwrap license terms ("interactive per-file use; automated/bulk
+processing requires a commercial license" — enforceable against companies,
+the only buyers that matter). Spend nothing on anti-automation tech.
+
+- **Batch = licensed CLI**, grown from the existing pack CLI, distributed as
+  a separate artifact. Gated by an OFFLINE Ed25519-signed license file
+  {org, seats, expiry, features} verified with node:crypto — no activation
+  server, no telemetry: "your models never leave your machines, not even
+  for licensing". Expiring keys tied to updates so renewal has value.
+- **Collaborative notes** — the one feature that genuinely needs a server:
+  shared annotation threads / preset libraries / team galleries, sold
+  hosted or self-hosted. Metadata only; model compression stays local, the
+  core promise holds. The annotation slot format is the wire format.
+- **Self-hosted bundle** (Photopea model, reported $500–2000/mo range):
+  the built site + batch page + license file served on the customer's
+  intranet. Nearly free to produce — the site already runs over file://.
+- **Embeds** (Slack unfurl, ShotGrid/Flow, portfolio iframe from M6): the
+  artifact is already the embed; ship the snippet + unfurl metadata first,
+  integrations only on customer pull.
+- Unlimited access = the free tier is already unlimited (pricing decision);
+  enterprise adds seats/licensing paperwork procurement can sign.
+
+## Engine & protection stance (research-verified 2026-07-24)
+
+"Compiled so it can't be reverse engineered" is not achievable client-side:
+wasm decompiles (wabt, Ghidra plugins, w2c2, LLM-assisted decompilers), and
+LLM deobfuscators undo commercial JS obfuscation (~93 % execution-correct
+on javascript-obfuscator output). The decoder half of the format ships
+readable inside every artifact by design — the format is public by
+construction. Consequences:
+- Worth doing: offline Ed25519 license verification (WebCrypto + tiny
+  vendored fallback), watermark applied at pack-time inside the template
+  assembly, esbuild minification, AT MOST light obfuscation of the unlock
+  check (M3 already says: buried, documented as deterrence).
+- Not worth doing: heavy/commercial obfuscation (15–80 % runtime cost,
+  breakage risk), rewriting the pipeline in wasm FOR SECRECY (fine for
+  performance if ever needed), anti-debug tricks (hostile to a self-testing
+  file:// artifact), any "cannot be reversed" claim.
+- The moat is workflow, UX, the Maya shelf and artifact quality — the
+  licensing layer only makes honesty convenient.
+
 ## M5 — Viewer tools (pick per demand)
 
 - Before/after compression wipe on the site (sells the compression).
@@ -89,7 +144,14 @@ Done when: a marked file is identifiable by the reader tool.
   Export is far easier than usdz import; do not confuse the two.
 - Embed snippet: copy-paste <iframe> code for portfolios (the user hosts
   their own artifact — the no-server promise holds).
-- TinyUSDZ/WASM import for usdc crates: only if user demand shows up; heavy.
+- USDZ IMPORT is handled (2026-07-24): multi-layer walker (src/app/usdz.js)
+  + the official three USDLoader vendored from r185 (src/vendor/usd — pure
+  JS, MIT, reads binary usdc crates; all imports exist in r160). Escalation
+  if production crates hit parser gaps: TinyUSDZ wasm slim build (npm
+  "tinyusdz", 1.38 MB raw / 542 KB gz, Apache-2.0 OR MIT, no
+  SharedArrayBuffer). three-usdz-loader and Needle usd are ruled out
+  (COOP/COEP + SharedArrayBuffer requirements; Needle is also
+  PolyForm-Noncommercial).
 
 ## Phase 5 — public site
 

@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as esbuild from 'esbuild';
 import { wrapAnnotations } from '../codec/annotations.js';
+import { ensureViewerSprite } from './sprite-gen.js';
 
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const TPL = path.join(__dir, '..', 'template');
@@ -12,6 +13,9 @@ const TPL = path.join(__dir, '..', 'template');
 function put(s, key, val) { return s.split('{{' + key + '}}').join(val); }
 
 export function assemble({ output, title, caption, payload, viewerEntry, ui }) {
+  // The viewer imports the generated icon sprite — regenerate it first so a
+  // fresh checkout can pack without running build:site.
+  ensureViewerSprite(path.join(__dir, '..', '..'));
   const bundle = esbuild.buildSync({
     entryPoints: [path.join(__dir, '..', 'viewer', viewerEntry)],
     bundle: true, minify: true, format: 'iife', write: false,
