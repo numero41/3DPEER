@@ -123,6 +123,8 @@ function clearWireOverlays() {
 
 /**
  * Turn the additive wireframe overlay on or off across all real meshes.
+ * Skinned meshes get a SkinnedMesh overlay bound to the same skeleton, so the
+ * wire deforms with the character; static meshes get a plain Mesh overlay.
  * @param {boolean} on whether the overlay should be shown
  */
 export function setWireframe(on) {
@@ -130,9 +132,21 @@ export function setWireframe(on) {
   clearWireOverlays();
   if (!on) return;
   for (const mesh of realMeshes()) {
-    if (mesh.isSkinnedMesh) continue; // the overlay does not follow skinned bones
-    const overlay = new THREE.Mesh(mesh.geometry, wireOverlayMat);
-    mesh.add(overlay);
+    let overlay;
+    if (mesh.isSkinnedMesh) {
+      overlay = new THREE.SkinnedMesh(mesh.geometry, wireOverlayMat);
+      overlay.bindMode = mesh.bindMode;
+      overlay.bind(mesh.skeleton, mesh.bindMatrix);
+    } else {
+      overlay = new THREE.Mesh(mesh.geometry, wireOverlayMat);
+    }
+    // Sibling in the same parent, matching the mesh's own local transform, so
+    // the overlay lands exactly on the surface without double-transforming.
+    overlay.position.copy(mesh.position);
+    overlay.quaternion.copy(mesh.quaternion);
+    overlay.scale.copy(mesh.scale);
+    overlay.renderOrder = 1;
+    (mesh.parent || mesh).add(overlay);
     state.wireOverlays.push(overlay);
   }
 }

@@ -143,6 +143,16 @@ export async function parseMultiLayerUSDZ(buffer) {
       meshes++;
       // some layers omit normals; the exporter and lit materials need them.
       if (!o.geometry.getAttribute('normal')) o.geometry.computeVertexNormals();
+      // USD materials often arrive flagged transparent at full opacity with no
+      // alpha source, which only produces blend-sorting artifacts (e.g. hair
+      // reading as see-through). Make those opaque.
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const mat of mats) {
+        if (mat && mat.transparent && mat.opacity >= 1
+          && !mat.map && !mat.alphaMap && !(mat.transmission > 0)) {
+          mat.transparent = false;
+        }
+      }
     });
     if (meshes) {
       merged.add(object);

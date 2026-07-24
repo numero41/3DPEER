@@ -13,6 +13,7 @@ import { buildPanels } from './panels.js';
 import { reapplyMaterial } from './materials.js';
 import { toGLB } from './importers.js';
 import { scheduleEstimate } from './exporter.js';
+import { resetDecimatePreview } from './decimate-preview.js';
 import { setStatus } from './ui.js';
 
 /** Remove the current model from the scene and free its GPU resources. */
@@ -39,7 +40,7 @@ async function loadFile(stage, file) {
     if (ext !== 'glb' && ext !== 'gltf') setStatus('Converting…');
     bytes = await toGLB(file);
   } catch (e) {
-    setStatus('import failed: ' + (e.message || e), 'error');
+    setStatus('Import failed: ' + (e.message || e), 'error');
     return;
   }
 
@@ -49,7 +50,7 @@ async function loadFile(stage, file) {
   try {
     gltf = await new Promise((ok, ko) => loader.parse(bytes.buffer.slice(0), '', ok, ko));
   } catch (e) {
-    setStatus('parse error: ' + (e.message || e), 'error');
+    setStatus('Parse error: ' + (e.message || e), 'error');
     return;
   }
 
@@ -58,11 +59,12 @@ async function loadFile(stage, file) {
   let meshCount = 0;
   gltf.scene.traverse((o) => { if (o.isMesh) meshCount++; });
   if (!meshCount) {
-    setStatus(`no geometry found in ${file.name} — this file variant is not supported yet`, 'error');
+    setStatus(`No geometry found in ${file.name} — this file variant is not supported yet`, 'error');
     return;
   }
 
   disposeCurrent(stage);
+  resetDecimatePreview();
   state.root = gltf.scene;
   state.glbBytes = bytes;
   state.name = file.name.replace(/\.(glb|gltf|obj|stl|ply|fbx|usdz)$/i, '');

@@ -191,7 +191,7 @@ button:hover,
    the buttons line up with the panel's right edge. */
 .nav {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: var(--sp-3);
   width: min(var(--stage-max), 100%);
   margin: 0 auto var(--sp-5);
@@ -233,8 +233,6 @@ button:hover,
   display: block;
   width: var(--logo-size);
   height: var(--logo-size);
-  /* the logo artwork is dark-stroked; invert it to read on the dark page */
-  filter: invert(1);
 }
 
 .mark {
@@ -272,11 +270,13 @@ button:hover,
   padding: var(--sp-6) var(--sp-6) var(--sp-7);
 }
 
-/* Stage + docked side panel share one row; the panel opens to the right. */
+/* Stage + docked side panel share one row; the panel opens to the right.
+   flex-start (not stretch) keeps a tall panel from stretching the square
+   stage vertically — the panel scrolls internally instead. */
 .stage-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: stretch;
+  align-items: flex-start;
   justify-content: center;
   gap: var(--sp-4);
   width: 100%;
@@ -645,14 +645,24 @@ body.loaded .stage-tools {
 
 .side.open {
   width: min(var(--panel-w), 84vw);
+  max-height: min(var(--stage-max), 82vh);
   padding: var(--sp-4);
   overflow-y: auto;
   border: var(--hairline) solid var(--line-strong);
   background: var(--surface);
 }
 
+/* Sections are divided by a hairline; the first visible one has no rule
+   above it (the .first-visible class is assigned in panels.js). */
 .side-sec {
   margin-bottom: var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: var(--hairline) solid var(--line-strong);
+}
+
+.side-sec.first-visible {
+  padding-top: 0;
+  border-top: 0;
 }
 
 .side-sec.hidden {
@@ -873,7 +883,7 @@ body.loaded .stage-tools {
 
 .comp-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, 1fr) auto;
   gap: var(--sp-2) var(--sp-4);
   padding: var(--sp-3) var(--sp-4);
 }
@@ -887,12 +897,11 @@ body.loaded .stage-tools {
   font-weight: 600;
 }
 
-/* reset sits under the last slider column, aligned to the far right end. */
+/* reset sits on the same line as the sliders, past the last one, aligned to
+   the slider inputs (the bottom of each two-line slider cell). */
 .comp-reset {
-  grid-column: 5;
   display: flex;
   align-items: end;
-  justify-content: end;
 }
 
 .comp-opt {
@@ -1278,5 +1287,10 @@ footer .legal-mark {
 
   .comp-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .comp-reset {
+    grid-column: 1 / -1;
+    justify-content: end;
   }
 }

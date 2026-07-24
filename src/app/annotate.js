@@ -157,7 +157,6 @@ function buildRow(pin, i) {
   PIN_COLORS.forEach((hex, ci) => {
     const swatch = el('button', {
       cls: 'note-swatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : ''),
-      attrs: { title: 'Pin colour ' + (ci + 1) },
     });
     swatch.addEventListener('click', () => {
       colors.hidePopover();

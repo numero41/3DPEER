@@ -18,6 +18,7 @@ import { initSidePanel } from './panels.js';
 import { initViews } from './views.js';
 import { initAnnotations } from './annotate.js';
 import { initExport } from './exporter.js';
+import { initDecimatePreview } from './decimate-preview.js';
 import { initCompressionSettings } from './comp-settings.js';
 import { SPRITE } from './sprite.js';
 import { $ } from './dom.js';
@@ -40,6 +41,7 @@ initSidePanel();
 initViews(stage);
 initAnnotations(stage);
 initExport(stage);
+initDecimatePreview();
 initCompressionSettings();
 
 // Render loop: advance any playing animation, keep the scrub bar in sync, and

@@ -53,19 +53,45 @@ export function createStage() {
     { label: 'front', direction: [0, 0, 1] },
     { label: 'right', direction: [1, 0, 0] },
   ];
-  const axisCameras = AXIS_PANES.map(() => new THREE.PerspectiveCamera(45, 1, 0.1, 100));
+  // The side/front/top panes are true orthographic technical views.
+  const axisCameras = AXIS_PANES.map(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100));
 
-  // Each axis pane has its own controls: pan + zoom only (no rotate — the
-  // view stays axis-aligned), enabled only while the pointer is over it.
+  // Each axis pane has its own controls: left-click PANS, wheel zooms, no
+  // rotate (the view stays axis-aligned). Enabled only while the pointer is
+  // over that pane.
   const axisControls = axisCameras.map((axisCamera) => {
     const c = new OrbitControls(axisCamera, canvas);
     c.enableDamping = true;
     c.dampingFactor = 0.08;
     c.enableRotate = false;
     c.screenSpacePanning = true;
+    c.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+    c.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_PAN };
     c.enabled = false;
     return c;
   });
+
+  /** Model framing remembered so a resize can re-derive the ortho frustum. */
+  let framedCenter = new THREE.Vector3();
+  let framedDist = 4;
+
+  /** Half the ortho view height at the framing distance (fov-matched). */
+  function orthoHalfHeight(dist) {
+    return dist * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+  }
+
+  /** Size the axis cameras' ortho frustums to the current aspect + framing. */
+  function resizeAxisCameras() {
+    const halfH = orthoHalfHeight(framedDist);
+    const halfW = halfH * camera.aspect;
+    axisCameras.forEach((axisCamera) => {
+      axisCamera.left = -halfW;
+      axisCamera.right = halfW;
+      axisCamera.top = halfH;
+      axisCamera.bottom = -halfH;
+      axisCamera.updateProjectionMatrix();
+    });
+  }
 
   /**
    * Point the axis cameras at the framed model (called by frameObject).
@@ -73,6 +99,8 @@ export function createStage() {
    * @param {number} dist framing distance
    */
   function updateAxisCameras(center, dist) {
+    framedCenter.copy(center);
+    framedDist = dist;
     axisCameras.forEach((axisCamera, i) => {
       const direction = new THREE.Vector3(...AXIS_PANES[i].direction);
       axisCamera.near = dist / 100;
@@ -81,13 +109,10 @@ export function createStage() {
       if (AXIS_PANES[i].label === 'top') axisCamera.up.set(0, 0, -1);
       axisCamera.position.copy(center).add(direction.multiplyScalar(dist));
       axisCamera.lookAt(center);
-      axisCamera.aspect = camera.aspect;
-      axisCamera.updateProjectionMatrix();
       axisControls[i].target.copy(center);
-      axisControls[i].minDistance = dist * 0.1;
-      axisControls[i].maxDistance = dist * 8;
       axisControls[i].update();
     });
+    resizeAxisCameras();
   }
 
   /**
@@ -162,17 +187,15 @@ export function createStage() {
     renderer.setViewport(0, 0, w, h);
   }
 
-  /** Match the drawing buffer + camera aspect to the canvas's CSS box. */
+  /** Match the drawing buffer + camera aspect to the canvas's CSS box. Each
+   *  quad pane shares the canvas aspect (half width × half height). */
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    axisCameras.forEach((axisCamera) => {
-      axisCamera.aspect = camera.aspect;
-      axisCamera.updateProjectionMatrix();
-    });
+    resizeAxisCameras();
   }
   addEventListener('resize', resize);
 

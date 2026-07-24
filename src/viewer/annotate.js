@@ -102,16 +102,16 @@ export function initAnnotations(stage, root, pristine) {
   addToggle.className = 'abtn';
   addToggle.title = 'Toggle pin mode, then click the model to add a note';
   addToggle.setAttribute('aria-pressed', 'false');
-  addToggle.insertAdjacentHTML('afterbegin', icon('pin') + '<span>add pin — click the model</span>');
+  addToggle.insertAdjacentHTML('afterbegin', icon('pin') + '<span>Add pin — click the model</span>');
   const visToggle = document.createElement('button');
   visToggle.className = 'abtn';
   visToggle.title = 'Show / hide all notes on the model';
   visToggle.setAttribute('aria-pressed', 'true');
-  visToggle.insertAdjacentHTML('afterbegin', icon('eye') + '<span>hide notes</span>');
+  visToggle.insertAdjacentHTML('afterbegin', icon('eye') + '<span>Hide notes</span>');
   const save = document.createElement('button');
   save.className = 'abtn';
   save.title = 'Download this file with your notes baked in';
-  save.insertAdjacentHTML('afterbegin', icon('export') + '<span>save annotated copy</span>');
+  save.insertAdjacentHTML('afterbegin', icon('export') + '<span>Save annotated copy</span>');
   const list = document.createElement('div');
   const status = document.createElement('p');
   status.id = 'astat';
@@ -123,7 +123,7 @@ export function initAnnotations(stage, root, pristine) {
     notesVisible = !notesVisible;
     visToggle.setAttribute('aria-pressed', String(notesVisible));
     visToggle.querySelector('use').setAttribute('href', notesVisible ? '#i-eye' : '#i-eye-off');
-    visToggle.querySelector('span').textContent = notesVisible ? 'hide notes' : 'show notes';
+    visToggle.querySelector('span').textContent = notesVisible ? 'Hide notes' : 'Show notes';
     layer.setVisible(notesVisible);
   });
 
@@ -155,7 +155,7 @@ export function initAnnotations(stage, root, pristine) {
     const draft = localStorage.getItem(draftKey);
     if (draft && draft !== shipped) {
       pins = JSON.parse(draft);
-      setStatus('restored unsaved notes — save a copy to keep them');
+      setStatus('Restored unsaved notes — save a copy to keep them');
     }
   } catch (e) { /* unreadable draft: fall back to the shipped pins */ }
 
@@ -166,7 +166,7 @@ export function initAnnotations(stage, root, pristine) {
   /** Push the pin list into the WebGL layer and refresh the button label. */
   function syncPins() {
     layer.setPins(pins);
-    buttonLabel.textContent = pins.length ? 'notes (' + pins.length + ')' : 'notes';
+    buttonLabel.textContent = pins.length ? 'Notes (' + pins.length + ')' : 'Notes';
   }
 
   /** Rebuild the panel rows: [badge (colour popover)]|[field + delete inside]. */
@@ -190,7 +190,6 @@ export function initAnnotations(stage, root, pristine) {
       PIN_COLORS.forEach((hex, ci) => {
         const swatch = document.createElement('button');
         swatch.className = 'aswatch pin-c' + ci + (ci === (pin.c || 0) ? ' active' : '');
-        swatch.title = 'Pin colour ' + (ci + 1);
         swatch.addEventListener('click', () => {
           colors.hidePopover();
           pin.c = ci;
@@ -233,7 +232,7 @@ export function initAnnotations(stage, root, pristine) {
   /** Flag pending changes (status + draft). */
   function markUnsaved() {
     saveDraft();
-    if (JSON.stringify(pins) !== shipped) setStatus('unsaved notes — save a copy to keep them');
+    if (JSON.stringify(pins) !== shipped) setStatus('Unsaved notes — save a copy to keep them');
     else setStatus('');
   }
 
@@ -314,9 +313,9 @@ export function initAnnotations(stage, root, pristine) {
       a.click();
       URL.revokeObjectURL(a.href);
       clearDraft();
-      setStatus('saved — send the downloaded copy back');
+      setStatus('Saved — send the downloaded copy back');
     } catch (e) {
-      setStatus('save failed: ' + (e && e.message ? e.message : e));
+      setStatus('Save failed: ' + (e && e.message ? e.message : e));
     }
   });
 

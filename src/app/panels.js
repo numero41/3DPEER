@@ -17,13 +17,24 @@ export function playClip(i) {
   a.action.reset().play();
   a.action.paused = false;
   state.activeAction = a;
-  $('anim-toggle').textContent = 'pause';
+  $('anim-toggle').textContent = 'Pause';
 }
 
-/** Show the side panel + edge toggle iff at least one section is visible. */
+/** node -> its visibility checkbox, so a group toggle can cascade. */
+const partBoxes = new Map();
+
+/** Show the side panel + edge toggle iff at least one section is visible, and
+ *  tag the first visible section so section dividers land between the rest. */
 function refreshSideVisibility() {
-  const anyVisible = ['panel-notes', 'panel-anims', 'panel-morphs', 'panel-parts']
-    .some((id) => !$(id).classList.contains('hidden'));
+  const ids = ['panel-notes', 'panel-anims', 'panel-morphs', 'panel-parts'];
+  let first = true;
+  for (const id of ids) {
+    const section = $(id);
+    const visible = !section.classList.contains('hidden');
+    section.classList.toggle('first-visible', visible && first);
+    if (visible) first = false;
+  }
+  const anyVisible = !first;
   $('side').classList.toggle('has-content', anyVisible);
   $('panel-toggle').classList.toggle('hidden', !anyVisible);
   if (!anyVisible) $('side').classList.remove('open');
@@ -80,8 +91,15 @@ function appendPartRow(node, list, depth, index) {
   });
   const box = el('input', { attrs: { type: 'checkbox' } });
   box.checked = node.visible;
+  partBoxes.set(node, box);
   box.addEventListener('change', () => {
-    node.visible = box.checked;
+    // Toggling a node cascades to its whole subtree (a hidden group hides
+    // everything under it, checkboxes included).
+    node.traverse((child) => {
+      child.visible = box.checked;
+      const childBox = partBoxes.get(child);
+      if (childBox) childBox.checked = box.checked;
+    });
     syncAnnotationVisibility();
   });
   row.append(box, el('span', { cls: 'part-name part-' + kind, text: label }));
@@ -96,10 +114,11 @@ function buildParts(scene) {
   const box = $('panel-parts');
   const list = $('part-list');
   clearChildren(list);
+  partBoxes.clear();
   let meshCount = 0;
   scene.traverse((o) => { if (o.isMesh) meshCount++; });
-  box.classList.toggle('hidden', meshCount < 2);
-  if (meshCount < 2) return;
+  box.classList.toggle('hidden', meshCount < 1);
+  if (meshCount < 1) return;
   // The GLTF scene root is a wrapper; show its geometry-bearing children.
   scene.children.filter(hasGeometry).forEach((child, i) => appendPartRow(child, list, 0, i));
 }
@@ -120,7 +139,7 @@ function buildAnimations() {
   $('anim-toggle').onclick = () => {
     if (!state.activeAction) { playClip(parseInt(sel.value, 10)); return; }
     state.activeAction.action.paused = !state.activeAction.action.paused;
-    $('anim-toggle').textContent = state.activeAction.action.paused ? 'play' : 'pause';
+    $('anim-toggle').textContent = state.activeAction.action.paused ? 'Play' : 'Pause';
   };
 
   $('anim-scrub').oninput = (e) => {
@@ -129,7 +148,7 @@ function buildAnimations() {
     a.action.paused = true;
     a.action.time = parseFloat(e.target.value) * a.clip.duration;
     state.mixer.update(0);
-    $('anim-toggle').textContent = 'play';
+    $('anim-toggle').textContent = 'Play';
   };
 }
 
