@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/dev.mjs"],
       "port": 8137
+    },
+    {
+      "name": "3dpeer-dev-alt",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=8237", "node", "scripts/dev.mjs"],
+      "port": 8237
     }
   ]
 }

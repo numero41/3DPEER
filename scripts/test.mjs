@@ -93,4 +93,31 @@ if (extractAnnotations(doc2).length !== 0)
   throw new Error('annotation codec: second rebuild failed');
 console.log('annotation slot codec: OK');
 
+// --- usdz import round-trip --------------------------------------------------
+// Standard-shape coverage without binary fixtures: three's USDZExporter builds
+// a usdz from a procedural cube (the layout Apple tooling accepts), and the
+// multi-layer walker + vendored USD parsers must read it back. Guards the
+// import path every time the vendored parser or composer is touched.
+console.log('--- usdz import round-trip');
+{
+  const THREE = await import('three');
+  const { USDZExporter } = await import('three/examples/jsm/exporters/USDZExporter.js');
+  const { parseMultiLayerUSDZ } = await import('../src/app/usdz.js');
+  const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x8888ff, roughness: 0.5 }),
+  );
+  const scene = new THREE.Scene();
+  scene.add(cube);
+  const usdz = await new USDZExporter().parse(scene);
+  const group = await parseMultiLayerUSDZ(usdz.buffer.slice(usdz.byteOffset, usdz.byteOffset + usdz.byteLength));
+  let tris = 0;
+  group.traverse((o) => {
+    if (!o.isMesh) return;
+    tris += o.geometry.index ? o.geometry.index.count / 3 : o.geometry.getAttribute('position').count / 3;
+  });
+  if (tris !== 12) throw new Error('usdz round-trip: expected 12 triangles, got ' + tris);
+  console.log('usdz import round-trip: OK — 12 triangles back from a USDZExporter package');
+}
+
 console.log('=== synthetic regression OK ===');

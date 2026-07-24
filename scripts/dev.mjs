@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+const PORT = Number(process.env.PORT) || 8137;
 const repo = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const siteRoot = path.join(repo, 'site');
 const testRoot = path.join(repo, 'test');
@@ -29,4 +30,4 @@ http.createServer((req, res) => {
     'Cache-Control': 'no-store',
   });
   fs.createReadStream(file).pipe(res);
-}).listen(8137, () => console.log('3dpeer dev → http://localhost:8137 (test files under /test/)'));
+}).listen(PORT, () => console.log(`3dpeer dev → http://localhost:${PORT} (test files under /test/)`));

@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { visibleWorldBounds } from '../viewer/bounds.js';
 import { $ } from './dom.js';
 
 /**
@@ -200,38 +201,15 @@ export function createStage() {
   addEventListener('resize', resize);
 
   /**
-   * Bounding box of the VISIBLE geometry only. Box3.setFromObject would also
-   * count hidden prims (USD proxy/guide meshes), which throws the framing off
-   * on files that ship collision or LOD geometry.
-   * @param {THREE.Object3D} object
-   * @returns {THREE.Box3}
-   */
-  function visibleBox(object) {
-    const box = new THREE.Box3();
-    const meshBox = new THREE.Box3();
-    object.updateWorldMatrix(true, true);
-    object.traverse((node) => {
-      if (!node.isMesh || !node.visible) return;
-      // Visibility is inherited: skip meshes under a hidden ancestor.
-      for (let p = node.parent; p && p !== object.parent; p = p.parent) {
-        if (!p.visible) return;
-      }
-      if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
-      if (!node.geometry.boundingBox) return;
-      meshBox.copy(node.geometry.boundingBox).applyMatrix4(node.matrixWorld);
-      box.union(meshBox);
-    });
-    if (box.isEmpty()) box.setFromObject(object);
-    return box;
-  }
-
-  /**
    * Frame the camera so `object` fills the view, and record its centre +
    * orbit distance in the shared state (via the caller) for the view presets.
+   * Bounds come from the shared visible-geometry helper (hidden USD
+   * proxy/guide prims excluded, skinned deformation followed) so the site
+   * and the artifact frame identically.
    * @param {THREE.Object3D} object
    */
   function frameObject(object) {
-    const box = visibleBox(object);
+    const box = visibleWorldBounds(object);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z) || 1;

@@ -1357,10 +1357,46 @@ class USDComposer {
 
 			} );
 
+			// LOCAL PATCH (3dpeer): faces outside every subset render with the
+			// mesh's own material (group index geomSubsets.length).
+			if ( geometry.userData.subsetRemainder ) {
+
+				material.push( this._buildMaterialForPath( meshMaterialPath ) );
+
+			}
+
 		} else {
 
 			geometry = this._buildGeometry( path, attrs, hasSkinning );
 			material = this._buildMaterial( path, spec.fields );
+
+		}
+
+		// LOCAL PATCH (3dpeer): when a mesh binds its own material AND an
+		// ancestor binds a different one, keep the ancestor's material at hand.
+		// Pipeline packages (avatar systems) often bind a sparse partial bake
+		// directly on the mesh while the ancestor scope carries the full
+		// composited material; the importer decides after textures decode
+		// (see resolveSparseBakes in src/app/usdz.js) and removes this stash.
+		let altMaterial = null;
+
+		if ( ! Array.isArray( material ) ) {
+
+			const directBinding = spec.fields[ 'material:binding' ]
+				|| this._getMaterialBindingTarget( path );
+			const ancestorBinding = this._findAncestorBindingPath( path );
+
+			if ( directBinding && ancestorBinding ) {
+
+				const directPath = Array.isArray( directBinding ) ? directBinding[ 0 ] : directBinding;
+
+				if ( directPath !== ancestorBinding ) {
+
+					altMaterial = { material: this._buildMaterialForPath( ancestorBinding ), path: ancestorBinding };
+
+				}
+
+			}
 
 		}
 
@@ -1463,6 +1499,10 @@ class USDComposer {
 
 		mesh.name = path.split( '/' ).pop();
 		this.applyTransform( mesh, spec.fields, attrs );
+
+		// LOCAL PATCH (3dpeer): hand the ancestor material to the importer's
+		// sparse-bake resolver (which always deletes this key afterwards).
+		if ( altMaterial ) mesh.userData.usdAltMaterial = altMaterial;
 
 		return mesh;
 
@@ -1689,8 +1729,21 @@ class USDComposer {
 			const indices = attrs[ 'indices' ];
 			if ( ! indices || indices.length === 0 ) continue;
 
+			// LOCAL PATCH (3dpeer): only material subsets partition a mesh for
+			// rendering. Pipeline packages attach many bookkeeping subsets
+			// (rigging regions, bake masks, point sets); splitting on those
+			// scrambled the geometry — and point/vertex subsets must never be
+			// interpreted as face lists. A subset is a render split only when
+			// its elementType is face (the schema default) AND it either
+			// belongs to the materialBind family or carries its own binding.
+			const token = ( v ) => ( typeof v === 'string' ? v.replace( /["']/g, '' ) : v );
+			const elementType = token( attrs[ 'elementType' ] ) || 'face';
+			if ( elementType !== 'face' ) continue;
+
 			// Get material binding - check direct path and variant paths
 			const materialPath = this._getMaterialBindingTarget( p );
+			const familyName = token( attrs[ 'familyName' ] );
+			if ( familyName !== 'materialBind' && ! materialPath ) continue;
 
 			subsets.push( {
 				name: p.split( '/' ).pop(),
@@ -1740,6 +1793,32 @@ class USDComposer {
 				}
 
 			}
+
+		}
+
+		return null;
+
+	}
+
+	// LOCAL PATCH (3dpeer): USD material bindings are inherited down the
+	// namespace — a binding on any ancestor prim applies to every descendant
+	// gprim that has none of its own (UsdShade binding resolution). The
+	// upstream loader only looked at the prim itself, which left meshes bound
+	// at a parent scope (a common DCC export layout) untextured.
+	/**
+	 * Nearest ancestor material:binding target for a prim, or null.
+	 */
+	_findAncestorBindingPath( primPath ) {
+
+		let lastSlash = primPath.lastIndexOf( '/' );
+
+		while ( lastSlash > 0 ) {
+
+			const ancestorPath = primPath.slice( 0, lastSlash );
+			const spec = this.specsByPath[ ancestorPath + '.material:binding' ];
+			const targets = spec?.fields?.targetPaths;
+			if ( targets && targets.length > 0 ) return targets[ 0 ];
+			lastSlash = ancestorPath.lastIndexOf( '/' );
 
 		}
 
@@ -2028,24 +2107,34 @@ class USDComposer {
 
 		sortedTriangles.sort( ( a, b ) => a.subset - b.subset );
 
+		// LOCAL PATCH (3dpeer): faces claimed by no subset were dropped (the
+		// unclaimed block sorted first and its group was never emitted), which
+		// punched holes in partially-partitioned meshes. Unclaimed triangles
+		// now form their own group bound to the mesh's own material — the
+		// caller appends it at index geomSubsets.length when this flag is set.
+		let hasRemainder = false;
+
 		const groups = [];
 		let currentSubset = sortedTriangles.length > 0 ? sortedTriangles[ 0 ].subset : - 1;
 		let groupStart = 0;
+
+		const pushGroup = ( subset, start, count ) => {
+
+			if ( count <= 0 ) return;
+			if ( subset < 0 ) hasRemainder = true;
+			groups.push( {
+				start: start * 3,
+				count: count * 3,
+				materialIndex: subset >= 0 ? subset : geomSubsets.length
+			} );
+
+		};
 
 		for ( let i = 0; i < sortedTriangles.length; i ++ ) {
 
 			if ( sortedTriangles[ i ].subset !== currentSubset ) {
 
-				if ( currentSubset >= 0 ) {
-
-					groups.push( {
-						start: groupStart * 3,
-						count: ( i - groupStart ) * 3,
-						materialIndex: currentSubset
-					} );
-
-				}
-
+				pushGroup( currentSubset, groupStart, i - groupStart );
 				currentSubset = sortedTriangles[ i ].subset;
 				groupStart = i;
 
@@ -2053,21 +2142,17 @@ class USDComposer {
 
 		}
 
-		if ( currentSubset >= 0 && sortedTriangles.length > groupStart ) {
-
-			groups.push( {
-				start: groupStart * 3,
-				count: ( sortedTriangles.length - groupStart ) * 3,
-				materialIndex: currentSubset
-			} );
-
-		}
+		pushGroup( currentSubset, groupStart, sortedTriangles.length - groupStart );
 
 		for ( const group of groups ) {
 
 			geometry.addGroup( group.start, group.count, group.materialIndex );
 
 		}
+
+		// LOCAL PATCH (3dpeer): tell the caller a remainder group exists so it
+		// appends the mesh's own material at index geomSubsets.length.
+		geometry.userData.subsetRemainder = hasRemainder;
 
 		// Triangulate original data using consistent pattern
 		const { indices: origIndices, pattern: triPattern } = this._triangulateIndicesWithPattern( faceVertexIndices, faceVertexCounts, points, holeMap );
@@ -2878,6 +2963,13 @@ class USDComposer {
 
 		}
 
+		// LOCAL PATCH (3dpeer): inherited ancestor binding.
+		if ( ! materialPath ) {
+
+			materialPath = this._findAncestorBindingPath( meshPath );
+
+		}
+
 		return materialPath;
 
 	}
@@ -2929,6 +3021,14 @@ class USDComposer {
 				materialPath = this._pickBestMaterial( materialPaths );
 
 			}
+
+		}
+
+		// LOCAL PATCH (3dpeer): inherited ancestor binding, before the
+		// Looks/Materials scope heuristic guesses.
+		if ( ! materialPath ) {
+
+			materialPath = this._findAncestorBindingPath( meshPath );
 
 		}
 

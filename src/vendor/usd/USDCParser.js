@@ -257,6 +257,77 @@ function decompressIntegers32( compressedData, numInts ) {
 
 }
 
+// LOCAL PATCH (3dpeer): 64-bit variant of the integer codec
+// (Usd_IntegerCompression64 in pxr/usd/sdf/integerCoding.cpp). Same delta +
+// 2-bit-code scheme as the 32-bit codec, but the common value is an int64 and
+// the codes map to int16/int32/int64 instead of int8/int16/int32. Values are
+// returned as Numbers (crate int64 payloads in practice are ids well below
+// 2^53).
+function decompressIntegers64( compressedData, numInts ) {
+
+	const encodedSize = numInts * 8 + ( ( numInts * 2 + 7 ) >> 3 ) + 8;
+	const encoded = decompressLZ4( new Uint8Array( compressedData ), encodedSize );
+	return decodeIntegers64( encoded, numInts );
+
+}
+
+function decodeIntegers64( data, numInts ) {
+
+	const view = new DataView( data.buffer, data.byteOffset, data.byteLength );
+	let offset = 0;
+
+	const commonValue = Number( view.getBigInt64( offset, true ) );
+	offset += 8;
+
+	const numCodesBytes = ( numInts * 2 + 7 ) >> 3;
+	const codesStart = offset;
+	const vintsStart = offset + numCodesBytes;
+
+	const result = new Float64Array( numInts );
+	let prevVal = 0;
+	let codesOffset = codesStart;
+	let vintsOffset = vintsStart;
+
+	for ( let i = 0; i < numInts; ) {
+
+		const codeByte = data[ codesOffset ++ ];
+
+		for ( let j = 0; j < 4 && i < numInts; j ++, i ++ ) {
+
+			const code = ( codeByte >> ( j * 2 ) ) & 3;
+			let delta = 0;
+
+			switch ( code ) {
+
+				case 0: // Common value
+					delta = commonValue;
+					break;
+				case 1: // 16-bit signed
+					delta = view.getInt16( vintsOffset, true );
+					vintsOffset += 2;
+					break;
+				case 2: // 32-bit signed
+					delta = view.getInt32( vintsOffset, true );
+					vintsOffset += 4;
+					break;
+				case 3: // 64-bit signed
+					delta = Number( view.getBigInt64( vintsOffset, true ) );
+					vintsOffset += 8;
+					break;
+
+			}
+
+			prevVal += delta;
+			result[ i ] = prevVal;
+
+		}
+
+	}
+
+	return result;
+
+}
+
 function decodeIntegers32( data, numInts ) {
 
 	const view = new DataView( data.buffer, data.byteOffset, data.byteLength );
@@ -656,10 +727,13 @@ class USDCParser {
 		const reader = this.reader;
 		reader.seek( section.start );
 
-		// Strings section has an 8-byte count prefix, but string indices stored
-		// elsewhere in the file are relative to the section start (not the data).
-		// So we read the entire section as uint32 values to maintain correct indexing.
-		const numStrings = Math.floor( section.size / 4 );
+		// LOCAL PATCH (3dpeer): the STRINGS section is written by crateFile as
+		// a count-prefixed array (u64 count + count u32 TokenIndexes), and
+		// StringIndexes elsewhere in the file are relative to the FIRST
+		// ELEMENT. The upstream reader kept the prefix as two phantom entries,
+		// which shifted every string lookup by two (subLayers and variant
+		// selections resolved to unrelated tokens — verified by hexdump).
+		const numStrings = Number( reader.readUint64() );
 		this.strings = [];
 
 		for ( let i = 0; i < numStrings; i ++ ) {
@@ -1410,6 +1484,40 @@ class USDCParser {
 
 			}
 
+			// LOCAL PATCH (3dpeer): StringVector backs the subLayers field —
+			// without it layered stages (pipeline packages) lose their layer
+			// stack. Elements are StringIndexes (strings[] indexes tokens[]).
+			case TypeEnum.StringVector: {
+
+				const count = reader.readUint64();
+				const arr = [];
+				for ( let i = 0; i < count; i ++ ) {
+
+					const index = reader.readUint32();
+					arr.push( this.tokens[ this.strings[ index ] ] || '' );
+
+				}
+
+				return arr;
+
+			}
+
+			// LOCAL PATCH (3dpeer): LayerOffsetVector backs subLayerOffsets —
+			// count-prefixed (offset, scale) double pairs.
+			case TypeEnum.LayerOffsetVector: {
+
+				const count = reader.readUint64();
+				const arr = [];
+				for ( let i = 0; i < count; i ++ ) {
+
+					arr.push( { offset: reader.readFloat64(), scale: reader.readFloat64() } );
+
+				}
+
+				return arr;
+
+			}
+
 			case TypeEnum.Dictionary: {
 
 				// Dictionary format:
@@ -1720,6 +1828,90 @@ class USDCParser {
 
 			}
 
+			// LOCAL PATCH (3dpeer): array types the upstream parser skipped.
+			// Pipeline packages (GENIES avatars) carry bool[], int64[],
+			// string[] and int2[] attributes; dropping them is usually
+			// harmless but noisy, and String/Vec2i can carry real data.
+
+			case TypeEnum.Bool: {
+
+				const arr = new Array( size );
+				for ( let i = 0; i < size; i ++ ) arr[ i ] = reader.readUint8() !== 0;
+				return arr;
+
+			}
+
+			case TypeEnum.Int64: {
+
+				const arr = new Float64Array( size );
+				for ( let i = 0; i < size; i ++ ) arr[ i ] = reader.readInt64();
+				return arr;
+
+			}
+
+			case TypeEnum.UInt64: {
+
+				const arr = new Float64Array( size );
+				for ( let i = 0; i < size; i ++ ) arr[ i ] = reader.readUint64();
+				return arr;
+
+			}
+
+			case TypeEnum.String: {
+
+				// Array elements are StringIndexes: strings[] indexes tokens[].
+				const arr = [];
+				for ( let i = 0; i < size; i ++ ) {
+
+					const index = reader.readUint32();
+					arr.push( this.tokens[ this.strings[ index ] ] || '' );
+
+				}
+
+				return arr;
+
+			}
+
+			case TypeEnum.Vec2i: {
+
+				const arr = new Int32Array( size * 2 );
+				for ( let i = 0; i < size * 2; i ++ ) arr[ i ] = reader.readInt32();
+				return arr;
+
+			}
+
+			case TypeEnum.Vec3i: {
+
+				const arr = new Int32Array( size * 3 );
+				for ( let i = 0; i < size * 3; i ++ ) arr[ i ] = reader.readInt32();
+				return arr;
+
+			}
+
+			case TypeEnum.Vec2d: {
+
+				const arr = new Float64Array( size * 2 );
+				for ( let i = 0; i < size * 2; i ++ ) arr[ i ] = reader.readFloat64();
+				return arr;
+
+			}
+
+			case TypeEnum.Vec3d: {
+
+				const arr = new Float64Array( size * 3 );
+				for ( let i = 0; i < size * 3; i ++ ) arr[ i ] = reader.readFloat64();
+				return arr;
+
+			}
+
+			case TypeEnum.Vec4d: {
+
+				const arr = new Float64Array( size * 4 );
+				for ( let i = 0; i < size * 4; i ++ ) arr[ i ] = reader.readFloat64();
+				return arr;
+
+			}
+
 			default:
 				console.warn( 'USDCParser: Unsupported array type', type );
 				return [];
@@ -1740,6 +1932,25 @@ class USDCParser {
 				const compressedSize = reader.readUint64();
 				const compressed = reader.readBytes( compressedSize );
 				return decompressIntegers32(
+					compressed.buffer.slice(
+						compressed.byteOffset,
+						compressed.byteOffset + compressedSize
+					),
+					size
+				);
+
+			}
+
+			// LOCAL PATCH (3dpeer): compressed 64-bit integer arrays
+			// (Usd_IntegerCompression64) — same envelope as Int/UInt with the
+			// 64-bit codec.
+
+			case TypeEnum.Int64:
+			case TypeEnum.UInt64: {
+
+				const compressedSize = reader.readUint64();
+				const compressed = reader.readBytes( compressedSize );
+				return decompressIntegers64(
 					compressed.buffer.slice(
 						compressed.byteOffset,
 						compressed.byteOffset + compressedSize

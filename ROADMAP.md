@@ -17,9 +17,9 @@ and working conventions are in CLAUDE.md — read them before any change.
   browser: payload re-extracted and byte-compared, GLB re-decoded with the
   artifact's own r160 loader. Reference: TheFountain.glb 34.5 → 5.0 MB at
   defaults (85 %), 2.86 MB at a 3 MB auto target (92 %).
-- **Phase 2 — imports (mostly)** — obj/stl/ply/fbx/usdz via three loaders →
-  GLTFExporter → the one GLB path. USDZ partial: three r160 cannot read
-  binary usdc crates; a clean warning is shown ("no geometry found").
+- **Phase 2 — imports** — obj/stl/ply/fbx/usdz via three loaders →
+  GLTFExporter → the one GLB path. USDZ reads binary usdc crates through the
+  vendored r185 USDLoader (multi-layer walker in src/app/usdz.js).
 - **Artifact** — optional shipped controls (__CFG.ui: camera views, six
   material presets, brightness + light-angle sliders), 2×2 poster grid
   (front/left/right/persp) for script-blocked previews (Gmail preview,
@@ -46,7 +46,24 @@ and working conventions are in CLAUDE.md — read them before any change.
   edit, hide-all-notes toggle (site + artifact), artifact ships its own icon
   sprite. USDZ: multi-layer package walker + vendored r185 pure-JS USDLoader
   reads binary usdc crates and nested usdz — the 363 MB GENIES avatar test
-  file loads (untextured; cross-package material resolution still rough).
+  file loads.
+- **USD composition + viewer parity (2026-07-24)** — vendored parser fixes:
+  crate STRINGS table off-by-two (subLayers/variant selections resolved to
+  junk tokens), missing array types (bool/int64/string/vec2i/vec2-4d,
+  compressed int64), StringVector + LayerOffsetVector scalars. Composer:
+  GeomSubsets split a mesh only for face-typed materialBind subsets (pipeline
+  point-subsets scrambled the GENIES head into holed chunks), faces outside
+  every subset keep the mesh material (they were dropped), material:binding
+  inherits from ancestors per UsdShade (eyes/teeth/tongue were untextured),
+  and a measured sparse-bake heuristic swaps a direct-bound albedo that is
+  mostly pure-black opaque for a dense ancestor material (GENIES partial AI
+  bake vs full composite — logged when it fires). Shared visibleWorldBounds
+  (src/viewer/bounds.js) for framing + pin leaders on both surfaces:
+  setFromObject collapsed on quantized skinned meshes, framing artifacts on
+  the feet and shrinking pin leaders. Decimate preview caches an identity
+  index for non-indexed meshes (a null restore could never invalidate
+  three's wireframe cache — the overlay stayed stuck on the last decimated
+  topology). test.mjs: USDZExporter→import round-trip.
 
 ## M2 — Turntable video (the email-body answer)
 

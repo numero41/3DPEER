@@ -118,7 +118,12 @@ one restrained palette.
   so both work over file:// — but npm run dev remains the reference way to
   test the site.
 - Workers over file://: via Blob URL only, if ever needed.
-- The wireframe overlay does not follow SkinnedMesh (assumed for v0).
+- Annotation pins do not follow skinned/morph deformation (static in model
+  space; the wireframe overlay DOES follow skinning since 05fec67).
+- Model bounds (framing, pin-leader length) must come from
+  src/viewer/bounds.js — Box3.setFromObject counts hidden USD proxy/guide
+  prims and collapses on quantized SkinnedMesh (the dequantize transform
+  lives in the inverse bind matrices), which framed artifacts on the feet.
 - iOS < 16.4 does not have DecompressionStream: the artifact shows a clean
   error in #hint — intended behavior, not a bug to "fix" with a
   heavy polyfill.

@@ -97,6 +97,12 @@ let queued = null;
 /**
  * Simplify one geometry to a triangle ratio, swapping its index. Caches the
  * original index the first time so decimate 0 restores it exactly.
+ *
+ * A non-indexed mesh (every USDZ/OBJ/STL import) is cached as an identity
+ * index, NOT as null: restoring a null index would render correctly but
+ * could never invalidate three's cached wireframe overlay — the wireframe
+ * edge cache only re-checks its version when geometry.index exists, so a
+ * null restore left the overlay stuck on the last decimated topology.
  * @param {THREE.Mesh} mesh
  * @param {number} ratio 0..1 fraction of triangles to KEEP
  */
@@ -105,11 +111,12 @@ function applyToMesh(mesh, ratio) {
   const position = geometry.getAttribute('position');
   if (!position) return;
 
-  if (!originalIndex.has(mesh)) originalIndex.set(mesh, geometry.index);
+  if (!originalIndex.has(mesh)) {
+    originalIndex.set(mesh, geometry.index || new THREE.BufferAttribute(
+      Uint32Array.from({ length: position.count }, (_, i) => i), 1));
+  }
   const source = originalIndex.get(mesh);
-  const sourceArray = source
-    ? source.array
-    : Uint32Array.from({ length: position.count }, (_, i) => i);
+  const sourceArray = source.array;
 
   if (ratio >= 1) {
     setIndexAndInvalidate(geometry, source);

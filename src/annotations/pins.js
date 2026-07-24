@@ -23,6 +23,7 @@
 // =============================================================================
 
 import * as THREE from 'three';
+import { visibleWorldBounds } from '../viewer/bounds.js';
 
 // ---------------------------------------------------------------------------
 // Shared constants
@@ -139,8 +140,11 @@ export function createPinLayer(scene, root, palette) {
   scene.add(group);
 
   // Leader length derives from the model size so pins read the same on a
-  // 2 cm part and a 20 m building.
-  const bounds = new THREE.Box3().setFromObject(root);
+  // 2 cm part and a 20 m building. Visible + skinned-aware bounds: the same
+  // implementation runs on the site and in the artifact, so leader lengths
+  // match on both surfaces (plain setFromObject collapses on the artifact's
+  // quantized skinned meshes).
+  const bounds = visibleWorldBounds(root);
   const radius = bounds.getSize(new THREE.Vector3()).length() * 0.5 || 1;
   const leader = radius * LEADER_FRACTION;
 

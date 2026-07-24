@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { visibleWorldBounds } from './bounds.js';
 
 export function createStage() {
   const canvas = document.getElementById('c');
@@ -22,8 +23,11 @@ export function createStage() {
   controls.autoRotate = true; controls.autoRotateSpeed = 0.9;
   controls.addEventListener('start', () => { controls.autoRotate = false; hint.classList.add('off'); });
 
+  // Skinned-aware visible bounds: a quantized skinned avatar's plain
+  // Box3.setFromObject collapses to the tiny bind-space box (framing the
+  // camera on the feet); see src/viewer/bounds.js.
   function frameObject(object, elevation = 0.55) {
-    const box = new THREE.Box3().setFromObject(object);
+    const box = visibleWorldBounds(object);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
     const maxDim = Math.max(size.x, size.y, size.z);

@@ -197,6 +197,9 @@ async function parsePackage(pkg) {
     new Promise((resolve) => setTimeout(resolve, TEXTURE_TIMEOUT_MS)),
   ]);
 
+  // Textures are decoded now — settle direct-vs-ancestor binding conflicts.
+  resolveSparseBakes(object);
+
   let meshes = 0;
   object.traverse((o) => {
     if (!o.isMesh) return;
@@ -219,6 +222,78 @@ async function parsePackage(pkg) {
 
 /** Give a texture image this long to decode before it is dropped (ms). */
 const TEXTURE_TIMEOUT_MS = 20000;
+
+// -----------------------------------------------------------------------------
+// Sparse-bake resolution
+// -----------------------------------------------------------------------------
+
+/** A base-colour map is "sparse" above this fraction of pure-black opaque
+ *  pixels (the GENIES head bake measures 0.81; real albedos stay far below). */
+const SPARSE_BLACK_MIN = 0.5;
+
+/** The replacement albedo must itself be dense: below this black fraction. */
+const ALT_BLACK_MAX = 0.25;
+
+/** Downsample edge for the histogram (4096 samples are plenty). */
+const HISTO_SIZE = 64;
+
+/**
+ * Fraction of an image's pixels that are pure black AND fully opaque.
+ * Transparent black (alpha-carded hair/eyebrow textures) does not count.
+ * @param {CanvasImageSource} image a decoded texture image
+ * @returns {number} 0..1, or -1 when the image cannot be sampled
+ */
+function blackOpaqueFraction(image) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = HISTO_SIZE;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  try {
+    ctx.drawImage(image, 0, 0, HISTO_SIZE, HISTO_SIZE);
+  } catch (e) {
+    return -1;
+  }
+  const data = ctx.getImageData(0, 0, HISTO_SIZE, HISTO_SIZE).data;
+  let black = 0;
+  const total = HISTO_SIZE * HISTO_SIZE;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] < 8 && data[i + 1] < 8 && data[i + 2] < 8 && data[i + 3] > 250) black++;
+  }
+  return black / total;
+}
+
+/**
+ * Swap sparse partial-bake albedos for the ancestor-bound material.
+ *
+ * Pipeline packages (avatar generators) often bind a machine-produced partial
+ * bake directly on a mesh while the ancestor scope still binds the full
+ * composited material. Per USD rules the direct binding wins — but a bake
+ * whose albedo is mostly pure-black opaque texels renders as black patches in
+ * any generic viewer. When that measured condition holds AND the ancestor's
+ * albedo is dense, the ancestor material is used instead. Purely data-driven:
+ * no name matching, logged when it triggers.
+ *
+ * Must run after the loader's onLoad (textures decoded). Always removes the
+ * userData stash — GLTFExporter must never see a material in userData.
+ * @param {THREE.Object3D} root a parsed package's scene
+ */
+function resolveSparseBakes(root) {
+  root.traverse((node) => {
+    if (!node.isMesh || !node.userData.usdAltMaterial) return;
+    const alt = node.userData.usdAltMaterial;
+    delete node.userData.usdAltMaterial;
+    const current = Array.isArray(node.material) ? null : node.material;
+    if (!current || !current.map || !current.map.image) return;
+    if (!alt.material || !alt.material.map || !alt.material.map.image) return;
+    const directBlack = blackOpaqueFraction(current.map.image);
+    if (directBlack < SPARSE_BLACK_MIN) return;
+    const altBlack = blackOpaqueFraction(alt.material.map.image);
+    if (altBlack < 0 || altBlack > ALT_BLACK_MAX) return;
+    console.info('usdz: sparse partial-bake albedo on "' + node.name + '" ('
+      + Math.round(directBlack * 100) + '% black) replaced by ancestor material '
+      + alt.path + ' (' + Math.round(altBlack * 100) + '% black)');
+    node.material = alt.material;
+  });
+}
 
 /**
  * Drop textures that genuinely failed to decode. Called only AFTER the
