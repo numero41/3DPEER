@@ -151,7 +151,7 @@ async function buildCompareModel() {
       const inMB = (state.glbBytes.length / 1e6).toFixed(2);
       const outMB = (bytes.length / 1e6).toFixed(2);
       const pct = Math.round((1 - bytes.length / state.glbBytes.length) * 100);
-      setStatus(`Comparing: original ${inMB} MB | compressed ${outMB} MB (${pct}% smaller) — drag the handle to move the split`, 'ok');
+      setStatus(`Comparing: original ${inMB} MB | compressed ${outMB} MB (${pct}% smaller). Drag the handle to move the split`, 'ok');
     } while (buildQueued);
   } catch (e) {
     setStatus('Comparison failed: ' + (e.message || e), 'error');

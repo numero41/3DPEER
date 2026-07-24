@@ -92,7 +92,7 @@ export function initAnnotations(stage, root, pristine) {
 
   const button = document.createElement('button');
   button.id = 'abtn';
-  button.title = 'Notes — read, edit and add annotations';
+  button.title = 'Notes: read, edit and add annotations';
   button.insertAdjacentHTML('afterbegin', icon('pin') + '<span></span>');
   const buttonLabel = button.querySelector('span');
   document.body.appendChild(button);
@@ -103,7 +103,7 @@ export function initAnnotations(stage, root, pristine) {
   addToggle.className = 'abtn';
   addToggle.title = 'Toggle pin mode, then click the model to add a note';
   addToggle.setAttribute('aria-pressed', 'false');
-  addToggle.insertAdjacentHTML('afterbegin', icon('pin') + '<span>Add pin — click the model</span>');
+  addToggle.insertAdjacentHTML('afterbegin', icon('pin') + '<span>Add pin: click the model</span>');
   const visToggle = document.createElement('button');
   visToggle.className = 'abtn';
   visToggle.title = 'Show / hide all notes on the model';
@@ -156,7 +156,7 @@ export function initAnnotations(stage, root, pristine) {
     const draft = localStorage.getItem(draftKey);
     if (draft && draft !== shipped) {
       pins = JSON.parse(draft);
-      setStatus('Restored unsaved notes — save a copy to keep them');
+      setStatus('Restored unsaved notes. Save a copy to keep them');
     }
   } catch (e) { /* unreadable draft: fall back to the shipped pins */ }
 
@@ -233,7 +233,7 @@ export function initAnnotations(stage, root, pristine) {
   /** Flag pending changes (status + draft). */
   function markUnsaved() {
     saveDraft();
-    if (JSON.stringify(pins) !== shipped) setStatus('Unsaved notes — save a copy to keep them');
+    if (JSON.stringify(pins) !== shipped) setStatus('Unsaved notes. Save a copy to keep them');
     else setStatus('');
   }
 
@@ -314,7 +314,7 @@ export function initAnnotations(stage, root, pristine) {
       a.click();
       URL.revokeObjectURL(a.href);
       clearDraft();
-      setStatus('Saved — send the downloaded copy back');
+      setStatus('Saved. Send the downloaded copy back');
     } catch (e) {
       setStatus('Save failed: ' + (e && e.message ? e.message : e));
     }

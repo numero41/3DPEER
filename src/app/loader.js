@@ -42,7 +42,7 @@ async function loadFile(stage, file) {
   // Convert whatever was dropped to GLB (a pass-through for .glb/.gltf).
   const ext = (file.name.split('.').pop() || '').toLowerCase();
   if (file.size > LARGE_FILE_BYTES && ext !== 'glb' && ext !== 'gltf') {
-    setStatus(`Large ${ext} file (${(file.size / 1e6).toFixed(0)} MB) — conversion can take a while and may exceed the browser's memory; a .glb export from your DCC handles this size best`, 'warn');
+    setStatus(`Large ${ext} file (${(file.size / 1e6).toFixed(0)} MB). Conversion can take a while and may exceed the browser's memory. A .glb export from your DCC handles this size best`, 'warn');
   } else {
     setStatus(ext !== 'glb' && ext !== 'gltf' ? 'Converting…' : 'Loading…');
   }
@@ -77,7 +77,7 @@ async function loadFile(stage, file) {
   gltf.scene.traverse((o) => { if (o.isMesh) meshCount++; });
   if (!meshCount) {
     progress.hide();
-    setStatus(`No geometry found in ${file.name} — this file variant is not supported yet`, 'error');
+    setStatus(`No geometry found in ${file.name}. This file variant is not supported yet`, 'error');
     return;
   }
 
@@ -104,7 +104,7 @@ async function loadFile(stage, file) {
 
   buildPanels(gltf);
   document.body.classList.add('loaded');
-  setStatus(`${state.name} — ${(file.size / 1e6).toFixed(2)} MB loaded, processed locally`, 'ok');
+  setStatus(`${state.name} · ${(file.size / 1e6).toFixed(2)} MB loaded, processed locally`, 'ok');
   reapplyMaterial();
   scheduleEstimate(0);
 }

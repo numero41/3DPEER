@@ -162,7 +162,7 @@ async function optimizedGLB(settings, onProgress, fallbackToRaw = true) {
   } catch (e) {
     if (!fallbackToRaw) throw e;
     console.warn('compression failed, exporting raw bytes:', e);
-    setStatus('Compression failed (' + (e.message || e) + ') — generating uncompressed', 'warn');
+    setStatus('Compression failed (' + (e.message || e) + '), generating uncompressed', 'warn');
     bytes = state.glbBytes;
   }
   glbCache.key = key;
@@ -398,7 +398,7 @@ export function initExport(stage) {
       a.download = state.name + '.3dpeer.html';
       a.click();
       URL.revokeObjectURL(a.href);
-      setStatus(`Generated ${state.name}.3dpeer.html — ${sizeSummary(blob)}`, 'ok');
+      setStatus(`Generated ${state.name}.3dpeer.html · ${sizeSummary(blob)}`, 'ok');
     }));
 
   // View: open the generated artifact in a new tab (a real browser render,
@@ -430,14 +430,14 @@ export function initExport(stage) {
       const file = new File([blob], state.name + '.3dpeer.html', { type: 'text/html' });
       try {
         await navigator.share({ files: [file], title: state.name });
-        setStatus(`Shared ${state.name}.3dpeer.html — ${sizeSummary(blob)}`, 'ok');
+        setStatus(`Shared ${state.name}.3dpeer.html · ${sizeSummary(blob)}`, 'ok');
       } catch (e) {
         if (e.name === 'AbortError') {
           setStatus('Share cancelled');
         } else if (e.name === 'NotAllowedError') {
           // The user gesture expired during a long build; the artifact is now
           // cached, so the next press shares instantly.
-          setStatus('Ready to share — press Share HTML again', 'warn');
+          setStatus('Ready to share. Press Share HTML again', 'warn');
         } else {
           throw e;
         }
