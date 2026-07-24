@@ -1,8 +1,9 @@
-// panels.js — the right-side overlay panel: animations, morphs and parts.
+// panels.js — the scene panel's sections (notes, objects, blend shapes) and
+// the viewport's transport bar.
 //
-// Each section auto-shows only when the model has that content. The whole
-// panel (and its edge toggle) is hidden when the model has none of them.
-// Contents are rebuilt on every load; playback state lives in state.js.
+// Each section auto-shows only when the model has that content; the panels
+// themselves are always docked. Contents are rebuilt on every load, and
+// playback state lives in state.js.
 
 import * as THREE from 'three';
 import { collectMorphs } from '../viewer/morphs.js';
@@ -37,6 +38,14 @@ const partBoxes = new Map();
 
 /** outliner row -> its DIRECT child rows, for collapse/expand. */
 const rowChildren = new Map();
+
+/** While the pointer is held down on an eye, the state it paints onto every
+ *  other eye it slides over (DCC-style drag-to-toggle); null when idle. */
+let eyePaint = null;
+
+// One release ends any paint stroke, wherever it happens.
+addEventListener('pointerup', () => { eyePaint = null; });
+addEventListener('pointercancel', () => { eyePaint = null; });
 
 /** Tag the first visible scene section so dividers land between the rest. */
 function refreshSideVisibility() {
@@ -206,8 +215,12 @@ function appendPartRow(group, list, depth, index) {
 
   for (const node of nodes) partBoxes.set(node, { set: paint, isOn: () => nodes.every((n) => n.visible) });
 
-  eye.addEventListener('click', () => {
-    const next = eye.getAttribute('aria-pressed') !== 'true';
+  /**
+   * Apply one visibility state to this part and everything under it.
+   * @param {boolean} next
+   */
+  const applyVisibility = (next) => {
+    if (eye.getAttribute('aria-pressed') === String(next)) return;
     // Toggling a part cascades to every object under it (a hidden group hides
     // everything below, its rows included).
     for (const node of nodes) {
@@ -220,6 +233,21 @@ function appendPartRow(group, list, depth, index) {
     paint(next);
     syncAnnotationVisibility();
     refreshPolyCount();
+  };
+
+  // Press starts a stroke and flips this row; sliding over other eyes paints
+  // the same state onto them, so a whole run of parts hides in one gesture.
+  eye.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    eyePaint = eye.getAttribute('aria-pressed') !== 'true';
+    applyVisibility(eyePaint);
+  });
+  eye.addEventListener('pointerenter', () => {
+    if (eyePaint !== null) applyVisibility(eyePaint);
+  });
+  // Keyboard and assistive activation still work through a plain click.
+  eye.addEventListener('click', (event) => {
+    if (event.detail === 0) applyVisibility(eye.getAttribute('aria-pressed') !== 'true');
   });
 
   row.append(twisty, eye, name);
@@ -333,28 +361,3 @@ export function buildPanels(gltf) {
   refreshPolyCount();
 }
 
-/**
- * Wire one panel toggle to its panel. Each icon points at its own side and
- * flips between the open and close glyph.
- * @param {string} buttonId the toggle button
- * @param {string} panelId the panel it controls
- * @param {string} openIcon sprite id shown while the panel is closed
- * @param {string} closeIcon sprite id shown while the panel is open
- */
-function wirePanelToggle(buttonId, panelId, openIcon, closeIcon) {
-  const toggle = $(buttonId);
-  toggle.addEventListener('click', () => {
-    const open = $(panelId).classList.toggle('open');
-    toggle.setAttribute('aria-pressed', String(open));
-    toggle.querySelector('use').setAttribute('href', open ? closeIcon : openIcon);
-    // Docking/undocking a panel reflows the row, so the canvas must re-fit its
-    // box — otherwise the drawing buffer keeps the old size and letterboxes.
-    requestAnimationFrame(() => dispatchEvent(new Event('resize')));
-  });
-}
-
-/** Wire both side-panel toggles (scene on the left, export on the right). */
-export function initSidePanel() {
-  wirePanelToggle('panel-left-toggle', 'side-left', '#i-panel-left-open', '#i-panel-left-close');
-  wirePanelToggle('panel-right-toggle', 'side-right', '#i-panel-open', '#i-panel-close');
-}

@@ -29,7 +29,7 @@
 <main class="workbench">
   <div class="stage-row">
     <!-- left panel: everything about the scene you loaded -->
-    <aside id="side-left" class="side-panel">
+    <aside id="side-left" class="side-panel open">
       <header class="panel-head"><h2>Scene</h2></header>
       <div class="panel-body">
         <section class="side-sec hidden" id="panel-notes">
@@ -61,13 +61,11 @@
         <input id="file-input" type="file" accept=".glb,.gltf,.obj,.stl,.ply,.fbx,.usdz">
       </div>
 
-      <!-- panel toggles, one per side, each pointing at its own panel -->
-      <button id="panel-left-toggle" class="icon-btn stage-toggle stage-toggle-l" title="Show or hide the scene panel" aria-label="Toggle the scene panel" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-panel-left-open"></use></svg></button>
-      <button id="panel-right-toggle" class="icon-btn stage-toggle stage-toggle-r" title="Show or hide the export panel" aria-label="Toggle the export panel" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-panel-open"></use></svg></button>
-
       <!-- heads-up readouts, centred at the top; no frame, they are text -->
       <div class="hud" id="hud">
-        <p class="hud-line" id="hud-poly">Polys: —</p>
+        <p class="hud-line hud-poly" id="hud-verts">Verts: —</p>
+        <p class="hud-line hud-poly" id="hud-faces">Faces: —</p>
+        <p class="hud-line hud-poly" id="hud-edges">Edges: —</p>
         <p class="hud-line" id="hud-fps">FPS: —</p>
       </div>
 
@@ -94,7 +92,7 @@
                 <g class="cube-face" data-view="bottom"><rect x="27" y="54" width="26" height="26" rx="2"/><text x="40" y="70">D</text></g>
               </svg>
               <div class="menu-row">
-                <button data-view="persp">Perspective</button>
+                <button class="icon-btn" data-view="persp" title="Perspective view" aria-label="Perspective view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-view-persp"></use></svg></button>
               </div>
             </div>
           </div>
@@ -111,9 +109,8 @@
 
         <div class="tool-group">
           <button id="fit" class="icon-btn" title="Fit model to view (1:1)" aria-label="Fit to view"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fit"></use></svg></button>
-          <button id="quad" class="icon-btn" title="Quad view: top, front, right and perspective" aria-label="Quad view" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-quad"></use></svg></button>
-          <button id="compare" class="icon-btn" title="Compare original and compressed side by side" aria-label="Compare compression" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-compare"></use></svg></button>
           <button id="fullscreen" class="icon-btn" title="Toggle fullscreen" aria-label="Fullscreen"><svg class="ico" viewBox="0 0 24 24"><use href="#i-fullscreen"></use></svg></button>
+          <button id="quad" class="icon-btn" title="Quad view: top, front, right and perspective" aria-label="Quad view" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-quad"></use></svg></button>
         </div>
 
         <div class="tool-group">
@@ -128,6 +125,7 @@
               <label class="menu-item"><input type="checkbox" id="wire-toggle"><span>Wireframe overlay</span></label>
             </div>
           </div>
+          <button id="compare" class="icon-btn" title="Compare original and compressed side by side" aria-label="Compare compression" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24"><use href="#i-compare"></use></svg></button>
           <div class="menu-group">
             <button class="icon-btn" data-menu="light" aria-haspopup="true" aria-expanded="false" title="Lighting"><svg class="ico" viewBox="0 0 24 24"><use href="#i-light"></use></svg></button>
             <div class="menu-pop menu-pop-up" id="menu-light" role="menu">
@@ -154,7 +152,7 @@
     </section>
 
     <!-- right panel: how the file is built, and the actions that build it -->
-    <aside id="side-right" class="side-panel">
+    <aside id="side-right" class="side-panel open">
       <header class="panel-head"><h2>Export</h2></header>
       <div class="panel-body">
         <section class="side-sec first-visible">
@@ -185,10 +183,11 @@
           </label>
           <div class="comp-foot">
             <button id="c-reset" title="Reset all sliders to the default quality">Reset</button>
-            <p class="comp-est">Estimated · <b id="v-est">—</b></p>
           </div>
         </section>
       </div>
+
+      <p class="comp-est">Estimated · <b id="v-est">—</b></p>
 
       <div class="action-col">
         <button id="export" class="btn-primary" title="Generate the self-contained HTML file and download it"><svg class="ico" viewBox="0 0 24 24"><use href="#i-export"></use></svg>Generate HTML</button>

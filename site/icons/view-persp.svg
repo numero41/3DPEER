@@ -1,4 +1,4 @@
-<!-- bespoke (3dpeer): cabinet-projection cube, viewed face highlighted -->
+<!-- bespoke (3dpeer): cabinet-projection cube, perspective preset -->
 <svg
   class="lucide lucide-view-persp"
   xmlns="http://www.w3.org/2000/svg"
@@ -11,7 +11,6 @@
   stroke-linecap="round"
   stroke-linejoin="round"
 >
-  
   <rect x="5" y="9" width="12" height="12" />
   <path d="M5 9 L9 5 L21 5 L21 17 L17 21" />
   <path d="M17 9 L21 5" />

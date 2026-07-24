@@ -37,9 +37,10 @@ function group(n) {
  * the honest figure for a display budget, not a topology audit.
  */
 export function refreshPolyCount() {
-  const line = $('hud-poly');
   if (!state.root) {
-    line.textContent = 'Polys: —';
+    $('hud-verts').textContent = 'Verts: —';
+    $('hud-faces').textContent = 'Faces: —';
+    $('hud-edges').textContent = 'Edges: —';
     return;
   }
   let vertices = 0;
@@ -56,7 +57,9 @@ export function refreshPolyCount() {
   // Closed triangle mesh: E = 3F/2. Open meshes have slightly more; this is
   // the standard DCC estimate and is labelled as a count, not a proof.
   const edges = Math.round(faces * 1.5);
-  line.textContent = `Verts: ${group(vertices)}   Faces: ${group(faces)}   Edges: ${group(edges)}`;
+  $('hud-verts').textContent = 'Verts: ' + group(vertices);
+  $('hud-faces').textContent = 'Faces: ' + group(faces);
+  $('hud-edges').textContent = 'Edges: ' + group(edges);
 }
 
 /**
@@ -85,7 +88,7 @@ export function initHud() {
   const sync = () => {
     const poly = $('hud-poly-toggle').checked;
     const fps = $('hud-fps-toggle').checked;
-    $('hud-poly').classList.toggle('hidden', !poly);
+    document.querySelectorAll('.hud-poly').forEach((line) => line.classList.toggle('hidden', !poly));
     $('hud-fps').classList.toggle('hidden', !fps);
     $('hud').classList.toggle('hidden', !poly && !fps);
   };

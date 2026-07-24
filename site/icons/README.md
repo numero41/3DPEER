@@ -24,6 +24,7 @@ via `currentColor`, so leave no hard-coded colours in the files.
 | `fullscreen-exit.svg` | `minimize-2`       | exit fullscreen                  |
 | `quad.svg`          | `layout-grid`        | quad-view toggle                 |
 | `compare.svg`       | `columns-2`          | before/after compression split   |
+| `view-persp.svg`    | *(bespoke cube)*     | perspective camera preset        |
 | `panel-open.svg`    | `panel-right-open`   | open the right-side panel        |
 | `panel-close.svg`   | `panel-right-close`  | close the right-side panel       |
 | `panel-left-open.svg`  | `panel-right-open` *(mirrored)*  | open the left-side panel   |

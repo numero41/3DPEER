@@ -17,9 +17,9 @@
   --black: #000000;
   --bg: #1c1a16;
   --surface: #26241e;
-  --ink: #efece3;
-  --muted: #b2ac9d;
-  --faint: #878172;
+  --ink: #f6f3ec;
+  --muted: #c9c3b4;
+  --faint: #9c9587;
   --line: #2e2b23;
   --line-strong: #3e3a30;
   --stage-bg: #2b2822;
@@ -27,13 +27,15 @@
 
   /* ---- overlays drawn over the dark viewport ---- */
   --overlay: rgba(28, 26, 22, 0.82);
-  --overlay-ink: #f6f3ea;
+  --overlay-ink: #fbf8f1;
   --overlay-line: rgba(246, 243, 234, 0.22);
   --panel-bg: rgba(24, 22, 18, 0.96);
   --face-fill: rgba(246, 243, 234, 0.07);
   --face-line: rgba(246, 243, 234, 0.40);
   --field-bg: rgba(0, 0, 0, 0.28);
   --soft-ink: rgba(246, 243, 234, 0.08);
+  /* HUD readouts sit a touch warmer than the rest of the overlay chrome. */
+  --hud-ink: #e8d9a8;
 
   /* ---- semantic roles ---- */
   --accent: var(--btn-dark);
@@ -116,11 +118,11 @@
   --ctrl: 34px;
   --icon: 18px;
   --icon-stroke: 2;
-  --cube-w: 96px;
+  --cube-w: 140px;
   --menu-w: 190px;
   --stage-max: 800px;
   --compare-split-w: 42%;
-  --compare-label-b-right: 64px;
+  --compare-handle-drop: 40px;
 
   /* ---- viewport HUD + transport ---- */
   --transport-bottom: 58px;
@@ -181,8 +183,6 @@ body {
   background: var(--bg);
   color: var(--ink);
   font: var(--fs-base)/1.55 var(--sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ============================================================= hover formula */
@@ -322,6 +322,8 @@ button:hover,
 }
 
 /* ===================================================================== stage */
+/* No overflow clipping here: control tooltips have to be able to leave the
+   viewport box. The canvas carries the rounded corners itself. */
 .stage {
   position: relative;
   flex: 1 1 auto;
@@ -329,7 +331,6 @@ button:hover,
   min-width: 0;
   max-width: var(--stage-max);
   aspect-ratio: 1 / 1;
-  overflow: hidden;
   border: var(--hairline) solid var(--line-strong);
   border-radius: var(--r-lg);
   background: var(--stage-bg);
@@ -342,6 +343,7 @@ button:hover,
   display: block;
   width: 100%;
   height: 100%;
+  border-radius: var(--r-lg);
   touch-action: none;
   cursor: grab;
   /* The renderer clears to transparent; the backdrop comes from this token,
@@ -393,8 +395,9 @@ button:hover,
 
 .compare-label {
   position: absolute;
-  top: var(--sp-4);
+  top: 50%;
   z-index: 1;
+  transform: translateY(-50%);
   padding: var(--sp-1) var(--sp-3);
   border: var(--hairline) solid var(--overlay-line);
   border-radius: var(--r-sm);
@@ -410,16 +413,17 @@ button:hover,
 }
 
 .compare-label-b {
-  right: var(--compare-label-b-right);
+  right: var(--sp-4);
 }
 
+/* The handle rides the middle of the view, where the split itself is. */
 #compare-split {
   position: absolute;
-  bottom: var(--sp-4);
+  top: 50%;
   left: 50%;
   z-index: 1;
   width: var(--compare-split-w);
-  transform: translateX(-50%);
+  transform: translate(-50%, calc(-50% + var(--compare-handle-drop)));
 }
 
 .stage:fullscreen {
@@ -434,7 +438,11 @@ button:hover,
 /* ---- dropzone (empty state) ---- */
 .dropzone {
   position: absolute;
-  inset: var(--sp-5);
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -596,14 +604,26 @@ body.loaded .stage-toggle {
   display: none;
 }
 
-/* In the tool column and the side panel, tips open leftward instead. */
-.stage-tools [data-tip]::after,
-.side [data-tip]::after {
+/* In the side panels, tips open leftward instead of upward. */
+.side-panel [data-tip]::after {
   top: 50%;
   right: calc(100% + var(--sp-3));
   bottom: auto;
   left: auto;
   transform: translateY(-50%);
+}
+
+/* The bottom bar's outermost groups would push their tooltip past the stage
+   edge, so those anchor to the inside edge instead of centring on the button. */
+.stage-bar .tool-group:first-child [data-tip]::after {
+  left: 0;
+  transform: none;
+}
+
+.stage-bar .tool-group:last-child [data-tip]::after {
+  right: 0;
+  left: auto;
+  transform: none;
 }
 
 /* ======================================================== popover menus */
@@ -669,14 +689,6 @@ body.loaded .stage-toggle {
   color: var(--overlay-ink);
 }
 
-/* The perspective button matches the unfolded cube: same width as the net,
-   same height as one cube face (the net is 107 units wide, a face 26). */
-#menu-view .menu-row button {
-  width: var(--cube-w);
-  height: calc(var(--cube-w) * 26 / 107);
-  padding: 0;
-}
-
 /* ---- light-menu sliders ---- */
 .menu-slider {
   display: block;
@@ -698,16 +710,38 @@ body.loaded .stage-toggle {
   width: 100%;
 }
 
-/* ---- camera view presets (inside the camera popover) ---- */
-.view-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-3);
+/* ---- camera cube (inside the camera popover) ----
+   Sized so ONE FACE matches an icon button: the net is 107 viewBox units wide
+   for a 26-unit face, so a 34px face needs a 140px net. */
+.cube-net {
+  display: block;
+  width: var(--cube-w);
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
 }
 
-.view-grid .icon-btn {
-  width: 100%;
+.cube-face rect {
+  fill: var(--face-fill);
+  stroke: var(--face-line);
+  stroke-width: var(--hairline);
+  cursor: pointer;
+  transition: fill var(--dur);
+}
+
+.cube-face text {
+  fill: color-mix(in srgb, var(--overlay-ink), transparent 25%);
+  font: 600 var(--fs-xs) var(--mono);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.cube-face:hover rect {
+  fill: color-mix(in srgb, var(--face-fill), var(--overlay-ink) 85%);
+}
+
+.cube-face:hover text {
+  fill: var(--bg);
 }
 
 /* ---- heads-up readouts: centred at the top, no frame, "Label: value" ---- */
@@ -717,7 +751,9 @@ body.loaded .stage-toggle {
   left: 50%;
   z-index: 1;
   display: flex;
-  gap: var(--sp-5);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -729,7 +765,7 @@ body.loaded .stage-toggle {
 
 .hud-line {
   margin: 0;
-  color: var(--overlay-ink);
+  color: var(--hud-ink);
   font: var(--fs-2xs)/1.5 var(--mono);
   letter-spacing: var(--track-tight);
   white-space: nowrap;
@@ -886,13 +922,28 @@ body.loaded .stage-toggle {
   width: 100%;
 }
 
-/* Reset + estimate share the last line of the settings section. */
+/* Reset spans the settings column; the estimate is a panel-level line that
+   sits directly above the actions' separator (see .comp-est). */
 .comp-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
   margin-top: var(--sp-4);
+}
+
+.comp-foot button {
+  width: 100%;
+}
+
+.comp-est {
+  margin: 0;
+  padding: 0 var(--sp-4) var(--sp-3);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+
+.comp-est b {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-weight: 600;
 }
 
 /* ================================================================ annotations */
