@@ -15,17 +15,17 @@
      low saturation) — never blue-grey, never brown. ---- */
   --white: #ffffff;
   --black: #000000;
-  --bg: #17150f;
-  --surface: #322e26;
-  --elevated: #322e26;
-  --inset: #131109;
+  --bg: #1e1b15;
+  --surface: #29251d;
+  --elevated: #35312a;
+  --inset: #232019;
   --ink: #f6f3ec;
   --muted: #c9c3b4;
   --faint: #9c9587;
   --line: #2b2820;
   --line-strong: #3e3a30;
   --stage-bg: var(--inset);
-  --btn-dark: #3d3830;
+  --btn-dark: var(--elevated);
 
   /* ---- overlays drawn over the dark viewport ---- */
   --overlay: rgba(28, 26, 22, 0.82);
@@ -974,6 +974,11 @@ body.loaded .hud {
   box-shadow: var(--shadow);
 }
 
+/* Rounding the panel means its sticky header has to round with it. */
+.panel-head {
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
 /* Collapsed: a narrow strip that still shows its label and chevron. */
 .side-panel.collapsed {
   flex: none;
@@ -1022,7 +1027,7 @@ body.loaded .hud {
   padding: var(--sp-4);
   border: 0;
   border-bottom: var(--hairline) solid var(--line-strong);
-  background: var(--surface);
+  background: var(--elevated);
   cursor: pointer;
 }
 
